@@ -339,21 +339,35 @@ export function AdminDashboard() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col gap-2">
-                        <select
-                          value={student.status}
-                          onClick={(event) => event.stopPropagation()}
-                          onChange={(event) =>
-                          updateStatus(
-                            student.id,
-                            event.target.value as 'Pending' | 'Approved' | 'Rejected'
-                          )
-                          }
-                          className={`px-3 py-1 text-xs font-bold rounded-full border-none w-fit cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-200 ${student.status === 'Approved' ? 'bg-[#BBF7D0] text-green-800' : student.status === 'Rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}
-                        >
-                          <option value="Pending">Pending</option>
-                          <option value="Approved">Approved</option>
-                          <option value="Rejected">Rejected</option>
-                        </select>
+                        <div className="relative w-fit">
+                          <select
+                            value={student.status}
+                            onClick={(event) => event.stopPropagation()}
+                            onChange={(event) =>
+                            updateStatus(
+                              student.id,
+                              event.target.value as 'Pending' | 'Approved' | 'Rejected'
+                            )
+                            }
+                            className={`px-3 py-1 pr-7 text-xs font-bold rounded-full border-none appearance-none w-fit cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-200 ${student.status === 'Approved' ? 'bg-[#BBF7D0] text-green-800' : student.status === 'Rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}
+                          >
+                            <option value="Pending" className="bg-yellow-50 text-yellow-800" style={{ backgroundColor: '#FEF9C3', color: '#854D0E' }}>
+                              Pending
+                            </option>
+                            <option value="Approved" className="bg-green-50 text-green-800" style={{ backgroundColor: '#DCFCE7', color: '#166534' }}>
+                              Approved
+                            </option>
+                            <option value="Rejected" className="bg-red-50 text-red-800" style={{ backgroundColor: '#FEE2E2', color: '#991B1B' }}>
+                              Rejected
+                            </option>
+                          </select>
+                          <span
+                            aria-hidden="true"
+                            className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-current"
+                          >
+                            ▾
+                          </span>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

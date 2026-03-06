@@ -159,6 +159,33 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
       normalizedFormData.idPicture = null;
     }
 
+    if (
+      typeof File !== 'undefined' &&
+      formData.incomeProof instanceof File
+    ) {
+      const sanitizedFileName = formData.incomeProof.name.replace(/\s+/g, '_');
+      const storagePath = `${user.id}/income-proof/${Date.now()}_${sanitizedFileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('enrollment-files')
+        .upload(storagePath, formData.incomeProof, {
+          upsert: false
+        });
+
+      if (uploadError) {
+        return {
+          error: uploadError.message
+        };
+      }
+
+      normalizedFormData.incomeProof = {
+        fileName: formData.incomeProof.name,
+        storagePath
+      };
+    } else {
+      normalizedFormData.incomeProof = null;
+    }
+
     const payload = {
       parent_id: user.id,
       child_first_name: formData.childFirstName,

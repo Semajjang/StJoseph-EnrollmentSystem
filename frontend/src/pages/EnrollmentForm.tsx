@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEnrollment } from '../context/EnrollmentContext';
 import { useAuth } from '../context/AuthContext';
+
+const ENROLLMENT_DRAFT_STORAGE_KEY = 'enrollment-form-draft';
+let enrollmentDraftFile: File | null = null;
+let enrollmentDraftPreviewUrl: string | null = null;
+let enrollmentDraftIncomeProofFile: File | null = null;
+
 interface FormData {
   // Learner Info
   childFirstName: string;
@@ -20,11 +26,15 @@ interface FormData {
   fatherName: string;
   guardianName: string;
   relationship: string;
+  relationshipOther: string;
+  guardianOccupation: string;
   motherOccupation: string;
   fatherOccupation: string;
   motherContact: string;
   fatherContact: string;
+  guardianContact: string;
   monthlyIncome: string;
+  incomeProof: File | null;
   // Program Info
   program: string;
   schoolYear: string;
@@ -46,11 +56,15 @@ const initialFormData: FormData = {
   fatherName: '',
   guardianName: '',
   relationship: '',
+  relationshipOther: '',
+  guardianOccupation: '',
   motherOccupation: '',
   fatherOccupation: '',
   motherContact: '',
   fatherContact: '',
+  guardianContact: '',
   monthlyIncome: '',
+  incomeProof: null,
   program: 'Pre-Kindergarten 1',
   schoolYear: '2024-2025',
   schedule: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
@@ -66,6 +80,59 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const rawDraft = sessionStorage.getItem(ENROLLMENT_DRAFT_STORAGE_KEY);
+
+    if (rawDraft) {
+      try {
+        const parsedDraft = JSON.parse(rawDraft) as {
+          currentStep?: number;
+          formData?: Partial<FormData>;
+        };
+
+        if (parsedDraft.formData) {
+          setFormData((prev) => ({
+            ...prev,
+            ...parsedDraft.formData,
+            idPicture: enrollmentDraftFile,
+            incomeProof: enrollmentDraftIncomeProofFile
+          }));
+        }
+
+        if (
+          typeof parsedDraft.currentStep === 'number' &&
+          parsedDraft.currentStep >= 1 &&
+          parsedDraft.currentStep <= 3
+        ) {
+          setCurrentStep(parsedDraft.currentStep);
+        }
+      } catch {
+        sessionStorage.removeItem(ENROLLMENT_DRAFT_STORAGE_KEY);
+      }
+    }
+
+    if (enrollmentDraftPreviewUrl) {
+      setPreviewUrl(enrollmentDraftPreviewUrl);
+    }
+  }, []);
+
+  useEffect(() => {
+    const serializedFormData = {
+      ...formData,
+      idPicture: null,
+      incomeProof: null
+    };
+
+    sessionStorage.setItem(
+      ENROLLMENT_DRAFT_STORAGE_KEY,
+      JSON.stringify({
+        currentStep,
+        formData: serializedFormData
+      })
+    );
+  }, [currentStep, formData]);
+
   const steps = [
   {
     number: 1,
@@ -81,6 +148,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
   }];
 
   const updateFormData = (field: keyof FormData, value: any) => {
+    setSubmitError(null);
     setFormData((prev) => {
       const newData = {
         ...prev,
@@ -129,8 +197,21 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      const objectUrl = URL.createObjectURL(file);
+
+      enrollmentDraftFile = file;
+      enrollmentDraftPreviewUrl = objectUrl;
+
       updateFormData('idPicture', file);
-      setPreviewUrl(URL.createObjectURL(file));
+      setPreviewUrl(objectUrl);
+    }
+  };
+
+  const handleIncomeProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      enrollmentDraftIncomeProofFile = file;
+      updateFormData('incomeProof', file);
     }
   };
 
@@ -148,13 +229,131 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
       .filter((segment) => segment.length > 0)
       .join('-');
   };
+
+  const isValidContactNumber = (value: string) => /^09\d{9}$/.test(value);
+
+  const validateStep = (step: number) => {
+    if (step === 1) {
+      if (!formData.idPicture) return 'ID picture is required.';
+      if (!formData.childFirstName.trim()) return 'First name is required.';
+      if (!formData.childLastName.trim()) return 'Last name is required.';
+      if (!formData.sex) return 'Sex is required.';
+      if (!formData.dateOfBirth) return 'Birthday is required.';
+      if (!formData.address.trim()) return 'Complete address is required.';
+      if (!formData.financialProgram) return 'Financial program is required.';
+    }
+
+    if (step === 2) {
+      const hasMotherInput =
+        formData.motherName.trim().length > 0 ||
+        formData.motherOccupation.trim().length > 0 ||
+        formData.motherContact.trim().length > 0;
+      const hasFatherInput =
+        formData.fatherName.trim().length > 0 ||
+        formData.fatherOccupation.trim().length > 0 ||
+        formData.fatherContact.trim().length > 0;
+      const hasGuardianInput =
+        formData.guardianName.trim().length > 0 ||
+        formData.relationship.trim().length > 0 ||
+        formData.relationshipOther.trim().length > 0 ||
+        formData.guardianOccupation.trim().length > 0 ||
+        formData.guardianContact.trim().length > 0;
+
+      const hasRelationshipValue =
+        formData.relationship !== 'Other' ?
+        formData.relationship.trim().length > 0 :
+        formData.relationshipOther.trim().length > 0;
+
+      const isMotherComplete =
+        formData.motherName.trim().length > 0 &&
+        formData.motherOccupation.trim().length > 0 &&
+        isValidContactNumber(formData.motherContact);
+      const isFatherComplete =
+        formData.fatherName.trim().length > 0 &&
+        formData.fatherOccupation.trim().length > 0 &&
+        isValidContactNumber(formData.fatherContact);
+      const isGuardianComplete =
+        formData.guardianName.trim().length > 0 &&
+        hasRelationshipValue &&
+        formData.guardianOccupation.trim().length > 0 &&
+        isValidContactNumber(formData.guardianContact);
+
+      if (hasMotherInput && !isMotherComplete) {
+        return "If mother's details are provided, complete name, occupation, and a valid 11-digit contact number (09XXXXXXXXX).";
+      }
+
+      if (hasFatherInput && !isFatherComplete) {
+        return "If father's details are provided, complete name, occupation, and a valid 11-digit contact number (09XXXXXXXXX).";
+      }
+
+      if (hasGuardianInput && !isGuardianComplete) {
+        return "If guardian details are provided, complete guardian name, relationship, occupation, and a valid 11-digit contact number (09XXXXXXXXX).";
+      }
+
+      if (!isMotherComplete && !isFatherComplete && !isGuardianComplete) {
+        return 'Please provide at least one complete caregiver profile (Mother, Father, or Guardian).';
+      }
+
+      if (!formData.monthlyIncome) return 'Monthly family income is required.';
+      if (!formData.incomeProof) return 'Proof of income (ITR) is required.';
+    }
+
+    return null;
+  };
+
+  const validateThroughStep = (targetStep: number) => {
+    for (let step = 1; step <= targetStep; step += 1) {
+      const error = validateStep(step);
+      if (error) {
+        setCurrentStep(step);
+        setSubmitError(error);
+        return false;
+      }
+    }
+
+    setSubmitError(null);
+    return true;
+  };
+
+  const handleStepClick = (targetStep: number) => {
+    if (targetStep <= currentStep) {
+      setCurrentStep(targetStep);
+      return;
+    }
+
+    for (let step = currentStep; step < targetStep; step += 1) {
+      const error = validateStep(step);
+      if (error) {
+        setCurrentStep(step);
+        setSubmitError(error);
+        return;
+      }
+    }
+
+    setSubmitError(null);
+    setCurrentStep(targetStep);
+  };
+
   const handleNext = () => {
-    if (currentStep < 3) setCurrentStep((prev) => prev + 1);
+    if (currentStep < 3) {
+      const error = validateStep(currentStep);
+      if (error) {
+        setSubmitError(error);
+        return;
+      }
+
+      setSubmitError(null);
+      setCurrentStep((prev) => prev + 1);
+    }
   };
   const handleBack = () => {
     if (currentStep > 1) setCurrentStep((prev) => prev - 1);
   };
   const handleSubmit = async () => {
+    if (!validateThroughStep(2)) {
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -166,9 +365,17 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
       return;
     }
 
+    sessionStorage.removeItem(ENROLLMENT_DRAFT_STORAGE_KEY);
+    enrollmentDraftFile = null;
+    enrollmentDraftPreviewUrl = null;
+    enrollmentDraftIncomeProofFile = null;
+
     setIsSubmitting(false);
     onSuccess();
   };
+
+  const requiredMark = <span className="text-red-500 ml-1">*</span>;
+
   return (
     <div className="p-8 pb-24">
       {/* Header */}
@@ -179,6 +386,9 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
         <p className="text-gray-500 mt-1">
           Complete the form below to enroll your child.
         </p>
+        <p className="text-xs text-gray-500 mt-2">
+          <span className="text-red-500 font-bold">*</span> Required fields
+        </p>
       </div>
 
       {/* Step Bubbles */}
@@ -186,7 +396,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
         {steps.map((step, index) =>
         <div key={step.number} className="flex items-center">
             <motion.button
-            onClick={() => setCurrentStep(step.number)}
+            onClick={() => handleStepClick(step.number)}
             className={`relative flex flex-col items-center group`}
             whileHover={{
               scale: 1.05
@@ -285,13 +495,16 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     <div className="absolute -bottom-2 -right-2 bg-[#BAE6FD] w-8 h-8 rounded-full flex items-center justify-center shadow-sm pointer-events-none">
                       <span className="text-xs font-bold">Edit</span>
                     </div>
+                    <p className="text-xs text-center text-gray-500 mt-3">
+                      ID Picture {requiredMark}
+                    </p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
-                      First Name
+                      First Name {requiredMark}
                     </label>
                     <input
                     type="text"
@@ -319,7 +532,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
-                      Last Name
+                      Last Name {requiredMark}
                     </label>
                     <input
                     type="text"
@@ -336,7 +549,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
-                      Sex
+                      Sex {requiredMark}
                     </label>
                     <div className="flex bg-gray-100 p-1 rounded-xl">
                       <button
@@ -357,7 +570,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
-                      Birthday
+                      Birthday {requiredMark}
                     </label>
                     <input
                     type="date"
@@ -386,7 +599,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
 
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
-                    Complete Address
+                    Complete Address {requiredMark}
                   </label>
                   <textarea
                   value={formData.address}
@@ -415,7 +628,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
-                      Financial Program
+                      Financial Program {requiredMark}
                     </label>
                     <select
                     value={formData.financialProgram}
@@ -477,6 +690,10 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     Guardian Information
                   </h2>
                 </div>
+
+                <p className="text-xs text-gray-500 -mt-3">
+                  Provide at least one complete caregiver profile: Mother, Father, or Guardian.
+                </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -561,9 +778,13 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     </label>
                     <select
                     value={formData.relationship}
-                    onChange={(e) =>
-                    updateFormData('relationship', e.target.value)
+                    onChange={(e) => {
+                    const value = e.target.value;
+                    updateFormData('relationship', value);
+                    if (value !== 'Other') {
+                      updateFormData('relationshipOther', '');
                     }
+                    }}
                     className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white">
 
                       <option value="">Select Relationship</option>
@@ -572,6 +793,60 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                       <option value="Sibling">Sibling</option>
                       <option value="Other">Other</option>
                     </select>
+                    {formData.relationship === 'Other' ?
+                    <input
+                      type="text"
+                      value={formData.relationshipOther}
+                      onChange={(e) =>
+                      updateFormData('relationshipOther', e.target.value)
+                      }
+                      className="w-full mt-2 px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                      placeholder="Please specify relationship" /> :
+
+                    null}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                      Guardian's Occupation
+                    </label>
+                    <input
+                    type="text"
+                    value={formData.guardianOccupation}
+                    onChange={(e) =>
+                    updateFormData('guardianOccupation', e.target.value)
+                    }
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    placeholder="Occupation" />
+
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                      Guardian's Contact No.
+                    </label>
+                    <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={11}
+                    pattern="09[0-9]{9}"
+                    title="Use 11 digits starting with 09"
+                    value={formData.guardianContact}
+                    onFocus={() => {
+                    if (!formData.guardianContact) {
+                      updateFormData('guardianContact', '09');
+                    }
+                    }}
+                    onChange={(e) =>
+                    updateFormData(
+                      'guardianContact',
+                      formatGuardianContact(e.target.value)
+                    )
+                    }
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    placeholder="09XXXXXXXXX" />
+
                   </div>
                 </div>
 
@@ -630,23 +905,39 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
-                    Monthly Family Income
-                  </label>
-                  <select
-                  value={formData.monthlyIncome}
-                  onChange={(e) =>
-                  updateFormData('monthlyIncome', e.target.value)
-                  }
-                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                      Monthly Family Income {requiredMark}
+                    </label>
+                    <select
+                    value={formData.monthlyIncome}
+                    onChange={(e) =>
+                    updateFormData('monthlyIncome', e.target.value)
+                    }
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white">
 
-                    <option value="">Select Income Range</option>
-                    <option value="Below 10k">Below ₱10,000</option>
-                    <option value="10k-20k">₱10,000 - ₱20,000</option>
-                    <option value="20k-50k">₱20,000 - ₱50,000</option>
-                    <option value="Above 50k">Above ₱50,000</option>
-                  </select>
+                      <option value="">Select Income Range</option>
+                      <option value="Below 10k">Below ₱10,000</option>
+                      <option value="10k-20k">₱10,000 - ₱20,000</option>
+                      <option value="20k-50k">₱20,000 - ₱50,000</option>
+                      <option value="Above 50k">Above ₱50,000</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                      Proof of Income (ITR) {requiredMark}
+                    </label>
+                    <label className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus-within:border-[#BAE6FD] transition-colors bg-white cursor-pointer block text-sm text-gray-600 truncate">
+                      {formData.incomeProof ? formData.incomeProof.name : 'Upload file'}
+                      <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={handleIncomeProofChange}
+                      className="hidden" />
+
+                    </label>
+                  </div>
                 </div>
               </motion.div>
             }
