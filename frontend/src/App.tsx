@@ -61,6 +61,7 @@ function AppContent() {
         return <Contact />;
       default:
         return isManagementRole ?
+<<<<<<< HEAD
         <StaffDashboard /> :
 
         <HomePage onNavigate={setActivePage} />;
