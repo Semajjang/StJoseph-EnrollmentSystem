@@ -1,0 +1,125 @@
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
+import { UserIcon, LockIcon, ArrowRightIcon } from 'lucide-react';
+interface LoginPageProps {
+  onSwitchToSignup: () => void;
+}
+export function LoginPage({ onSwitchToSignup }: LoginPageProps) {
+  const { login } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    const { error } = await login(email, password);
+
+    if (error) {
+      setErrorMessage(error);
+    }
+
+    setIsLoading(false);
+  };
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#EEF5FF] p-4">
+      <motion.div
+        initial={{
+          opacity: 0,
+          y: 20
+        }}
+        animate={{
+          opacity: 1,
+          y: 0
+        }}
+        className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-blue-100">
+
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#1D4ED8] to-[#60A5FA] p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-white/90 border border-blue-100 flex items-center justify-center text-xs font-bold text-blue-700">
+            LOGO
+          </div>
+          <h1 className="text-2xl font-bold text-gray-800">
+            St. Joseph Daycare Center
+          </h1>
+          <p className="text-blue-900 font-medium">Sign in to continue.</p>
+        </div>
+
+        {/* Form */}
+        <div className="p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-blue-100 bg-[#EFF6FF] focus:border-[#60A5FA] focus:outline-none transition-colors"
+                    placeholder="parent@example.com" />
+
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">
+                  Password <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-blue-100 bg-[#EFF6FF] focus:border-[#60A5FA] focus:outline-none transition-colors"
+                    placeholder="••••••••" />
+
+                </div>
+              </div>
+            </div>
+
+            {errorMessage ?
+            <p className="text-sm font-medium text-red-600">{errorMessage}</p> :
+            null}
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-[#1D4ED8] hover:bg-[#1E40AF] text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+
+              {isLoading ?
+              <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> :
+
+              <>
+                  Sign In <ArrowRightIcon className="w-5 h-5" />
+                </>
+              }
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-gray-500 text-sm">
+              Don't have an account?{' '}
+              <button
+                onClick={onSwitchToSignup}
+                className="text-[#3B82F6] font-bold hover:underline">
+
+                Sign up here
+              </button>
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    </div>);
+
+}
