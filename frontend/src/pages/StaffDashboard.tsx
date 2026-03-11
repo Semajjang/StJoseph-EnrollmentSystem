@@ -831,7 +831,7 @@ export function StaffDashboard() {
           opacity: 1,
           y: 0
         }}
-        className="bg-gradient-to-r from-[#FBCFE8] to-[#F9A8D4] rounded-3xl p-8 mb-10 text-white shadow-lg relative overflow-hidden">
+        className="bg-gradient-to-r from-[#93C5FD] via-[#3B82F6] to-[#1D4ED8] rounded-3xl p-8 mb-10 text-white shadow-lg relative overflow-hidden">
 
         <div className="pointer-events-none absolute right-0 top-0 w-64 h-64 bg-white opacity-10 rounded-full -mr-16 -mt-16" />
         <div className="relative z-10">
