@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   HouseIcon,
   LogOutIcon,
+  MessageSquareIcon,
   ClipboardListIcon,
   FolderOpenIcon,
   BarChart3Icon,
@@ -49,19 +50,29 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
     icon: PhoneIcon
   }];
 
-  const adminNavItems = [
+  const managementNavItems = [
   {
-    id: 'adminDashboard',
-    label: 'Classroom Overview',
+    id: 'staffDashboard',
+    label: 'Staff Dashboard',
     icon: Building2Icon
   },
   {
+    id: 'homepageManager',
+    label: 'Homepage Manager',
+    icon: HouseIcon
+  },
+  {
+    id: 'contactManager',
+    label: 'Contact Manager',
+    icon: MessageSquareIcon
+  },
+  {
     id: 'contact',
-    label: 'Contact',
+    label: 'Contact Preview',
     icon: PhoneIcon
   }];
 
-  const navItems = isManagementRole ? adminNavItems : studentNavItems;
+  const navItems = isManagementRole ? managementNavItems : studentNavItems;
   return (
     <aside className="fixed left-0 top-0 h-screen w-[260px] bg-white shadow-lg flex flex-col z-50">
       {/* Logo Area */}

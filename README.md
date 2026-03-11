@@ -3,14 +3,15 @@
 ## Getting Started
 
 1. Run `npm install` (from project root)
-2. Run `npm run dev` (from project root)
+2. Run `npm run setup` (from project root)
+3. Run `npm run dev` (from project root)
 
 ## Project Structure
 
 - `frontend/` — React + Vite web app
 - `backend/supabase/` — Supabase SQL schema and backend-related setup files
 
-Root scripts proxy into `frontend`, so you still use one terminal and one command.
+Root scripts proxy into `frontend`, so you still use one terminal from the repository root.
 
 ## Demo Accounts
 

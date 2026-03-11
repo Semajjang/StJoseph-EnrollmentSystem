@@ -7,8 +7,10 @@ import { SignupPage } from './pages/SignupPage';
 import { EnrollmentForm } from './pages/EnrollmentForm';
 import { Requirements } from './pages/Requirements';
 import { ApplicationStatus } from './pages/ApplicationStatus';
-import { AdminDashboard } from './pages/AdminDashboard';
+import { StaffDashboard } from './pages/StaffDashboard';
+import { HomepageManager } from './pages/HomepageManager';
 import { Contact } from './pages/Contact';
+import { ContactManager } from './pages/ContactManager';
 import { HomePage } from './pages/HomePage';
 function AppContent() {
   const { user, isLoading } = useAuth();
@@ -18,7 +20,7 @@ function AppContent() {
   // Reset active page when role changes
   useEffect(() => {
     if (isManagementRole) {
-      setActivePage('adminDashboard');
+      setActivePage('staffDashboard');
     } else {
       setActivePage('home');
     }
@@ -53,15 +55,19 @@ function AppContent() {
             onGoToRequirements={() => setActivePage('requirements')} />);
 
 
-      // Admin Pages
-      case 'adminDashboard':
-        return <AdminDashboard />;
+      // Staff Pages
+      case 'staffDashboard':
+        return <StaffDashboard />;
+      case 'homepageManager':
+        return <HomepageManager onPreviewHomepage={() => setActivePage('home')} />;
+      case 'contactManager':
+        return <ContactManager onPreviewContact={() => setActivePage('contact')} />;
       // Shared Pages
       case 'contact':
         return <Contact />;
       default:
         return isManagementRole ?
-        <AdminDashboard /> :
+        <StaffDashboard /> :
 
         <HomePage onNavigate={setActivePage} />;
 

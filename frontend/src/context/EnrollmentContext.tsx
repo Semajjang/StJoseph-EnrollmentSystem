@@ -22,6 +22,7 @@ export interface EnrollmentData {
   childFirstName: string;
   childLastName: string;
   program: string;
+  section?: string | null;
   status: 'Pending' | 'Approved' | 'Rejected';
   submittedAt: string;
   role: string; // Usually 'Student'
@@ -36,6 +37,7 @@ interface EnrollmentContextType {
   id: string,
   status: 'Pending' | 'Approved' | 'Rejected')
   => Promise<{ error: string | null }>;
+  updateSection: (id: string, section: string | null) => Promise<{ error: string | null }>;
   updateLatestEnrollmentRequirements: (
   requirements: UploadedRequirement[],
   enrollmentId?: string)
@@ -60,11 +62,14 @@ interface EnrollmentRow {
 }
 
 const mapRowToEnrollment = (row: EnrollmentRow): EnrollmentData => {
+  const sectionValue = row.form_data?.section;
+
   return {
     id: row.id,
     childFirstName: row.child_first_name,
     childLastName: row.child_last_name,
     program: row.program,
+    section: typeof sectionValue === 'string' && sectionValue.trim() ? sectionValue : null,
     status: row.status,
     submittedAt: row.submitted_at,
     role: row.role,
@@ -219,9 +224,19 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
   id: string,
   status: 'Pending' | 'Approved' | 'Rejected') =>
   {
+    const targetEnrollment = enrollments.find((enrollment) => enrollment.id === id);
+    const shouldClearSection = status !== 'Approved';
+    const nextFormData = {
+      ...(targetEnrollment?.formData || {}),
+      section: shouldClearSection ? null : targetEnrollment?.section || null
+    };
+
     return supabase
       .from('enrollments')
-      .update({ status })
+      .update({
+        status,
+        form_data: nextFormData
+      })
       .eq('id', id)
       .then(({ error }) => {
         if (error) {
@@ -235,7 +250,12 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
             enrollment.id === id ?
             {
               ...enrollment,
-              status
+              status,
+              section: shouldClearSection ? null : enrollment.section,
+              formData: {
+                ...(enrollment.formData || {}),
+                section: shouldClearSection ? null : enrollment.section || null
+              }
             } :
             enrollment
           )
@@ -245,6 +265,48 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
           error: null
         };
       });
+  };
+
+  const updateSection = async (id: string, section: string | null) => {
+    const targetEnrollment = enrollments.find((enrollment) => enrollment.id === id);
+
+    if (!targetEnrollment) {
+      return {
+        error: 'Enrollment not found.'
+      };
+    }
+
+    const nextFormData = {
+      ...(targetEnrollment.formData || {}),
+      section
+    };
+
+    const { error } = await supabase
+      .from('enrollments')
+      .update({ form_data: nextFormData })
+      .eq('id', id);
+
+    if (error) {
+      return {
+        error: error.message
+      };
+    }
+
+    setEnrollments((prev) =>
+      prev.map((enrollment) =>
+        enrollment.id === id ?
+        {
+          ...enrollment,
+          section,
+          formData: nextFormData
+        } :
+        enrollment
+      )
+    );
+
+    return {
+      error: null
+    };
   };
 
   const deleteEnrollment = async (id: string) => {
@@ -314,6 +376,7 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
         addEnrollment,
         deleteEnrollment,
         updateStatus,
+        updateSection,
         updateLatestEnrollmentRequirements,
         getStudentEnrollment
       }}>
