@@ -59,7 +59,7 @@ function AppContent() {
         return (
           <ApplicationStatus
             onStartEnrollment={() => setActivePage('enrollment')}
-            onGoToRequirements={() => setActivePage('requirements')} />);
+          />);
       case 'yourChild':
         return <ChildProfile onStartEnrollment={() => setActivePage('enrollment')} />;
 
