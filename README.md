@@ -30,4 +30,5 @@ Use these test accounts for local/demo access:
 ## Notes
 
 - Admin access is controlled by `profiles.role = 'admin'` in Supabase.
+- For password reset emails in production, set `VITE_PASSWORD_RESET_REDIRECT_URL` in `frontend/.env` to your deployed frontend URL and add that same URL to Supabase Auth redirect URLs.
 - Do not commit real Supabase secrets (service role keys, production API keys, private tokens) to the repository.

@@ -6,10 +6,12 @@ interface LoginPageProps {
   onSwitchToSignup: () => void;
 }
 export function LoginPage({ onSwitchToSignup }: LoginPageProps) {
-  const { login } = useAuth();
+  const { login, requestPasswordReset } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,6 +27,29 @@ export function LoginPage({ onSwitchToSignup }: LoginPageProps) {
 
     setIsLoading(false);
   };
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      setErrorMessage('Enter your email first so we know where to send the reset link.');
+      setResetMessage(null);
+      return;
+    }
+
+    setIsResettingPassword(true);
+    setErrorMessage(null);
+    setResetMessage(null);
+
+    const { error } = await requestPasswordReset(email.trim());
+
+    if (error) {
+      setErrorMessage(error);
+    } else {
+      setResetMessage('Password reset link sent. Check your email and open the reset link.');
+    }
+
+    setIsResettingPassword(false);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#EEF5FF] p-4">
       <motion.div
@@ -85,12 +110,26 @@ export function LoginPage({ onSwitchToSignup }: LoginPageProps) {
                     placeholder="••••••••" />
 
                 </div>
+                <div className="mt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => void handleForgotPassword()}
+                    disabled={isResettingPassword}
+                    className="text-sm font-bold text-[#2563EB] transition hover:underline disabled:cursor-not-allowed disabled:text-blue-300"
+                  >
+                    {isResettingPassword ? 'Sending reset link...' : 'Forgot password?'}
+                  </button>
+                </div>
               </div>
             </div>
 
             {errorMessage ?
             <p className="text-sm font-medium text-red-600">{errorMessage}</p> :
             null}
+
+            {resetMessage ?
+              <p className="text-sm font-medium text-green-700">{resetMessage}</p> :
+              null}
 
             <button
               type="submit"

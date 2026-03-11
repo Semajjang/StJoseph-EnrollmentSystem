@@ -44,8 +44,12 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<{ error: string | null }>;
   signup: (data: SignupPayload) => Promise<{ error: string | null }>;
+  requestPasswordReset: (email: string) => Promise<{ error: string | null }>;
+  updatePassword: (password: string) => Promise<{ error: string | null }>;
+  cancelPasswordRecovery: () => Promise<void>;
   logout: () => Promise<void>;
   isLoading: boolean;
+  isPasswordRecovery: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,9 +61,50 @@ interface ProfileRow {
   phone: string | null;
 }
 
+const isRecoveryUrl = () => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const searchParams = new URLSearchParams(window.location.search);
+
+  return hashParams.get('type') === 'recovery' || searchParams.get('type') === 'recovery';
+};
+
+const clearRecoveryUrl = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const nextUrl = `${window.location.pathname}${window.location.search}`;
+  window.history.replaceState({}, document.title, nextUrl);
+};
+
+const getPasswordResetRedirectUrl = () => {
+  const configuredRedirectUrl = import.meta.env.VITE_PASSWORD_RESET_REDIRECT_URL?.trim();
+
+  if (configuredRedirectUrl) {
+    return configuredRedirectUrl;
+  }
+
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+  if (isLocalHost) {
+    return undefined;
+  }
+
+  return `${window.location.origin}${window.location.pathname}`;
+};
+
 export function AuthProvider({ children }: {children: ReactNode;}) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(isRecoveryUrl);
 
   const buildUserFromProfile = (
   authUser: {
@@ -140,6 +185,14 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
       data: { subscription }
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       try {
+        if (_event === 'PASSWORD_RECOVERY') {
+          setIsPasswordRecovery(true);
+        }
+
+        if (_event === 'SIGNED_OUT') {
+          setIsPasswordRecovery(false);
+        }
+
         if (!session?.user) {
           setUser(null);
           return;
@@ -168,6 +221,50 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
 
     return {
       error: error?.message || null
+    };
+  };
+
+  const requestPasswordReset = async (email: string) => {
+    const redirectTo = getPasswordResetRedirectUrl();
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo
+    });
+
+    return {
+      error: error?.message || null
+    };
+  };
+
+  const cancelPasswordRecovery = async () => {
+    setIsPasswordRecovery(false);
+    clearRecoveryUrl();
+    setUser(null);
+
+    try {
+      await supabase.auth.signOut({
+        scope: 'local'
+      });
+    } catch (error) {
+      console.error('Recovery cancel sign out failed:', error);
+    }
+  };
+
+  const updatePassword = async (password: string) => {
+    const { error } = await supabase.auth.updateUser({
+      password
+    });
+
+    if (error) {
+      return {
+        error: error.message
+      };
+    }
+
+    await cancelPasswordRecovery();
+
+    return {
+      error: null
     };
   };
 
@@ -278,8 +375,12 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
         user,
         login,
         signup,
+        requestPasswordReset,
+        updatePassword,
+        cancelPasswordRecovery,
         logout,
-        isLoading
+        isLoading,
+        isPasswordRecovery
       }}>
 
       {children}

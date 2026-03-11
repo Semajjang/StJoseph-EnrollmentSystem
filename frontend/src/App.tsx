@@ -12,8 +12,9 @@ import { HomepageManager } from './pages/HomepageManager';
 import { Contact } from './pages/Contact';
 import { ContactManager } from './pages/ContactManager';
 import { HomePage } from './pages/HomePage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 function AppContent() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isPasswordRecovery } = useAuth();
   const [activePage, setActivePage] = useState('home');
   const [isLoginView, setIsLoginView] = useState(true);
   const isManagementRole = user?.role === 'admin' || user?.role === 'staff';
@@ -31,6 +32,9 @@ function AppContent() {
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#BAE6FD] border-t-transparent"></div>
       </div>);
 
+  }
+  if (isPasswordRecovery) {
+    return <ResetPasswordPage />;
   }
   if (!user) {
     return isLoginView ?
