@@ -9,6 +9,8 @@ import {
   BarChart3Icon,
   PhoneIcon,
   Building2Icon,
+  BabyIcon,
+  ScrollTextIcon,
   UserCircleIcon } from
 'lucide-react';
 import schoolLogo from '../../school-logo.png';
@@ -47,6 +49,11 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
     icon: BarChart3Icon
   },
   {
+    id: 'yourChild',
+    label: 'Your Children',
+    icon: BabyIcon
+  },
+  {
     id: 'contact',
     label: 'Contact',
     icon: PhoneIcon
@@ -69,9 +76,9 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
     icon: MessageSquareIcon
   },
   {
-    id: 'contact',
-    label: 'Contact Preview',
-    icon: PhoneIcon
+    id: 'activityLogs',
+    label: 'Activity Logs',
+    icon: ScrollTextIcon
   }];
 
   const navItems = isManagementRole ? managementNavItems : studentNavItems;

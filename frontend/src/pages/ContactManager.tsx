@@ -37,6 +37,7 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
   const [saveMessage, setSaveMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isSendingReply, setIsSendingReply] = useState(false);
+  const [inboxFilter, setInboxFilter] = useState<'all' | 'New' | 'Replied' | 'Closed'>('all');
 
   useEffect(() => {
     let isMounted = true;
@@ -63,10 +64,38 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
     };
   }, []);
 
-  const selectedMessage = useMemo(
-    () => messages.find((message) => message.id === selectedMessageId) || null,
-    [messages, selectedMessageId]
+  const inboxCounts = useMemo(
+    () => ({
+      all: messages.length,
+      New: messages.filter((message) => message.status === 'New').length,
+      Replied: messages.filter((message) => message.status === 'Replied').length,
+      Closed: messages.filter((message) => message.status === 'Closed').length
+    }),
+    [messages]
   );
+
+  const filteredMessages = useMemo(() => {
+    if (inboxFilter === 'all') {
+      return messages;
+    }
+
+    return messages.filter((message) => message.status === inboxFilter);
+  }, [messages, inboxFilter]);
+
+  const selectedMessage = useMemo(
+    () => filteredMessages.find((message) => message.id === selectedMessageId) || null,
+    [filteredMessages, selectedMessageId]
+  );
+
+  useEffect(() => {
+    setSelectedMessageId((prev) => {
+      if (prev && filteredMessages.some((message) => message.id === prev)) {
+        return prev;
+      }
+
+      return filteredMessages[0]?.id || null;
+    });
+  }, [filteredMessages]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -120,8 +149,12 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
         (left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()
       )
     );
+    if (inboxFilter !== 'all' && inboxFilter !== result.message.status) {
+      setInboxFilter(result.message.status);
+    }
+    setSelectedMessageId(result.message.id);
     setReplyBody('');
-    setSaveMessage('Reply sent to the contact thread.');
+    setSaveMessage('');
   };
 
   const handleStatusChange = async (status: 'New' | 'Replied' | 'Closed') => {
@@ -140,10 +173,28 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
         (left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()
       )
     );
+    if (inboxFilter !== 'all' && inboxFilter !== result.message.status) {
+      setInboxFilter(result.message.status);
+    }
+    setSelectedMessageId(result.message.id);
+  };
+
+  const handleReplyInputKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (isSendingReply || !replyBody.trim()) {
+      return;
+    }
+
+    void handleReply();
   };
 
   return (
-    <div className="p-8 pb-24">
+    <div className="flex h-screen flex-col overflow-hidden p-8">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-sky-600">
@@ -186,10 +237,10 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
         </div> :
         null}
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[0.95fr,1.05fr]">
-        <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 xl:grid-cols-[0.78fr,1.22fr]">
+        <section className="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-xl font-extrabold text-gray-800">Public Contact Details</h2>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-auto pr-1">
             <label className="block">
               <span className="text-sm font-bold text-gray-700">Page Title</span>
               <input
@@ -279,7 +330,7 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+        <section className="flex min-h-0 flex-col rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
               <h2 className="text-xl font-extrabold text-gray-800">Inbox</h2>
@@ -291,7 +342,6 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
               type="button"
               onClick={() => void fetchContactMessages().then((nextMessages) => {
                 setMessages(nextMessages);
-                setSelectedMessageId((prev) => prev || nextMessages[0]?.id || null);
               })}
               className="rounded-xl bg-[#EFF6FF] px-4 py-2 text-sm font-bold text-sky-700 hover:bg-[#DBEAFE]"
             >
@@ -299,13 +349,44 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px,1fr]">
-            <div className="space-y-3">
-              {messages.length === 0 ?
+          <div className="mb-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setInboxFilter('all')}
+              className={`rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${inboxFilter === 'all' ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+            >
+              All ({inboxCounts.all})
+            </button>
+            <button
+              type="button"
+              onClick={() => setInboxFilter('New')}
+              className={`rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${inboxFilter === 'New' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}
+            >
+              New ({inboxCounts.New})
+            </button>
+            <button
+              type="button"
+              onClick={() => setInboxFilter('Replied')}
+              className={`rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${inboxFilter === 'Replied' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
+            >
+              Replied ({inboxCounts.Replied})
+            </button>
+            <button
+              type="button"
+              onClick={() => setInboxFilter('Closed')}
+              className={`rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition ${inboxFilter === 'Closed' ? 'bg-rose-600 text-white' : 'bg-rose-50 text-rose-700 hover:bg-rose-100'}`}
+            >
+              Closed ({inboxCounts.Closed})
+            </button>
+          </div>
+
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-[250px,minmax(0,1fr)]">
+            <div className="min-h-0 space-y-3 overflow-auto pr-1">
+              {filteredMessages.length === 0 ?
                 <div className="rounded-2xl bg-[#F8FBFF] px-4 py-5 text-sm text-gray-500">
-                  No messages yet.
+                  {inboxFilter === 'all' ? 'No messages yet.' : `No ${inboxFilter.toLowerCase()} messages.`}
                 </div> :
-                messages.map((message) =>
+                filteredMessages.map((message) =>
                   <button
                     key={message.id}
                     type="button"
@@ -322,9 +403,9 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
                 )}
             </div>
 
-            <div className="rounded-2xl border border-gray-100 bg-[#F8FBFF] p-5">
+            <div className="flex min-h-0 h-full flex-col overflow-hidden rounded-2xl border border-gray-100 bg-[#F8FBFF] p-5">
               {selectedMessage ?
-                <>
+                <div className="flex min-h-0 flex-1 flex-col">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <h3 className="text-xl font-extrabold text-gray-800">{selectedMessage.subject}</h3>
@@ -347,30 +428,61 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
                     </select>
                   </div>
 
-                  <div className="mt-5 rounded-2xl bg-white px-4 py-4 shadow-sm">
-                    <p className="text-sm leading-6 text-gray-700">{selectedMessage.body}</p>
-                  </div>
-
-                  <div className="mt-5 space-y-3">
+                  <div className="mt-5 flex min-h-0 flex-1 flex-col">
                     <p className="text-sm font-bold uppercase tracking-wide text-gray-500">Thread</p>
-                    {selectedMessage.replies.length === 0 ?
-                      <div className="rounded-2xl bg-white px-4 py-4 text-sm text-gray-500 shadow-sm">
-                        No replies yet.
-                      </div> :
-                      selectedMessage.replies.map((reply) =>
-                        <div key={reply.id} className="rounded-2xl bg-white px-4 py-4 shadow-sm">
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <p className="text-sm font-extrabold text-gray-800">
-                              {reply.authorName}
-                              <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-sky-600">
-                                {reply.authorRole}
+                    <div className="mt-3 min-h-0 flex-1 overflow-auto pr-1">
+                      <div className="space-y-3 rounded-2xl bg-white p-3 shadow-sm">
+                        <div className="flex justify-start">
+                          <div className="max-w-[88%] rounded-2xl rounded-tl-md border border-gray-100 bg-[#F8FAFC] px-4 py-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-extrabold text-gray-800">{selectedMessage.senderName}</p>
+                              <span className="text-xs font-semibold uppercase tracking-wide text-sky-600">
+                                guardian
                               </span>
+                              <p className="text-xs text-gray-400">{formatDateTime(selectedMessage.createdAt)}</p>
+                            </div>
+                            <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-gray-700">
+                              {selectedMessage.body}
                             </p>
-                            <p className="text-xs text-gray-400">{formatDateTime(reply.createdAt)}</p>
                           </div>
-                          <p className="mt-2 text-sm leading-6 text-gray-700">{reply.body}</p>
                         </div>
-                      )}
+
+                        {selectedMessage.replies.length === 0 ?
+                          <div className="rounded-2xl bg-[#F8FBFF] px-4 py-4 text-sm text-gray-500">
+                            No replies yet.
+                          </div> :
+                          selectedMessage.replies.map((reply) => {
+                            const isOwnReply = Boolean(user?.id && reply.authorId && reply.authorId === user.id);
+
+                            return (
+                              <div key={reply.id} className={`flex ${isOwnReply ? 'justify-end' : 'justify-start'}`}>
+                                <div
+                                  className={`max-w-[88%] rounded-2xl px-4 py-3 shadow-sm ${
+                                    isOwnReply
+                                      ? 'rounded-tr-md bg-[#DBEAFE] text-[#1E3A8A]'
+                                      : 'rounded-tl-md border border-gray-100 bg-[#F8FAFC] text-gray-800'
+                                  }`}
+                                >
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <p className={`text-sm font-extrabold ${isOwnReply ? 'text-[#1E40AF]' : 'text-gray-800'}`}>
+                                      {reply.authorName}
+                                    </p>
+                                    <span className={`text-xs font-semibold uppercase tracking-wide ${isOwnReply ? 'text-[#1D4ED8]' : 'text-sky-600'}`}>
+                                      {reply.authorRole}
+                                    </span>
+                                    <p className={`text-xs ${isOwnReply ? 'text-blue-600' : 'text-gray-400'}`}>
+                                      {formatDateTime(reply.createdAt)}
+                                    </p>
+                                  </div>
+                                  <p className={`mt-2 whitespace-pre-wrap break-words text-sm leading-6 ${isOwnReply ? 'text-[#1E3A8A]' : 'text-gray-700'}`}>
+                                    {reply.body}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="mt-5">
@@ -380,8 +492,9 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
                         rows={4}
                         value={replyBody}
                         onChange={(event) => setReplyBody(event.target.value)}
+                        onKeyDown={handleReplyInputKeyDown}
                         className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-300"
-                        placeholder="Write your reply to this contact message." />
+                        placeholder="Write your reply to this contact message. Press Enter to send, Shift+Enter for a new line." />
 
                     </label>
                     <div className="mt-3 flex justify-end">
@@ -395,7 +508,7 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
                       </button>
                     </div>
                   </div>
-                </> :
+                </div> :
                 <div className="rounded-2xl bg-white px-4 py-5 text-sm text-gray-500 shadow-sm">
                   Select a message to review and reply.
                 </div>}

@@ -184,6 +184,7 @@ export function StaffDashboard() {
       totalEnrolled: scopedEnrollments.length,
       pending: scopedEnrollments.filter((enrollment) => enrollment.status === 'Pending').length,
       approved: scopedEnrollments.filter((enrollment) => enrollment.status === 'Approved').length,
+      waitlisted: scopedEnrollments.filter((enrollment) => enrollment.status === 'Waitlisted').length,
       rejected: scopedEnrollments.filter((enrollment) => enrollment.status === 'Rejected').length
     }),
     [scopedEnrollments]
@@ -707,6 +708,66 @@ export function StaffDashboard() {
     }
   };
 
+  const canApproveEnrollment = (enrollment: EnrollmentData) => {
+    const managedProgram = getManagedProgram(enrollment.program);
+
+    if (!managedProgram) {
+      return true;
+    }
+
+    const sectionPool = sectionsByProgram[managedProgram];
+
+    if (sectionPool.length === 0) {
+      return false;
+    }
+
+    const sectionCounts = new Map<string, number>();
+    sectionPool.forEach((section) => sectionCounts.set(section, 0));
+
+    enrollments.forEach((student) => {
+      if (
+        student.id === enrollment.id ||
+        !programAliases[managedProgram].includes(student.program) ||
+        student.status !== 'Approved' ||
+        !student.section ||
+        !sectionCounts.has(student.section)
+      ) {
+        return;
+      }
+
+      sectionCounts.set(student.section, (sectionCounts.get(student.section) || 0) + 1);
+    });
+
+    if (enrollment.section && sectionCounts.has(enrollment.section)) {
+      return (sectionCounts.get(enrollment.section) || 0) < sectionCapacity;
+    }
+
+    return [...sectionCounts.values()].some((count) => count < sectionCapacity);
+  };
+
+  const handleStudentStatusChange = async (
+    enrollment: EnrollmentData,
+    nextStatus: 'Pending' | 'Approved' | 'Rejected' | 'Waitlisted'
+  ) => {
+    const targetStatus =
+      nextStatus === 'Approved' && !canApproveEnrollment(enrollment) ?
+        'Waitlisted' :
+        nextStatus;
+
+    const { error } = await updateStatus(enrollment.id, targetStatus);
+
+    if (error) {
+      window.alert(error);
+      return;
+    }
+
+    if (nextStatus === 'Approved' && targetStatus === 'Waitlisted') {
+      window.alert(
+        'No section slot is available for this grade level right now. The student has been set to Waitlisted.'
+      );
+    }
+  };
+
   const handleDeleteSection = async () => {
     if (!activeManagedProgram || !selectedSection) {
       return;
@@ -785,7 +846,7 @@ export function StaffDashboard() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <div className="rounded-3xl border border-blue-100 bg-white p-6 shadow-sm">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
               Total Enrolled
@@ -808,6 +869,14 @@ export function StaffDashboard() {
             </p>
             <p className="mt-3 text-4xl font-extrabold text-green-800">
               {aggregateSummary.approved}
+            </p>
+          </div>
+          <div className="rounded-3xl border border-orange-100 bg-[#FFF7ED] p-6 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-700/80">
+              Waitlisted
+            </p>
+            <p className="mt-3 text-4xl font-extrabold text-orange-800">
+              {aggregateSummary.waitlisted}
             </p>
           </div>
           <div className="rounded-3xl border border-red-100 bg-[#FEF2F2] p-6 shadow-sm">
@@ -1047,6 +1116,7 @@ export function StaffDashboard() {
                     <option value="all">All Statuses</option>
                     <option value="Pending">Pending</option>
                     <option value="Approved">Approved</option>
+                    <option value="Waitlisted">Waitlisted</option>
                     <option value="Rejected">Rejected</option>
                   </select>
                 </> :
@@ -1198,18 +1268,21 @@ export function StaffDashboard() {
                             value={student.status}
                             onClick={(event) => event.stopPropagation()}
                             onChange={(event) =>
-                            updateStatus(
-                              student.id,
-                              event.target.value as 'Pending' | 'Approved' | 'Rejected'
-                            )
+                              void handleStudentStatusChange(
+                                student,
+                                event.target.value as 'Pending' | 'Approved' | 'Rejected' | 'Waitlisted'
+                              )
                             }
-                            className={`px-3 py-1 pr-7 text-xs font-bold rounded-full border-none appearance-none w-fit cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-200 ${student.status === 'Approved' ? 'bg-[#BBF7D0] text-green-800' : student.status === 'Rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}
+                            className={`px-3 py-1 pr-7 text-xs font-bold rounded-full border-none appearance-none w-fit cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-200 ${student.status === 'Approved' ? 'bg-[#BBF7D0] text-green-800' : student.status === 'Rejected' ? 'bg-red-100 text-red-800' : student.status === 'Waitlisted' ? 'bg-orange-100 text-orange-800' : 'bg-yellow-100 text-yellow-800'}`}
                           >
                             <option value="Pending" className="bg-yellow-50 text-yellow-800" style={{ backgroundColor: '#FEF9C3', color: '#854D0E' }}>
                               Pending
                             </option>
                             <option value="Approved" className="bg-green-50 text-green-800" style={{ backgroundColor: '#DCFCE7', color: '#166534' }}>
                               Approved
+                            </option>
+                            <option value="Waitlisted" className="bg-orange-50 text-orange-800" style={{ backgroundColor: '#FFEDD5', color: '#9A3412' }}>
+                              Waitlisted
                             </option>
                             <option value="Rejected" className="bg-red-50 text-red-800" style={{ backgroundColor: '#FEE2E2', color: '#991B1B' }}>
                               Rejected

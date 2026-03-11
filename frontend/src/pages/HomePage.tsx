@@ -32,7 +32,8 @@ export function HomePage({ onNavigate }: HomePageProps) {
   }, []);
 
   return (
-    <div className="p-8 pb-24">
+    <div className="h-screen overflow-hidden p-8">
+      <div className="h-full overflow-auto pr-1">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -188,6 +189,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
             Enroll Now
           </button>
         </div>
+      </div>
       </div>
     </div>
   );

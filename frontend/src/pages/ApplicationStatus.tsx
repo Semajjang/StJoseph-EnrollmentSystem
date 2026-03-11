@@ -125,7 +125,7 @@ export function ApplicationStatus({
             </p>
           </div>
           <div
-            className={`px-4 py-2 rounded-full font-bold text-sm ${enrollment.status === 'Approved' ? 'bg-[#BBF7D0] text-green-800' : enrollment.status === 'Rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
+            className={`px-4 py-2 rounded-full font-bold text-sm ${enrollment.status === 'Approved' ? 'bg-[#BBF7D0] text-green-800' : enrollment.status === 'Rejected' ? 'bg-red-100 text-red-800' : enrollment.status === 'Waitlisted' ? 'bg-orange-100 text-orange-800' : 'bg-yellow-100 text-yellow-800'}`}>
 
             {enrollment.status.toUpperCase()}
           </div>

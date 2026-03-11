@@ -13,6 +13,8 @@ import { Contact } from './pages/Contact';
 import { ContactManager } from './pages/ContactManager';
 import { HomePage } from './pages/HomePage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { ChildProfile } from './pages/ChildProfile';
+import { ActivityLogsPage } from './pages/ActivityLogsPage';
 function AppContent() {
   const { user, isLoading, isPasswordRecovery } = useAuth();
   const [activePage, setActivePage] = useState('home');
@@ -57,6 +59,8 @@ function AppContent() {
           <ApplicationStatus
             onStartEnrollment={() => setActivePage('enrollment')}
             onGoToRequirements={() => setActivePage('requirements')} />);
+      case 'yourChild':
+        return <ChildProfile onStartEnrollment={() => setActivePage('enrollment')} />;
 
 
       // Staff Pages
@@ -66,6 +70,8 @@ function AppContent() {
         return <HomepageManager onPreviewHomepage={() => setActivePage('home')} />;
       case 'contactManager':
         return <ContactManager onPreviewContact={() => setActivePage('contact')} />;
+      case 'activityLogs':
+        return <ActivityLogsPage />;
       // Shared Pages
       case 'contact':
         return <Contact />;

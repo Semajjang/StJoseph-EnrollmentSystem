@@ -23,7 +23,7 @@ export interface EnrollmentData {
   childLastName: string;
   program: string;
   section?: string | null;
-  status: 'Pending' | 'Approved' | 'Rejected';
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Waitlisted';
   submittedAt: string;
   role: string; // Usually 'Student'
   formData: any; // Full form data
@@ -35,7 +35,7 @@ interface EnrollmentContextType {
   deleteEnrollment: (id: string) => Promise<{ error: string | null }>;
   updateStatus: (
   id: string,
-  status: 'Pending' | 'Approved' | 'Rejected')
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Waitlisted')
   => Promise<{ error: string | null }>;
   updateSection: (id: string, section: string | null) => Promise<{ error: string | null }>;
   updateLatestEnrollmentRequirements: (
@@ -54,7 +54,7 @@ interface EnrollmentRow {
   child_first_name: string;
   child_last_name: string;
   program: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Waitlisted';
   submitted_at: string;
   role: string;
   form_data: Record<string, unknown>;
@@ -222,7 +222,7 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
 
   const updateStatus = (
   id: string,
-  status: 'Pending' | 'Approved' | 'Rejected') =>
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Waitlisted') =>
   {
     const targetEnrollment = enrollments.find((enrollment) => enrollment.id === id);
     const shouldClearSection = status !== 'Approved';
