@@ -27,15 +27,14 @@ interface EnrollmentContextType {
   addEnrollment: (data: any) => Promise<{ error: string | null }>;
   deleteEnrollment: (id: string) => Promise<{ error: string | null }>;
   updateStatus: (
-  id: string,
-  status: 'Pending' | 'Approved' | 'Rejected' | 'Waitlisted')
-  => Promise<{ error: string | null }>;
+    id: string,
+    status: 'Pending' | 'Approved' | 'Rejected' | 'Waitlisted'
+  ) => Promise<{ error: string | null }>;
   updateSection: (id: string, section: string | null) => Promise<{ error: string | null }>;
   updateLatestEnrollmentRequirements: (
-  requirements: UploadedRequirement[],
-  enrollmentId?: string)
-  => Promise<{ error: string | null }>;
-  getStudentEnrollment: (studentName: string) => EnrollmentData | undefined;
+    requirements: UploadedRequirement[],
+    enrollmentId?: string
+  ) => Promise<{ error: string | null }>;
 }
 
 const EnrollmentContext = createContext<EnrollmentContextType | undefined>(

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEnrollment } from '../context/EnrollmentContext';
-import { useAuth } from '../context/AuthContext';
+// Removed unused useAuth import
 
 const ENROLLMENT_DRAFT_STORAGE_KEY = 'enrollment-form-draft';
 let enrollmentDraftFile: File | null = null;
