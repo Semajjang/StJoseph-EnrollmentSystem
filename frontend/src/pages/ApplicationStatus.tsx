@@ -1,14 +1,9 @@
-import React from 'react';
 import { motion } from 'framer-motion';
-import { useEnrollment } from '../context/EnrollmentContext';
-import { useAuth } from '../context/AuthContext';
 interface ApplicationStatusProps {
   onStartEnrollment: () => void;
-  onGoToRequirements: () => void;
 }
 export function ApplicationStatus({
-  onStartEnrollment,
-  onGoToRequirements
+  onStartEnrollment
 }: ApplicationStatusProps) {
   // Enrollment lookup removed. Show placeholder.
   return (

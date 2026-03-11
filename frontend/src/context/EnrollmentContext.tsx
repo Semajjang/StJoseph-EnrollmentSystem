@@ -212,52 +212,52 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
     };
   };
 
-  const updateStatus = (
+  const updateStatus = async (
   id: string,
-  status: 'Pending' | 'Approved' | 'Rejected' | 'Waitlisted') =>
-  {
-    const targetEnrollment = enrollments.find((enrollment) => enrollment.id === id);
-    const shouldClearSection = status !== 'Approved';
-    const nextFormData = {
-      ...(targetEnrollment?.formData || {}),
-      section: shouldClearSection ? null : targetEnrollment?.section || null
-    };
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Waitlisted'
+): Promise<{ error: string | null }> => {
+  const targetEnrollment = enrollments.find((enrollment) => enrollment.id === id);
+  const shouldClearSection = status !== 'Approved';
 
-    return supabase
-      .from('enrollments')
-      .update({
-        status,
-        form_data: nextFormData
-      })
-      .eq('id', id)
-      .then(({ error }) => {
-        if (error) {
-          return {
-            error: error.message
-          };
-        }
-
-        setEnrollments((prev) =>
-          prev.map((enrollment) =>
-            enrollment.id === id ?
-            {
-              ...enrollment,
-              status,
-              section: shouldClearSection ? null : enrollment.section,
-              formData: {
-                ...(enrollment.formData || {}),
-                section: shouldClearSection ? null : enrollment.section || null
-              }
-            } :
-            enrollment
-          )
-        );
-
-        return {
-          error: null
-        };
-      });
+  const nextFormData = {
+    ...(targetEnrollment?.formData || {}),
+    section: shouldClearSection ? null : targetEnrollment?.section || null
   };
+
+  const { error } = await supabase
+    .from('enrollments')
+    .update({
+      status,
+      form_data: nextFormData
+    })
+    .eq('id', id);
+
+  if (error) {
+    return {
+      error: error.message
+    };
+  }
+
+  setEnrollments((prev) =>
+    prev.map((enrollment) =>
+      enrollment.id === id
+        ? {
+            ...enrollment,
+            status,
+            section: shouldClearSection ? null : enrollment.section,
+            formData: {
+              ...(enrollment.formData || {}),
+              section: shouldClearSection ? null : enrollment.section || null
+            }
+          }
+        : enrollment
+    )
+  );
+
+  return {
+    error: null
+  };
+};
 
   const updateSection = async (id: string, section: string | null) => {
     const targetEnrollment = enrollments.find((enrollment) => enrollment.id === id);
