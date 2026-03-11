@@ -219,9 +219,9 @@ export function Contact() {
     }
 
     setMessages((prev) =>
-      [result.message, ...prev.filter((message) => message.id !== result.message?.id)].sort(
-        (left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()
-      )
+      [result.message, ...prev.filter((message) => message.id !== result.message?.id && message != null)].sort(
+        (left, right) => new Date((right?.updatedAt ?? '')).getTime() - new Date((left?.updatedAt ?? '')).getTime()
+      ) as ContactMessage[]
     );
     setReplyDrafts((prev) => ({
       ...prev,

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+// ...existing code...
 import { useAuth } from '../context/AuthContext';
 import {
   HouseIcon,

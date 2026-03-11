@@ -351,7 +351,7 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
     }
 
     setEnrollments((prev) =>
-      prev.map((enrollment, index) =>
+      prev.map((enrollment) =>
         enrollment.id === targetEnrollmentId ?
         {
           ...enrollment,
@@ -365,9 +365,7 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
     };
   };
 
-  const getStudentEnrollment = (studentName: string) => {
-    return enrollments[0];
-  };
+  // Removed unused getStudentEnrollment and index variable
 
   return (
     <EnrollmentContext.Provider

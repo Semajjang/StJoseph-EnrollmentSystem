@@ -191,7 +191,7 @@ export const saveHomePageContent = async (content: HomePageContent) => {
     window.localStorage.setItem(homepageContentStorageKey, JSON.stringify(normalizedContent));
   }
 
-  const { error } = await supabase
+  await supabase
     .from('site_content')
     .upsert(
       {
@@ -214,7 +214,7 @@ export const resetHomePageContent = async () => {
     window.localStorage.removeItem(homepageContentStorageKey);
   }
 
-  const { error } = await supabase
+  await supabase
     .from('site_content')
     .upsert(
       {

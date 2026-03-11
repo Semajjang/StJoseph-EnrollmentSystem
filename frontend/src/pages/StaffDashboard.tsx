@@ -1,4 +1,4 @@
-import React, { createElement, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { EnrollmentData, useEnrollment } from '../context/EnrollmentContext';
 import { DownloadIcon, InfoIcon, Trash2Icon } from 'lucide-react';
@@ -46,15 +46,7 @@ const emptyAutoAssignCatalog = (): AutoAssignCatalog => ({
 
 const normalizeSectionName = (value: string) => value.trim().replace(/\s+/g, ' ');
 
-const getStudentAddress = (enrollment: EnrollmentData) => {
-  const address = enrollment.formData?.address;
-  return typeof address === 'string' ? address : '';
-};
-
-const getStudentSex = (enrollment: EnrollmentData) => {
-  const sex = enrollment.formData?.sex;
-  return typeof sex === 'string' ? sex : '';
-};
+// Removed unused getStudentAddress and getStudentSex
 
 const getManagedProgram = (program: string): ManagedProgram | null => {
   for (const managedProgram of managedPrograms) {

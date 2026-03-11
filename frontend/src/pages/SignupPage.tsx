@@ -51,7 +51,7 @@ export function SignupPage({ onSwitchToLogin }: SignupPageProps) {
         lastName: formData.lastName,
         suffix: formData.suffix,
         email: formData.email,
-        role: role,
+        role: role === 'parent' ? 'guardian' : role,
         phone: formData.phone,
         password: formData.password
       });
