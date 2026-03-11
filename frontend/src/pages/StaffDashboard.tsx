@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { EnrollmentData, useEnrollment } from '../context/EnrollmentContext';
 import { DownloadIcon, InfoIcon, Trash2Icon } from 'lucide-react';

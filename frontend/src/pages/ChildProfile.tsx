@@ -1,4 +1,4 @@
-import React from 'react';
+// ...existing code...
 import { motion } from 'framer-motion';
 import { useEnrollment } from '../context/EnrollmentContext';
 

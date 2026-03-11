@@ -1,11 +1,4 @@
-import React, {
-  useState,
-  createContext,
-  useContext,
-  useEffect,
-  useCallback,
-  ReactNode
-} from 'react';
+import { useState, createContext, useContext, useEffect, useCallback, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -376,7 +369,7 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
         updateStatus,
         updateSection,
         updateLatestEnrollmentRequirements,
-        getStudentEnrollment
+        // getStudentEnrollment removed
       }}>
 
       {children}

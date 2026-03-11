@@ -1,4 +1,4 @@
-import React, { Children } from 'react';
+// ...existing code...
 import { motion } from 'framer-motion';
 export function Dashboard() {
   const classroomStats = [

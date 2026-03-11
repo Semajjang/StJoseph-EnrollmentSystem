@@ -1,4 +1,4 @@
-import React, { ChangeEvent, DragEvent, useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import { HomeAnnouncement, HomeHighlight, HomePageContent, defaultHomePageContent, fetchHomePageContent, loadHomePageContent, resetHomePageContent, saveHomePageContent } from '../lib/homepageContent';
 
 interface HomepageManagerProps {

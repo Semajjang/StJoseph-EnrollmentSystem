@@ -74,7 +74,7 @@ interface EnrollmentFormProps {
 }
 export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
   const { addEnrollment } = useEnrollment();
-  const { user } = useAuth();
+  // Removed unused user variable
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
