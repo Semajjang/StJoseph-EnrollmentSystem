@@ -68,31 +68,9 @@ export function ApplicationStatus({
   const steps = [
   {
     label: 'Submitted',
-    status: 'completed'
+      const { deleteEnrollment } = useEnrollment();
   },
-  {
-    label: 'Requirements',
-    status: hasUploadedRequirements ? 'completed' : 'current'
-  },
-  {
-    label: 'Under Review',
-    status:
-    enrollment.status === 'Pending' ?
-    hasUploadedRequirements ?
-    'current' :
-    'upcoming' :
-    'completed'
-  },
-  {
-    label: 'Decision',
-    status: enrollment.status === 'Pending' ? 'upcoming' : 'completed'
-  }];
-
-  const completedSteps = steps.filter((step) => step.status === 'completed').length;
-  const progressPercentage = Math.round(completedSteps / steps.length * 100);
-
-  return (
-    <div className="p-8 pb-24">
+      // Enrollment lookup removed. You may need to adjust logic here.
       <div className="mb-8">
         <h1 className="text-3xl font-extrabold text-gray-800">
           Application Status
