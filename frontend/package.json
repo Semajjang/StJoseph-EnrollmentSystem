@@ -2,12 +2,15 @@
   "name": "magic-patterns-vite-template",
   "version": "0.0.1",
   "private": true,
+  "homepage": "https://semajjang.github.io",
   "type": "module",
   "scripts": {
-    "dev": "npx vite",
-    "build": "npx vite build",
+    "dev": "vite",
+    "build": "tsc && vite build",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "preview": "npx vite preview"
+    "preview": "vite preview",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "@emotion/react": "^11.13.3",
@@ -32,5 +35,6 @@
     "tailwindcss": "3.4.17",
     "typescript": "^5.5.4",
     "vite": "^5.2.0"
+    "gh-pages": "^6.x.x"
   }
 }

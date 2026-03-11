@@ -1,12 +1,5 @@
 {
-  "name": "stjoseph-oes-monorepo",
-  "private": true,
-  "version": "1.0.0",
-  "scripts": {
-    "setup": "npm --prefix frontend install",
-    "dev": "npm --prefix frontend run dev",
-    "build": "npm --prefix frontend run build",
-    "preview": "npm --prefix frontend run preview",
-    "lint": "npm --prefix frontend run lint"
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
   }
 }
