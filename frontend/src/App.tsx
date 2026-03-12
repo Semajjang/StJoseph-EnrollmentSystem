@@ -1,70 +1,243 @@
-import { useState, useEffect } from 'react';
-// ...existing code...
+import { Suspense, lazy, useEffect, useState } from 'react';
+import { MenuIcon } from 'lucide-react';
+import { Sidebar } from './components/Sidebar';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { EnrollmentProvider } from './context/EnrollmentContext';
-import { Sidebar } from './components/Sidebar';
+import {
+  AdminMfaSession,
+  loadAdminMfaSession,
+  saveAdminMfaSession
+} from './lib/adminMfa';
+import {
+  loadStaffAccessSession,
+  recordStaffAccessVerification,
+  saveStaffAccessSession,
+  StaffAccessSession
+} from './lib/staffAccess';
+import { AdminMfaGatePage } from './pages/AdminMfaGatePage';
 import { LoginPage } from './pages/LoginPage';
-import { SignupPage } from './pages/SignupPage';
-import { EnrollmentForm } from './pages/EnrollmentForm';
-import { Requirements } from './pages/Requirements';
-import { ApplicationStatus } from './pages/ApplicationStatus';
-import { StaffDashboard } from './pages/StaffDashboard';
-import { HomepageManager } from './pages/HomepageManager';
-import { Contact } from './pages/Contact';
-import { ContactManager } from './pages/ContactManager';
-import { HomePage } from './pages/HomePage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
-import { ChildProfile } from './pages/ChildProfile';
-import { ActivityLogsPage } from './pages/ActivityLogsPage';
+import { SignupPage } from './pages/SignupPage';
+import { StaffAccessGatePage } from './pages/StaffAccessGatePage';
+
+const HomePage = lazy(() => import('./pages/HomePage').then((module) => ({ default: module.HomePage })));
+const EnrollmentForm = lazy(() => import('./pages/EnrollmentForm').then((module) => ({ default: module.EnrollmentForm })));
+const Requirements = lazy(() => import('./pages/Requirements').then((module) => ({ default: module.Requirements })));
+const ApplicationStatus = lazy(() => import('./pages/ApplicationStatus').then((module) => ({ default: module.ApplicationStatus })));
+const ChildProfile = lazy(() => import('./pages/ChildProfile').then((module) => ({ default: module.ChildProfile })));
+const ProfilePage = lazy(() => import('./pages/ProfilePage').then((module) => ({ default: module.ProfilePage })));
+const Contact = lazy(() => import('./pages/Contact').then((module) => ({ default: module.Contact })));
+const StaffDashboard = lazy(() => import('./pages/StaffDashboard').then((module) => ({ default: module.StaffDashboard })));
+const HomepageManager = lazy(() => import('./pages/HomepageManager').then((module) => ({ default: module.HomepageManager })));
+const ContactManager = lazy(() => import('./pages/ContactManager').then((module) => ({ default: module.ContactManager })));
+const ActivityLogsPage = lazy(() => import('./pages/ActivityLogsPage').then((module) => ({ default: module.ActivityLogsPage })));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
+
+const ADMIN_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
+const STAFF_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
+
+function PageLoader() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#EEF5FF]">
+      <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#BAE6FD] border-t-transparent" />
+    </div>
+  );
+}
+
 function AppContent() {
-  const { user, isLoading, isPasswordRecovery } = useAuth();
+  const { user, isLoading, isPasswordRecovery, logout } = useAuth();
   const [activePage, setActivePage] = useState('home');
   const [isLoginView, setIsLoginView] = useState(true);
+  const [adminMfaSession, setAdminMfaSession] = useState<AdminMfaSession | null>(null);
+  const [staffAccessSession, setStaffAccessSession] = useState<StaffAccessSession | null>(null);
+  const [staffAccessWarning, setStaffAccessWarning] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isManagementRole = user?.role === 'admin' || user?.role === 'staff';
-  // Reset active page when role changes
+
   useEffect(() => {
-    if (isManagementRole) {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+    if (!isLocalHost && window.location.protocol === 'http:') {
+      window.location.replace(`https://${window.location.host}${window.location.pathname}${window.location.search}${window.location.hash}`);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user?.role !== 'admin') {
+      setAdminMfaSession(null);
+      return;
+    }
+
+    setAdminMfaSession(loadAdminMfaSession(user.id));
+  }, [user?.id, user?.role]);
+
+  useEffect(() => {
+    if (user?.role !== 'staff') {
+      setStaffAccessSession(null);
+      setStaffAccessWarning(null);
+      return;
+    }
+
+    setStaffAccessSession(loadStaffAccessSession(user.id));
+  }, [user?.id, user?.role]);
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      setActivePage('adminDashboard');
+    } else if (isManagementRole) {
       setActivePage('staffDashboard');
     } else {
       setActivePage('home');
     }
-  }, [isManagementRole]);
+  }, [isManagementRole, user?.role]);
+
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [activePage]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !user || !isManagementRole) {
+      return;
+    }
+
+    if (user.role === 'staff' && !staffAccessSession) {
+      return;
+    }
+
+    if (user.role === 'admin' && !adminMfaSession) {
+      return;
+    }
+
+    const timeoutDuration = user.role === 'admin' ? ADMIN_IDLE_TIMEOUT_MS : STAFF_IDLE_TIMEOUT_MS;
+    let hasLoggedOut = false;
+
+    const handleTimeout = () => {
+      if (hasLoggedOut) {
+        return;
+      }
+
+      hasLoggedOut = true;
+      setAdminMfaSession(null);
+      setStaffAccessSession(null);
+      setStaffAccessWarning(null);
+      window.alert('Your session expired due to inactivity. Please sign in again.');
+      void logout();
+    };
+
+    let timeoutHandle = window.setTimeout(handleTimeout, timeoutDuration);
+
+    const resetTimeout = () => {
+      if (hasLoggedOut || document.visibilityState === 'hidden') {
+        return;
+      }
+
+      window.clearTimeout(timeoutHandle);
+      timeoutHandle = window.setTimeout(handleTimeout, timeoutDuration);
+    };
+
+    const activityEvents: Array<keyof WindowEventMap> = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+
+    activityEvents.forEach((eventName) => {
+      window.addEventListener(eventName, resetTimeout, { passive: true });
+    });
+    document.addEventListener('visibilitychange', resetTimeout);
+
+    return () => {
+      hasLoggedOut = true;
+      window.clearTimeout(timeoutHandle);
+      activityEvents.forEach((eventName) => {
+        window.removeEventListener(eventName, resetTimeout);
+      });
+      document.removeEventListener('visibilitychange', resetTimeout);
+    };
+  }, [adminMfaSession, isManagementRole, logout, staffAccessSession, user]);
+
   if (isLoading && user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FFFBEB]">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#BAE6FD] border-t-transparent"></div>
-      </div>);
-
+      <div className="flex min-h-screen items-center justify-center bg-[#FFFBEB]">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#BAE6FD] border-t-transparent" />
+      </div>
+    );
   }
+
   if (isPasswordRecovery) {
     return <ResetPasswordPage />;
   }
+
   if (!user) {
     return isLoginView ?
-    <LoginPage onSwitchToSignup={() => setIsLoginView(false)} /> :
-
-    <SignupPage onSwitchToLogin={() => setIsLoginView(true)} />;
-
+      <LoginPage onSwitchToSignup={() => setIsLoginView(false)} /> :
+      <SignupPage onSwitchToLogin={() => setIsLoginView(true)} />;
   }
+
+  const handleVerifyStaffAccess = async (session: StaffAccessSession) => {
+    saveStaffAccessSession(user.id, session);
+    setStaffAccessSession(session);
+    setActivePage('staffDashboard');
+
+    const { error } = await recordStaffAccessVerification({
+      userId: user.id,
+      accountName: user.name,
+      accountEmail: user.email,
+      openerName: session.openerName,
+      teacherId: session.teacherId
+    });
+
+    if (error) {
+      setStaffAccessWarning(
+        `Staff access was verified, but the activity log could not be saved because the live Supabase activity_logs insert policy is missing. Run the latest schema SQL, then new logins will be recorded automatically. ${error}`
+      );
+
+      return {
+        error: null,
+        warning: null
+      };
+    }
+
+    setStaffAccessWarning(null);
+
+    return {
+      error: null,
+      warning: null
+    };
+  };
+
+  if (user.role === 'staff' && !staffAccessSession) {
+    return <StaffAccessGatePage onVerify={handleVerifyStaffAccess} />;
+  }
+
+  if (user.role === 'admin' && !adminMfaSession) {
+    return (
+      <AdminMfaGatePage
+        onVerify={(session) => {
+          saveAdminMfaSession(user.id, session);
+          setAdminMfaSession(session);
+          setActivePage('adminDashboard');
+        }}
+      />
+    );
+  }
+
   const renderPage = () => {
     switch (activePage) {
-      // Student Pages
       case 'home':
         return <HomePage onNavigate={setActivePage} />;
       case 'enrollment':
-        return <EnrollmentForm onSuccess={() => setActivePage('status')} />;
+        return <EnrollmentForm onSuccess={() => setActivePage('requirements')} />;
       case 'requirements':
-        return <Requirements />;
+        return <Requirements onContinueToYourChild={() => setActivePage('yourChild')} />;
       case 'status':
-        return (
-          <ApplicationStatus
-            onStartEnrollment={() => setActivePage('enrollment')}
-          />);
+        return <ApplicationStatus onStartEnrollment={() => setActivePage('enrollment')} />;
       case 'yourChild':
         return <ChildProfile onStartEnrollment={() => setActivePage('enrollment')} />;
-
-
-      // Staff Pages
+      case 'profile':
+        return <ProfilePage />;
+      case 'adminDashboard':
+        return user.role === 'admin' ? <AdminDashboard /> : <StaffDashboard />;
       case 'staffDashboard':
         return <StaffDashboard />;
       case 'homepageManager':
@@ -73,32 +246,53 @@ function AppContent() {
         return <ContactManager onPreviewContact={() => setActivePage('contact')} />;
       case 'activityLogs':
         return <ActivityLogsPage />;
-      // Shared Pages
       case 'contact':
         return <Contact />;
       default:
-        return isManagementRole ?
-        <StaffDashboard /> :
-
-        <HomePage onNavigate={setActivePage} />;
-
+        return user.role === 'admin' ?
+          <AdminDashboard /> :
+          isManagementRole ?
+            <StaffDashboard /> :
+            <HomePage onNavigate={setActivePage} />;
     }
   };
+
   return (
     <div className="min-h-screen bg-[#EEF5FF]">
-      <Sidebar activePage={activePage} onNavigate={setActivePage} />
-      <main className="ml-[260px] min-h-screen transition-all duration-300">
-        {renderPage()}
+      <button
+        type="button"
+        onClick={() => setIsSidebarOpen(true)}
+        className="fixed left-4 top-4 z-[60] inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-gray-800 shadow-lg ring-1 ring-black/5 transition hover:bg-gray-50 md:hidden"
+        aria-label="Open navigation menu"
+      >
+        <MenuIcon className="h-5 w-5" />
+      </button>
+      <Sidebar
+        activePage={activePage}
+        onNavigate={setActivePage}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
+      <main className="min-h-screen pt-16 transition-all duration-300 md:ml-[260px] md:pt-0">
+        {staffAccessWarning ?
+          <div className="border-b border-amber-200 bg-amber-50 px-8 py-3 text-sm font-medium text-amber-800">
+            {staffAccessWarning}
+          </div> :
+          null}
+        <Suspense fallback={<PageLoader />}>
+          {renderPage()}
+        </Suspense>
       </main>
-    </div>);
-
+    </div>
+  );
 }
+
 export function App() {
   return (
     <AuthProvider>
       <EnrollmentProvider>
         <AppContent />
       </EnrollmentProvider>
-    </AuthProvider>);
-
+    </AuthProvider>
+  );
 }

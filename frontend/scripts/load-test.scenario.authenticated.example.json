@@ -1,0 +1,66 @@
+{
+  "concurrency": 50,
+  "iterationsPerUser": 1,
+  "timeoutMs": 10000,
+  "targets": {
+    "maxAverageMs": 3000,
+    "maxP95Ms": 3000,
+    "maxErrorRatePct": 5
+  },
+  "auth": {
+    "type": "supabase-password",
+    "envFile": "./.env",
+    "urlEnvKey": "VITE_SUPABASE_URL",
+    "anonKeyEnvKey": "VITE_SUPABASE_ANON_KEY",
+    "email": "guardian@gmail.com",
+    "password": "guardian"
+  },
+  "requests": [
+    {
+      "name": "Authenticated Profile Read",
+      "method": "GET",
+      "url": "{{supabaseUrl}}/rest/v1/profiles?id=eq.{{userId}}&select=id,full_name,role,phone",
+      "headers": {
+        "apikey": "{{anonKey}}",
+        "Authorization": "Bearer {{accessToken}}"
+      }
+    },
+    {
+      "name": "Authenticated Enrollment Read",
+      "method": "GET",
+      "url": "{{supabaseUrl}}/rest/v1/enrollments?parent_id=eq.{{userId}}&select=id,child_first_name,child_last_name,program,status,submitted_at&order=submitted_at.desc",
+      "headers": {
+        "apikey": "{{anonKey}}",
+        "Authorization": "Bearer {{accessToken}}"
+      }
+    },
+    {
+      "name": "Authenticated Contact Write",
+      "method": "POST",
+      "url": "{{supabaseUrl}}/rest/v1/contact_messages",
+      "headers": {
+        "apikey": "{{anonKey}}",
+        "Authorization": "Bearer {{accessToken}}",
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal"
+      },
+      "body": {
+        "sender_id": "{{userId}}",
+        "sender_name": "Guardian Load Test {{virtualUserId}}",
+        "sender_email": "{{userEmail}}",
+        "subject": "Load Test {{timestamp}} User {{virtualUserId}}",
+        "body": "Automated load-test message {{randomId}}",
+        "status": "New"
+      }
+    },
+    {
+      "name": "Authenticated Contact Read",
+      "method": "GET",
+      "url": "{{supabaseUrl}}/rest/v1/contact_messages?sender_id=eq.{{userId}}&select=id,subject,status,created_at&order=updated_at.desc&limit=10",
+      "headers": {
+        "apikey": "{{anonKey}}",
+        "Authorization": "Bearer {{accessToken}}"
+      }
+    }
+  ]
+}

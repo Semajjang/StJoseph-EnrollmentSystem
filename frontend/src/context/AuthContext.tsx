@@ -3,9 +3,12 @@ import {
   useState,
   createContext,
   useContext,
+  useCallback,
   ReactNode
 } from 'react';
 import { supabase } from '../lib/supabase';
+import { clearAllAdminMfaSessions } from '../lib/adminMfa';
+import { clearAllStaffAccessSessions } from '../lib/staffAccess';
 
 export type UserRole = 'guardian' | 'staff' | 'admin' | 'parent';
 
@@ -44,6 +47,7 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<{ error: string | null }>;
   signup: (data: SignupPayload) => Promise<{ error: string | null }>;
+  updateProfile: (data: { name: string; email: string; phone?: string }) => Promise<{ error: string | null; message?: string | null }>;
   requestPasswordReset: (email: string) => Promise<{ error: string | null }>;
   updatePassword: (password: string) => Promise<{ error: string | null }>;
   cancelPasswordRecovery: () => Promise<void>;
@@ -95,6 +99,20 @@ const getPasswordResetRedirectUrl = () => {
   const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 
   if (isLocalHost) {
+    return undefined;
+  }
+
+  return `${window.location.origin}${window.location.pathname}`;
+};
+
+const getEmailChangeRedirectUrl = () => {
+  const configuredRedirectUrl = import.meta.env.VITE_EMAIL_CHANGE_REDIRECT_URL?.trim();
+
+  if (configuredRedirectUrl) {
+    return configuredRedirectUrl;
+  }
+
+  if (typeof window === 'undefined') {
     return undefined;
   }
 
@@ -191,6 +209,8 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
 
         if (_event === 'SIGNED_OUT') {
           setIsPasswordRecovery(false);
+          clearAllAdminMfaSessions();
+          clearAllStaffAccessSessions();
         }
 
         if (!session?.user) {
@@ -356,9 +376,88 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
     }
   };
 
-  const logout = async () => {
+  const updateProfile = async (data: { name: string; email: string; phone?: string }) => {
+    if (!user) {
+      return {
+        error: 'You must be logged in to update your profile.'
+      };
+    }
+
+    const nextName = data.name.trim();
+    const nextEmail = data.email.trim().toLowerCase();
+    const nextPhone = data.phone?.trim() || '';
+
+    if (!nextName) {
+      return {
+        error: 'Full name is required.'
+      };
+    }
+
+    if (!nextEmail) {
+      return {
+        error: 'Email is required.'
+      };
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
+      return {
+        error: 'Enter a valid email address.'
+      };
+    }
+
+    let successMessage: string | null = null;
+
+    if (nextEmail !== user.email.toLowerCase()) {
+      const emailRedirectTo = getEmailChangeRedirectUrl();
+      const { error: emailUpdateError } = await supabase.auth.updateUser({
+        email: nextEmail
+      }, {
+        emailRedirectTo
+      });
+
+      if (emailUpdateError) {
+        return {
+          error: emailUpdateError.message
+        };
+      }
+
+      successMessage = 'Verification email sent. Check your new email address and confirm it to finish the email change.';
+    }
+
+    const { error } = await supabase.from('profiles').upsert({
+      id: user.id,
+      full_name: nextName,
+      role: user.role,
+      phone: nextPhone || null
+    });
+
+    if (error) {
+      return {
+        error: error.message
+      };
+    }
+
+    setUser((currentUser) =>
+      currentUser ? {
+        ...currentUser,
+        name: nextName,
+        email: nextEmail,
+        phone: nextPhone || undefined
+      } :
+      currentUser
+    );
+
+    return {
+      error: null,
+      message: successMessage
+    };
+  };
+
+  const logout = useCallback(async () => {
     setUser(null);
     setIsLoading(false);
+    clearAllAdminMfaSessions();
+    clearAllStaffAccessSessions();
 
     try {
       await supabase.auth.signOut({
@@ -367,7 +466,7 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
     } catch (error) {
       console.error('Sign out failed:', error);
     }
-  };
+  }, []);
 
   return (
     <AuthContext.Provider
@@ -375,6 +474,7 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
         user,
         login,
         signup,
+        updateProfile,
         requestPasswordReset,
         updatePassword,
         cancelPasswordRecovery,

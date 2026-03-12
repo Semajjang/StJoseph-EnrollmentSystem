@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useAuth, UserRole } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import {
   UserIcon,
   MailIcon,
@@ -13,7 +13,6 @@ interface SignupPageProps {
 }
 export function SignupPage({ onSwitchToLogin }: SignupPageProps) {
   const { signup } = useAuth();
-  const [role, setRole] = useState<UserRole>('guardian');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -51,7 +50,7 @@ export function SignupPage({ onSwitchToLogin }: SignupPageProps) {
         lastName: formData.lastName,
         suffix: formData.suffix,
         email: formData.email,
-        role: role === 'parent' ? 'guardian' : role,
+        role: 'guardian',
         phone: formData.phone,
         password: formData.password
       });
@@ -83,37 +82,12 @@ export function SignupPage({ onSwitchToLogin }: SignupPageProps) {
         <div className="bg-gradient-to-r from-[#1D4ED8] to-[#60A5FA] p-6 text-center">
           <h1 className="text-2xl font-bold text-gray-800">Create Account</h1>
           <p className="text-blue-900 font-medium">
-            Join St. Joseph Daycare Center
+            Guardian registration for St. Joseph Daycare Center
           </p>
         </div>
 
         <div className="p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Role Selector */}
-            <div className="bg-gray-100 p-1 rounded-xl grid grid-cols-3 gap-1 mb-6">
-              <button
-                type="button"
-                onClick={() => setRole('guardian')}
-                className={`py-2 rounded-lg text-sm font-bold transition-all ${role === 'guardian' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-
-                Guardian
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole('staff')}
-                className={`py-2 rounded-lg text-sm font-bold transition-all ${role === 'staff' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-
-                Staff
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole('admin')}
-                className={`py-2 rounded-lg text-sm font-bold transition-all ${role === 'admin' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-
-                Admin
-              </button>
-            </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">

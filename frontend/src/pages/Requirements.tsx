@@ -81,7 +81,11 @@ const mapUploadErrorMessage = (message: string) => {
   return message;
 };
 
-export function Requirements() {
+interface RequirementsProps {
+  onContinueToYourChild?: () => void;
+}
+
+export function Requirements({ onContinueToYourChild }: RequirementsProps) {
   const { user } = useAuth();
   const { enrollments, updateLatestEnrollmentRequirements } = useEnrollment();
   const [uploadingId, setUploadingId] = useState<string | null>(null);
@@ -104,9 +108,7 @@ export function Requirements() {
       return;
     }
 
-    const defaultEnrollment =
-    enrollments.find((enrollment) => enrollment.status === 'Pending') ||
-    enrollments[0];
+    const defaultEnrollment = enrollments[0];
 
     setSelectedEnrollmentId(defaultEnrollment.id);
   }, [enrollments, selectedEnrollmentId]);
@@ -280,6 +282,7 @@ export function Requirements() {
   const uploadedCount = requirements.filter((r) => r.uploaded).length;
   const totalCount = requirements.length;
   const progress = uploadedCount / totalCount * 100;
+  const isRequirementsComplete = totalCount > 0 && uploadedCount === totalCount;
   return (
     <div className="p-8 pb-24">
       {/* Header */}
@@ -357,6 +360,19 @@ export function Requirements() {
             }} />
 
         </div>
+
+        {onContinueToYourChild ?
+        <div className="mt-5 flex justify-end">
+            <button
+              type="button"
+              onClick={onContinueToYourChild}
+              disabled={!isRequirementsComplete}
+              className="rounded-xl bg-[#1D4ED8] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:bg-blue-200"
+            >
+              Go to Your Children
+            </button>
+          </div> :
+        null}
       </motion.div>
 
       {/* Requirements Grid */}

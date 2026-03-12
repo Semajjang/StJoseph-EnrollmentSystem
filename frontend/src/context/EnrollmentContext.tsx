@@ -1,6 +1,7 @@
 import { useState, createContext, useContext, useEffect, useCallback, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase } from '../lib/supabase';
+import { createPerformanceTimer } from '../lib/performanceMonitor';
 
 export interface UploadedRequirement {
   id: string;
@@ -53,6 +54,8 @@ interface EnrollmentRow {
   requirements: UploadedRequirement[] | null;
 }
 
+const ENROLLMENT_SELECT_COLUMNS = 'id, child_first_name, child_last_name, program, status, submitted_at, role, form_data, requirements';
+
 const mapRowToEnrollment = (row: EnrollmentRow): EnrollmentData => {
   const sectionValue = row.form_data?.section;
 
@@ -70,35 +73,76 @@ const mapRowToEnrollment = (row: EnrollmentRow): EnrollmentData => {
   };
 };
 
+const composeAddress = (formData: Record<string, unknown>) => {
+  const region = typeof formData.region === 'string' ? formData.region.trim() : '';
+  const streetAddress = typeof formData.streetAddress === 'string' ? formData.streetAddress.trim() : '';
+  const barangay = typeof formData.barangay === 'string' ? formData.barangay.trim() : '';
+  const municipality = typeof formData.municipality === 'string' ? formData.municipality.trim() : '';
+  const province = typeof formData.province === 'string' ? formData.province.trim() : '';
+
+  return [streetAddress, barangay, municipality, province, region].filter(Boolean).join(', ');
+};
+
+const shouldStartAsWaitlisted = (formData: Record<string, unknown>) => {
+  const municipality = typeof formData.municipality === 'string' ? formData.municipality.trim().toLowerCase() : '';
+
+  if (municipality) {
+    return municipality !== 'cainta';
+  }
+
+  const address = typeof formData.address === 'string' ? formData.address.trim().toLowerCase() : '';
+  return address.length > 0 && !address.includes('cainta');
+};
+
+const normalizeComparableText = (value: unknown) =>
+  typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').toLowerCase() : '';
+
 export function EnrollmentProvider({ children }: {children: ReactNode;}) {
   const { user } = useAuth();
   const [enrollments, setEnrollments] = useState<EnrollmentData[]>([]);
 
   const fetchEnrollments = useCallback(async () => {
+    const finishMeasurement = createPerformanceTimer('fetch_enrollments', 'data-read');
+
     if (!user) {
       setEnrollments([]);
+      finishMeasurement('success', 'No authenticated user.');
+      return;
+    }
+
+    const hasManagementAccess = user.role === 'admin' || user.role === 'staff';
+    const { data: secureData, error: secureError } = await supabase.rpc('get_enrollments_secure');
+
+    if (!secureError && Array.isArray(secureData)) {
+      setEnrollments((secureData as EnrollmentRow[]).map(mapRowToEnrollment));
+      finishMeasurement('success', `Loaded ${(secureData as EnrollmentRow[]).length} secure enrollment records.`);
       return;
     }
 
     const baseQuery = supabase
       .from('enrollments')
-      .select('id, child_first_name, child_last_name, program, status, submitted_at, role, form_data, requirements')
+      .select(ENROLLMENT_SELECT_COLUMNS)
       .order('submitted_at', { ascending: false });
 
-    const hasManagementAccess = user.role === 'admin' || user.role === 'staff';
-
     const query = hasManagementAccess ?
-    baseQuery :
-    baseQuery.eq('parent_id', user.id);
+      baseQuery :
+      baseQuery.eq('parent_id', user.id);
 
     const { data, error } = await query;
 
     if (error || !data) {
       setEnrollments([]);
+      finishMeasurement('error', secureError?.message || error?.message || 'Failed to fetch enrollments.');
       return;
     }
 
     setEnrollments((data as EnrollmentRow[]).map(mapRowToEnrollment));
+    finishMeasurement(
+      'success',
+      secureError ?
+        `Loaded ${(data as EnrollmentRow[]).length} enrollment records using fallback table access.` :
+        `Loaded ${(data as EnrollmentRow[]).length} enrollment records.`
+    );
   }, [user]);
 
   useEffect(() => {
@@ -106,7 +150,10 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
   }, [fetchEnrollments]);
 
   const addEnrollment = async (formData: any) => {
+    const finishMeasurement = createPerformanceTimer('submit_enrollment', 'form-submit');
+
     if (!user) {
+      finishMeasurement('error', 'User is not authenticated.');
       return {
         error: 'You must be logged in to submit enrollment.'
       };
@@ -120,6 +167,7 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
     });
 
     if (profileError) {
+      finishMeasurement('error', profileError.message);
       return {
         error: profileError.message
       };
@@ -128,6 +176,49 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
     const normalizedFormData = {
       ...formData
     };
+
+    const duplicateCheckFirstName = normalizeComparableText(formData.childFirstName);
+    const duplicateCheckLastName = normalizeComparableText(formData.childLastName);
+    const duplicateCheckMiddleName = normalizeComparableText(formData.childMiddleName);
+    const duplicateCheckDateOfBirth = normalizeComparableText(formData.dateOfBirth);
+
+    const { data: possibleDuplicates, error: duplicateCheckError } = await supabase
+      .from('enrollments')
+      .select('id, child_first_name, child_last_name, form_data, parent_id')
+      .eq('parent_id', user.id)
+      .ilike('child_first_name', formData.childFirstName.trim())
+      .ilike('child_last_name', formData.childLastName.trim());
+
+    if (duplicateCheckError) {
+      finishMeasurement('error', duplicateCheckError.message);
+      return {
+        error: duplicateCheckError.message
+      };
+    }
+
+    const hasDuplicateEnrollment = (possibleDuplicates || []).some((row) => {
+      const duplicateRow = row as {
+        child_first_name?: unknown;
+        child_last_name?: unknown;
+        form_data?: Record<string, unknown>;
+      };
+
+      return (
+        normalizeComparableText(duplicateRow.child_first_name) === duplicateCheckFirstName &&
+        normalizeComparableText(duplicateRow.child_last_name) === duplicateCheckLastName &&
+        normalizeComparableText(duplicateRow.form_data?.childMiddleName) === duplicateCheckMiddleName &&
+        normalizeComparableText(duplicateRow.form_data?.dateOfBirth) === duplicateCheckDateOfBirth
+      );
+    });
+
+    if (hasDuplicateEnrollment) {
+      finishMeasurement('error', 'Duplicate learner entry detected.');
+      return {
+        error: 'Duplicate learner entry detected for this child name and date of birth. Please review the existing enrollment before submitting another one.'
+      };
+    }
+
+    normalizedFormData.address = composeAddress(normalizedFormData as Record<string, unknown>);
 
     if (
       typeof File !== 'undefined' &&
@@ -143,6 +234,7 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
         });
 
       if (uploadError) {
+        finishMeasurement('error', uploadError.message);
         return {
           error: uploadError.message
         };
@@ -170,6 +262,7 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
         });
 
       if (uploadError) {
+        finishMeasurement('error', uploadError.message);
         return {
           error: uploadError.message
         };
@@ -183,30 +276,36 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
       normalizedFormData.incomeProof = null;
     }
 
+    const initialStatus = shouldStartAsWaitlisted(normalizedFormData as Record<string, unknown>) ?
+      'Waitlisted' as const :
+      'Pending' as const;
+
     const payload = {
       parent_id: user.id,
       child_first_name: formData.childFirstName,
       child_last_name: formData.childLastName,
       program: formData.program || 'Pre-Kindergarten 1',
-      status: 'Pending' as const,
+      status: initialStatus,
       role: 'Student',
       form_data: normalizedFormData,
       requirements: []
     };
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('enrollments')
       .insert(payload)
-      .select('id, child_first_name, child_last_name, program, status, submitted_at, role, form_data, requirements')
+      .select('id')
       .single();
 
-    if (error || !data) {
+    if (error) {
+      finishMeasurement('error', error?.message || 'Failed to submit enrollment.');
       return {
         error: error?.message || 'Failed to submit enrollment.'
       };
     }
 
-    setEnrollments((prev) => [mapRowToEnrollment(data as EnrollmentRow), ...prev]);
+    await fetchEnrollments();
+    finishMeasurement('success', 'Enrollment submitted successfully.');
     return {
       error: null
     };
@@ -216,6 +315,7 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
   id: string,
   status: 'Pending' | 'Approved' | 'Rejected' | 'Waitlisted'
 ): Promise<{ error: string | null }> => {
+  const finishMeasurement = createPerformanceTimer('update_enrollment_status', 'data-write');
   const targetEnrollment = enrollments.find((enrollment) => enrollment.id === id);
   const shouldClearSection = status !== 'Approved';
 
@@ -233,6 +333,7 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
     .eq('id', id);
 
   if (error) {
+    finishMeasurement('error', error.message);
     return {
       error: error.message
     };
@@ -254,15 +355,19 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
     )
   );
 
+  finishMeasurement('success', `Enrollment status updated to ${status}.`);
+
   return {
     error: null
   };
 };
 
   const updateSection = async (id: string, section: string | null) => {
+    const finishMeasurement = createPerformanceTimer('update_enrollment_section', 'data-write');
     const targetEnrollment = enrollments.find((enrollment) => enrollment.id === id);
 
     if (!targetEnrollment) {
+      finishMeasurement('error', 'Enrollment not found.');
       return {
         error: 'Enrollment not found.'
       };
@@ -279,6 +384,7 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
       .eq('id', id);
 
     if (error) {
+      finishMeasurement('error', error.message);
       return {
         error: error.message
       };
@@ -296,24 +402,29 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
       )
     );
 
+    finishMeasurement('success', section ? `Assigned section ${section}.` : 'Cleared assigned section.');
+
     return {
       error: null
     };
   };
 
   const deleteEnrollment = async (id: string) => {
+    const finishMeasurement = createPerformanceTimer('delete_enrollment', 'data-write');
     const { error } = await supabase
       .from('enrollments')
       .delete()
       .eq('id', id);
 
     if (error) {
+      finishMeasurement('error', error.message);
       return {
         error: error.message
       };
     }
 
     setEnrollments((prev) => prev.filter((enrollment) => enrollment.id !== id));
+    finishMeasurement('success', 'Enrollment deleted.');
     return {
       error: null
     };
@@ -323,9 +434,11 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
   requirements: UploadedRequirement[],
   enrollmentId?: string) =>
   {
+    const finishMeasurement = createPerformanceTimer('update_enrollment_requirements', 'data-write');
     const targetEnrollmentId = enrollmentId || enrollments[0]?.id;
 
     if (!targetEnrollmentId) {
+      finishMeasurement('success', 'No enrollment available for requirements update.');
       return {
         error: null
       };
@@ -337,6 +450,7 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
       .eq('id', targetEnrollmentId);
 
     if (error) {
+      finishMeasurement('error', error.message);
       return {
         error: error.message
       };
@@ -352,6 +466,7 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
         enrollment
       )
     );
+    finishMeasurement('success', `Updated ${requirements.length} requirement files.`);
     return {
       error: null
     };

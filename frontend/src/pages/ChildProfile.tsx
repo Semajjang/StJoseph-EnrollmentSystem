@@ -44,12 +44,16 @@ export function ChildProfile({ onStartEnrollment }: ChildProfileProps) {
 
       <div className="space-y-4">
         {enrollments.map((enrollment) => {
-          const sectionLabel = enrollment.section && enrollment.section.trim() ? enrollment.section : 'Not assigned yet';
+          const rawSectionLabel = enrollment.section && enrollment.section.trim() ? enrollment.section.trim() : '';
+          const sectionMatch = rawSectionLabel.match(/^(.*?)(?:\s*\(([^()]+)\))?$/);
+          const sectionName = sectionMatch?.[1]?.trim() || '';
+          const sectionScheduleRange = sectionMatch?.[2]?.trim() || '';
+          const sectionLabel = sectionName || 'Not assigned yet';
           const rawSchedule = typeof enrollment.formData?.schedule === 'string' ?
             enrollment.formData.schedule :
             '';
           const normalizedSchedule = rawSchedule.trim().toUpperCase();
-          const inferredFromSection = sectionLabel.toUpperCase();
+          const inferredFromSection = sectionScheduleRange.toUpperCase();
           const schedule =
             normalizedSchedule === 'AM' || normalizedSchedule === 'PM' ?
               normalizedSchedule :
@@ -59,6 +63,8 @@ export function ChildProfile({ onStartEnrollment }: ChildProfileProps) {
                   'PM' :
                   null;
           const scheduleTimeLabel =
+            sectionScheduleRange ?
+              sectionScheduleRange :
             schedule === 'AM' ?
               '10:00 AM - 12:00 PM' :
               schedule === 'PM' ?

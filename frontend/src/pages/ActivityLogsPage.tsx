@@ -150,12 +150,22 @@ const formatDetails = (log: ActivityLog): string => {
     return subject ? `Updated '${subject}' contact thread.` : 'Updated contact thread.';
   }
 
+  if (log.entityType === 'staff_access') {
+    const openedBy = getText('opened_by') || log.actorName;
+    const teacherId = getText('teacher_id');
+    const accountName = getText('account_name');
+
+    return `Verified staff access for ${openedBy}${teacherId ? ` using teacher ID ${teacherId}` : ''}${accountName ? ` on account ${accountName}` : ''}.`;
+  }
+
   return JSON.stringify(details, null, 0);
 };
 
+const escapeCsvValue = (value: string) => `"${value.replace(/"/g, '""')}"`;
+
 export function ActivityLogsPage() {
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
-  const [activityFilter, setActivityFilter] = useState<'all' | 'enrollment' | 'site_content' | 'contact_message'>('all');
+  const [activityFilter, setActivityFilter] = useState<'all' | 'enrollment' | 'site_content' | 'contact_message' | 'staff_access'>('all');
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
   const [activityError, setActivityError] = useState('');
 
@@ -172,7 +182,8 @@ export function ActivityLogsPage() {
       total: activityLogs.length,
       enrollment: activityLogs.filter((log) => log.entityType === 'enrollment').length,
       siteContent: activityLogs.filter((log) => log.entityType === 'site_content').length,
-      contact: activityLogs.filter((log) => log.entityType === 'contact_message').length
+      contact: activityLogs.filter((log) => log.entityType === 'contact_message').length,
+      staffAccess: activityLogs.filter((log) => log.entityType === 'staff_access').length
     };
   }, [activityLogs]);
 
@@ -199,6 +210,38 @@ export function ActivityLogsPage() {
 
     setActivityLogs((data as ActivityLogRow[]).map(mapActivityLog));
   }, []);
+
+  const handleDownloadCsv = () => {
+    const headers = ['Time', 'Staff/Admin', 'Role', 'Action', 'Entity', 'Entity ID', 'Details'];
+    const rows = filteredActivityLogs.map((log) => [
+      new Date(log.createdAt).toLocaleString(),
+      log.actorName,
+      log.actorRole,
+      formatActivityAction(log.action),
+      formatActivityEntity(log.entityType),
+      log.entityId,
+      formatDetails(log)
+    ]);
+
+    const csvContent = [
+      headers.map(escapeCsvValue).join(','),
+      ...rows.map((row) => row.map((value) => escapeCsvValue(String(value))).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], {
+      type: 'text/csv;charset=utf-8;'
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const suffix = activityFilter === 'all' ? 'all' : activityFilter;
+
+    link.href = url;
+    link.setAttribute('download', `activity-logs-${suffix}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   useEffect(() => {
     void loadActivityLogs();
@@ -260,15 +303,23 @@ export function ActivityLogsPage() {
           </p>
           <h1 className="text-3xl font-extrabold text-gray-800">Activity Logs</h1>
           <p className="mt-1 text-gray-500">
-            Staff and admin changes for enrollment actions, homepage content, and contact management.
+            Staff and admin changes for enrollment actions, homepage content, contact management, and staff access verification.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleDownloadCsv}
+            disabled={filteredActivityLogs.length === 0}
+            className="rounded-xl bg-[#1D4ED8] px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:bg-blue-200"
+          >
+            Download CSV
+          </button>
           <select
             value={activityFilter}
             onChange={(event) =>
               setActivityFilter(
-                event.target.value as 'all' | 'enrollment' | 'site_content' | 'contact_message'
+                event.target.value as 'all' | 'enrollment' | 'site_content' | 'contact_message' | 'staff_access'
               )
             }
             className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none focus:border-sky-300"
@@ -277,12 +328,13 @@ export function ActivityLogsPage() {
             <option value="enrollment">Enrollment</option>
             <option value="site_content">Site Content</option>
             <option value="contact_message">Contact Messages</option>
+            <option value="staff_access">Staff Access</option>
           </select>
         </div>
       </div>
 
-      <section className="flex h-[calc(100vh-190px)] min-h-0 flex-col rounded-2xl border border-gray-100 bg-white shadow-md overflow-hidden">
-        <div className="grid grid-cols-1 gap-3 border-b border-gray-100 bg-[#F8FAFC] px-6 py-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="flex h-[calc(100vh-190px)] min-h-0 flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-md">
+        <div className="grid grid-cols-1 gap-3 border-b border-gray-100 bg-[#F8FAFC] px-6 py-4 sm:grid-cols-2 xl:grid-cols-5">
           <div className="rounded-xl border border-blue-100 bg-white px-4 py-3">
             <p className="text-[11px] font-bold uppercase tracking-wide text-blue-600">Total Events</p>
             <p className="mt-1 text-2xl font-extrabold text-gray-800">{activitySummary.total}</p>
@@ -298,6 +350,10 @@ export function ActivityLogsPage() {
           <div className="rounded-xl border border-purple-100 bg-white px-4 py-3">
             <p className="text-[11px] font-bold uppercase tracking-wide text-purple-700">Contact Messages</p>
             <p className="mt-1 text-2xl font-extrabold text-gray-800">{activitySummary.contact}</p>
+          </div>
+          <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-emerald-700">Staff Access</p>
+            <p className="mt-1 text-2xl font-extrabold text-gray-800">{activitySummary.staffAccess}</p>
           </div>
         </div>
 

@@ -1,0 +1,23 @@
+{
+  "baseUrl": "http://localhost:4173",
+  "concurrency": 50,
+  "iterationsPerUser": 2,
+  "timeoutMs": 10000,
+  "targets": {
+    "maxAverageMs": 3000,
+    "maxP95Ms": 3000,
+    "maxErrorRatePct": 5
+  },
+  "requests": [
+    {
+      "name": "Home Page",
+      "method": "GET",
+      "path": "/"
+    },
+    {
+      "name": "Static Health Request",
+      "method": "GET",
+      "path": "/"
+    }
+  ]
+}

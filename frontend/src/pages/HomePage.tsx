@@ -190,6 +190,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
           </button>
         </div>
       </div>
+
       </div>
     </div>
   );

@@ -46,6 +46,60 @@ const emptyAutoAssignCatalog = (): AutoAssignCatalog => ({
 
 const normalizeSectionName = (value: string) => value.trim().replace(/\s+/g, ' ');
 
+const formatSectionTime = (value: string) => {
+  const [hourText = '', minuteText = ''] = value.split(':');
+  const hours = Number(hourText);
+  const minutes = Number(minuteText);
+
+  if (
+    !Number.isInteger(hours) ||
+    !Number.isInteger(minutes) ||
+    hours < 0 ||
+    hours > 23 ||
+    minutes < 0 ||
+    minutes > 59
+  ) {
+    return '';
+  }
+
+  const meridiem = hours >= 12 ? 'PM' : 'AM';
+  const normalizedHour = hours % 12 || 12;
+  return `${normalizedHour}:${String(minutes).padStart(2, '0')} ${meridiem}`;
+};
+
+const isValidSectionTimeRange = (startTime: string, endTime: string) => {
+  if (!startTime || !endTime) {
+    return false;
+  }
+
+  return startTime < endTime;
+};
+
+const formatSectionTimeRange = (startTime: string, endTime: string) => {
+  if (!isValidSectionTimeRange(startTime, endTime)) {
+    return '';
+  }
+
+  const formattedStartTime = formatSectionTime(startTime);
+  const formattedEndTime = formatSectionTime(endTime);
+
+  if (!formattedStartTime || !formattedEndTime) {
+    return '';
+  }
+
+  return `${formattedStartTime} - ${formattedEndTime}`;
+};
+
+const buildSectionLabel = (sectionName: string, startTime: string, endTime: string) => {
+  const formattedTime = formatSectionTimeRange(startTime, endTime);
+
+  if (!formattedTime) {
+    return sectionName;
+  }
+
+  return `${sectionName} (${formattedTime})`;
+};
+
 // Removed unused getStudentAddress and getStudentSex
 
 const getManagedProgram = (program: string): ManagedProgram | null => {
@@ -129,6 +183,243 @@ const saveStoredAutoAssign = (catalog: AutoAssignCatalog) => {
   }
 };
 
+const escapeCsvValue = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+
+type ParsedFileReference = {
+  fileName: string;
+  storagePath?: string;
+  publicUrl?: string;
+};
+
+type ViewableRequirement = {
+  id: string;
+  label: string;
+  fileName: string;
+  storagePath?: string;
+  publicUrl?: string;
+  bucketName: 'requirements' | 'enrollment-files';
+};
+
+const legacyRequirementFields = [
+  { key: 'incomeProof', label: 'Income Proof' },
+  { key: 'income_proof', label: 'Income Proof' }
+] as const;
+
+const fileFieldKeysToHide = new Set<string>([
+  'idPicture',
+  'id_picture',
+  'learnerIdPicture',
+  ...legacyRequirementFields.map((field) => field.key)
+]);
+
+const parseFileReference = (
+  rawValue: unknown,
+  fallbackFileName: string
+): ParsedFileReference | null => {
+  if (!rawValue) {
+    return null;
+  }
+
+  if (typeof rawValue === 'string') {
+    const trimmedValue = rawValue.trim();
+
+    if (!trimmedValue) {
+      return null;
+    }
+
+    if (trimmedValue.startsWith('{') || trimmedValue.startsWith('[')) {
+      try {
+        return parseFileReference(JSON.parse(trimmedValue), fallbackFileName);
+      } catch {
+        return {
+          fileName: fallbackFileName,
+          publicUrl: trimmedValue
+        };
+      }
+    }
+
+    return /^https?:\/\//i.test(trimmedValue) ? {
+      fileName: fallbackFileName,
+      publicUrl: trimmedValue
+    } : {
+      fileName: fallbackFileName,
+      storagePath: trimmedValue
+    };
+  }
+
+  if (typeof rawValue !== 'object') {
+    return null;
+  }
+
+  const fileValue = rawValue as {
+    fileName?: unknown;
+    filename?: unknown;
+    name?: unknown;
+    storagePath?: unknown;
+    path?: unknown;
+    publicUrl?: unknown;
+    url?: unknown;
+  };
+
+  const fileName =
+    typeof fileValue.fileName === 'string' && fileValue.fileName.trim() ?
+      fileValue.fileName.trim() :
+    typeof fileValue.filename === 'string' && fileValue.filename.trim() ?
+      fileValue.filename.trim() :
+    typeof fileValue.name === 'string' && fileValue.name.trim() ?
+      fileValue.name.trim() :
+      fallbackFileName;
+
+  const storagePath =
+    typeof fileValue.storagePath === 'string' && fileValue.storagePath.trim() ?
+      fileValue.storagePath.trim() :
+    typeof fileValue.path === 'string' && fileValue.path.trim() ?
+      fileValue.path.trim() :
+      undefined;
+
+  const publicUrl =
+    typeof fileValue.publicUrl === 'string' && fileValue.publicUrl.trim() ?
+      fileValue.publicUrl.trim() :
+    typeof fileValue.url === 'string' && fileValue.url.trim() ?
+      fileValue.url.trim() :
+      undefined;
+
+  if (!storagePath && !publicUrl) {
+    return null;
+  }
+
+  return {
+    fileName,
+    storagePath,
+    publicUrl
+  };
+};
+
+const mergeEnrollmentRequirements = (enrollment: EnrollmentData): ViewableRequirement[] => {
+  const normalizedRequirements = enrollment.requirements
+    .filter((requirement) => requirement.storagePath || requirement.publicUrl)
+    .map((requirement) => ({
+      ...requirement,
+      bucketName: 'requirements' as const
+    }));
+  const seenRequirementKeys = new Set(
+    normalizedRequirements.map(
+      (requirement) => `${requirement.storagePath || ''}|${requirement.publicUrl || ''}|${requirement.fileName}`
+    )
+  );
+
+  if (!enrollment.formData || typeof enrollment.formData !== 'object') {
+    return normalizedRequirements;
+  }
+
+  const formData = enrollment.formData as Record<string, unknown>;
+  const legacyRequirements = legacyRequirementFields.flatMap((field) => {
+    const parsedReference = parseFileReference(formData[field.key], field.label);
+
+    if (!parsedReference) {
+      return [];
+    }
+
+    const requirementKey = `${parsedReference.storagePath || ''}|${parsedReference.publicUrl || ''}|${parsedReference.fileName}`;
+
+    if (seenRequirementKeys.has(requirementKey)) {
+      return [];
+    }
+
+    seenRequirementKeys.add(requirementKey);
+
+    return [{
+      id: field.key,
+      label: field.label,
+      fileName: parsedReference.fileName,
+      storagePath: parsedReference.storagePath,
+      publicUrl: parsedReference.publicUrl,
+      bucketName: 'enrollment-files' as const
+    }];
+  });
+
+  return [...normalizedRequirements, ...legacyRequirements];
+};
+
+const hasViewableDocuments = (enrollment: EnrollmentData) => {
+  return mergeEnrollmentRequirements(enrollment).length > 0;
+};
+
+const getEnrollmentFormValue = (enrollment: EnrollmentData, key: string) => {
+  const value = enrollment.formData?.[key];
+  return typeof value === 'string' ? value.trim() : '';
+};
+
+const getExportAddress = (enrollment: EnrollmentData) => {
+  const directAddress = getEnrollmentFormValue(enrollment, 'address');
+
+  if (directAddress) {
+    return directAddress;
+  }
+
+  return [
+    getEnrollmentFormValue(enrollment, 'streetAddress'),
+    getEnrollmentFormValue(enrollment, 'barangay'),
+    getEnrollmentFormValue(enrollment, 'municipality'),
+    getEnrollmentFormValue(enrollment, 'province'),
+    getEnrollmentFormValue(enrollment, 'region')
+  ]
+    .filter(Boolean)
+    .join(', ');
+};
+
+const getGuardianParentName = (enrollment: EnrollmentData) => {
+  const names = [
+    getEnrollmentFormValue(enrollment, 'motherName'),
+    getEnrollmentFormValue(enrollment, 'fatherName'),
+    getEnrollmentFormValue(enrollment, 'guardianName')
+  ].filter(Boolean);
+
+  return names.join(' / ');
+};
+
+const getGuardianParentContact = (enrollment: EnrollmentData) => {
+  const contacts = [
+    getEnrollmentFormValue(enrollment, 'motherContact'),
+    getEnrollmentFormValue(enrollment, 'fatherContact'),
+    getEnrollmentFormValue(enrollment, 'guardianContact')
+  ].filter(Boolean);
+
+  return contacts.join(' / ');
+};
+
+const getSourceOfIncome = (enrollment: EnrollmentData) => {
+  const categorizedIncomeSource = getEnrollmentFormValue(enrollment, 'incomeSourceCategory');
+
+  if (categorizedIncomeSource) {
+    return categorizedIncomeSource;
+  }
+
+  const occupations = [
+    getEnrollmentFormValue(enrollment, 'motherOccupation'),
+    getEnrollmentFormValue(enrollment, 'fatherOccupation'),
+    getEnrollmentFormValue(enrollment, 'guardianOccupation')
+  ].filter(Boolean);
+
+  return occupations.join(' / ');
+};
+
+const buildMasterlistExportRow = (enrollment: EnrollmentData) => [
+  enrollment.childLastName,
+  enrollment.childFirstName,
+  enrollment.program,
+  enrollment.section || '',
+  enrollment.role,
+  enrollment.status,
+  new Date(enrollment.submittedAt).toLocaleDateString(),
+  getEnrollmentFormValue(enrollment, 'sex'),
+  getEnrollmentFormValue(enrollment, 'dateOfBirth'),
+  getGuardianParentName(enrollment),
+  getExportAddress(enrollment),
+  getGuardianParentContact(enrollment),
+  getSourceOfIncome(enrollment)
+];
+
 export function StaffDashboard() {
   const { enrollments, updateStatus, updateSection, deleteEnrollment } = useEnrollment();
   const [selectedStudent, setSelectedStudent] = useState<EnrollmentData | null>(
@@ -148,6 +439,8 @@ export function StaffDashboard() {
     readStoredAutoAssign()
   );
   const [newSectionName, setNewSectionName] = useState('');
+  const [newSectionStartTime, setNewSectionStartTime] = useState('');
+  const [newSectionEndTime, setNewSectionEndTime] = useState('');
   const [isSectionInfoOpen, setIsSectionInfoOpen] = useState(false);
   const [isDeleteSectionConfirmOpen, setIsDeleteSectionConfirmOpen] = useState(false);
   const [isDeletingSection, setIsDeletingSection] = useState(false);
@@ -166,7 +459,7 @@ export function StaffDashboard() {
   );
   const reviewableEnrollments = enrollments.filter(
     (enrollment) =>
-      enrollment.requirements.length > 0 &&
+      hasViewableDocuments(enrollment) &&
       (selectedProgram === 'All' ||
         programAliases[selectedProgram].includes(enrollment.program)) &&
       (!selectedSection || enrollment.section === selectedSection)
@@ -421,7 +714,17 @@ export function StaffDashboard() {
       return [] as [string, unknown][];
     }
 
-    return Object.entries(selectedStudent.formData) as [string, unknown][];
+    return (Object.entries(selectedStudent.formData) as [string, unknown][]).filter(
+      ([key]) => !fileFieldKeysToHide.has(key)
+    );
+  }, [selectedStudent]);
+
+  const selectedStudentRequirements = useMemo(() => {
+    if (!selectedStudent) {
+      return [];
+    }
+
+    return mergeEnrollmentRequirements(selectedStudent);
   }, [selectedStudent]);
 
   const selectedStudentIdPicture = useMemo(() => {
@@ -444,43 +747,7 @@ export function StaffDashboard() {
       return null;
     }
 
-    if (typeof rawValue === 'string') {
-      return {
-        fileName: 'Uploaded ID Photo',
-        publicUrl: rawValue
-      };
-    }
-
-    if (typeof rawValue === 'object') {
-      const pictureValue = rawValue as {
-        fileName?: unknown;
-        storagePath?: unknown;
-        publicUrl?: unknown;
-        url?: unknown;
-      };
-
-      const storagePath =
-        typeof pictureValue.storagePath === 'string' ? pictureValue.storagePath : undefined;
-      const publicUrl =
-        typeof pictureValue.publicUrl === 'string' ? pictureValue.publicUrl :
-        typeof pictureValue.url === 'string' ? pictureValue.url :
-        undefined;
-
-      if (!storagePath && !publicUrl) {
-        return null;
-      }
-
-      return {
-        fileName:
-          typeof pictureValue.fileName === 'string' ?
-          pictureValue.fileName :
-          'Uploaded ID Photo',
-        storagePath,
-        publicUrl
-      };
-    }
-
-    return null;
+    return parseFileReference(rawValue, 'Uploaded ID Photo');
   }, [selectedStudent]);
 
   const formatValue = (value: unknown) => {
@@ -504,13 +771,14 @@ export function StaffDashboard() {
     id: string;
     storagePath?: string;
     publicUrl?: string;
+    bucketName?: 'requirements' | 'enrollment-files';
   }) =>
   {
     if (requirement.storagePath) {
       setLoadingRequirementId(requirement.id);
 
       const { data, error } = await supabase.storage
-        .from('requirements')
+        .from(requirement.bucketName || 'requirements')
         .createSignedUrl(requirement.storagePath, 60 * 10);
 
       setLoadingRequirementId(null);
@@ -519,11 +787,18 @@ export function StaffDashboard() {
         window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
         return;
       }
+
+      if (error) {
+        window.alert(error.message);
+      }
     }
 
     if (requirement.publicUrl) {
       window.open(requirement.publicUrl, '_blank', 'noopener,noreferrer');
+      return;
     }
+
+    window.alert('Unable to open the uploaded document.');
   };
 
   const openEnrollmentIdPicture = async (storagePath: string) => {
@@ -560,27 +835,26 @@ export function StaffDashboard() {
 
   const handleDownloadCSV = () => {
     const headers = [
-    'Last Name',
-    'First Name',
-    'Program',
-    'Section',
-    'Role',
-    'Status',
-    'Date Enrolled'];
+      'Last Name',
+      'First Name',
+      'Program',
+      'Section',
+      'Role',
+      'Status',
+      'Date Enrolled',
+      'Gender',
+      'Date of Birth',
+      'Guardian / Parent Name',
+      'Address',
+      'Contact Number',
+      'Source of Income'
+    ];
 
-    const rows = filteredMasterlist.map((e) => [
-    e.childLastName,
-    e.childFirstName,
-    e.program,
-    e.section || '',
-    e.role,
-    e.status,
-    new Date(e.submittedAt).toLocaleDateString()]
-    );
+    const rows = filteredMasterlist.map(buildMasterlistExportRow);
     const csvContent = [
-    headers.join(','),
-    ...rows.map((row) => row.join(','))].
-    join('\n');
+      headers.map(escapeCsvValue).join(','),
+      ...rows.map((row) => row.map(escapeCsvValue).join(','))
+    ].join('\n');
     const blob = new Blob([csvContent], {
       type: 'text/csv;charset=utf-8;'
     });
@@ -613,20 +887,21 @@ export function StaffDashboard() {
       'Section',
       'Role',
       'Status',
-      'Date Enrolled'
+      'Date Enrolled',
+      'Gender',
+      'Date of Birth',
+      'Guardian / Parent Name',
+      'Address',
+      'Contact Number',
+      'Source of Income'
     ];
 
-    const rows = selectedSectionStudents.map((student) => [
-      student.childLastName,
-      student.childFirstName,
-      student.program,
-      student.section || '',
-      student.role,
-      student.status,
-      new Date(student.submittedAt).toLocaleDateString()
-    ]);
+    const rows = selectedSectionStudents.map(buildMasterlistExportRow);
 
-    const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+    const csvContent = [
+      headers.map(escapeCsvValue).join(','),
+      ...rows.map((row) => row.map(escapeCsvValue).join(','))
+    ].join('\n');
     const blob = new Blob([csvContent], {
       type: 'text/csv;charset=utf-8;'
     });
@@ -647,13 +922,23 @@ export function StaffDashboard() {
     }
 
     const normalizedSectionName = normalizeSectionName(newSectionName);
+    const formattedSectionTimeRange = formatSectionTimeRange(
+      newSectionStartTime,
+      newSectionEndTime
+    );
 
-    if (!normalizedSectionName) {
+    if (!normalizedSectionName || !formattedSectionTimeRange) {
       return;
     }
 
+    const nextSectionLabel = buildSectionLabel(
+      normalizedSectionName,
+      newSectionStartTime,
+      newSectionEndTime
+    );
+
     const nextSections = Array.from(
-      new Set([...sectionsByProgram[activeManagedProgram], normalizedSectionName])
+      new Set([...sectionsByProgram[activeManagedProgram], nextSectionLabel])
     ).sort((left, right) => left.localeCompare(right));
 
     const nextCatalog = {
@@ -664,6 +949,8 @@ export function StaffDashboard() {
     setSectionsByProgram(nextCatalog);
     saveStoredSections(nextCatalog);
     setNewSectionName('');
+    setNewSectionStartTime('');
+    setNewSectionEndTime('');
   };
 
   const handleToggleAutoAssign = (program: ManagedProgram) => {
@@ -811,16 +1098,18 @@ export function StaffDashboard() {
           </h1>
           <p className="text-gray-500 mt-1">Manage students and enrollments.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={handleDownloadCSV}
-            className="bg-[#BAE6FD] hover:bg-[#7DD3FC] px-6 py-3 rounded-xl font-bold text-gray-800 flex items-center gap-2 transition-colors shadow-sm"
-          >
-            <DownloadIcon className="w-5 h-5" />
-            Download Masterlist
-          </button>
-        </div>
+        {selectedSection === null ?
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={handleDownloadCSV}
+              className="bg-[#BAE6FD] hover:bg-[#7DD3FC] px-6 py-3 rounded-xl font-bold text-gray-800 flex items-center gap-2 transition-colors shadow-sm"
+            >
+              <DownloadIcon className="w-5 h-5" />
+              Download Masterlist
+            </button>
+          </div> :
+          null}
       </div>
 
       <div className="mb-8">
@@ -968,7 +1257,7 @@ export function StaffDashboard() {
                   </div> :
                   null}
               </div>
-              <div className="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[360px] lg:flex-row">
+              <div className="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[720px] lg:flex-row">
                 <input
                   type="text"
                   value={newSectionName}
@@ -985,16 +1274,60 @@ export function StaffDashboard() {
                   }
                   className="w-full rounded-full border border-white/40 bg-white/90 px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-white lg:w-[240px]"
                 />
+                <input
+                  type="time"
+                  value={newSectionStartTime}
+                  onChange={(event) => setNewSectionStartTime(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      handleAddSection();
+                    }
+                  }}
+                  disabled={!activeManagedProgram}
+                  aria-label="Section start time"
+                  className="w-full rounded-full border border-white/40 bg-white/90 px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-white lg:w-[180px]"
+                />
+                <input
+                  type="time"
+                  value={newSectionEndTime}
+                  onChange={(event) => setNewSectionEndTime(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      handleAddSection();
+                    }
+                  }}
+                  disabled={!activeManagedProgram}
+                  aria-label="Section end time"
+                  className="w-full rounded-full border border-white/40 bg-white/90 px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-white lg:w-[180px]"
+                />
                 <button
                   type="button"
                   onClick={handleAddSection}
-                  disabled={!activeManagedProgram || !normalizeSectionName(newSectionName)}
+                  disabled={
+                    !activeManagedProgram ||
+                    !normalizeSectionName(newSectionName) ||
+                    !formatSectionTimeRange(newSectionStartTime, newSectionEndTime)
+                  }
                   className="rounded-full bg-gray-800 px-5 py-3 text-sm font-bold text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-500"
                 >
                   Add Section
                 </button>
               </div>
             </div>
+
+            {activeManagedProgram ?
+              <p className="mt-3 text-sm font-medium text-gray-700">
+                New sections will be saved with a time range, for example Section A (10:00 AM - 11:00 AM).
+              </p> :
+              null}
+
+            {activeManagedProgram && newSectionStartTime && newSectionEndTime && !isValidSectionTimeRange(newSectionStartTime, newSectionEndTime) ?
+              <p className="mt-2 text-sm font-semibold text-red-700">
+                End time must be later than the start time.
+              </p> :
+              null}
 
             <div className="mt-4 flex flex-wrap gap-2">
               {activeManagedProgram ?
@@ -1301,9 +1634,15 @@ export function StaffDashboard() {
       </div>
 
       {isSectionInfoOpen && activeManagedProgram && selectedSection ?
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-5xl rounded-3xl bg-white p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-4 border-b border-gray-100 pb-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setIsSectionInfoOpen(false)}
+        >
+          <div
+            className="w-full max-w-5xl rounded-3xl bg-white p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="border-b border-gray-100 pb-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
                   Section Info
@@ -1313,13 +1652,6 @@ export function StaffDashboard() {
                   {activeManagedProgram}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsSectionInfoOpen(false)}
-                className="rounded-full px-4 py-2 text-sm font-bold text-gray-600 transition hover:bg-gray-100"
-              >
-                Close
-              </button>
             </div>
 
             <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-gray-50 p-5">
@@ -1346,8 +1678,14 @@ export function StaffDashboard() {
         null}
 
       {isDeleteSectionConfirmOpen && selectedSection ?
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setIsDeleteSectionConfirmOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
             <h3 className="text-xl font-extrabold text-gray-800">
               Delete Section
             </h3>
@@ -1378,8 +1716,14 @@ export function StaffDashboard() {
         null}
 
       {selectedStudent ?
-      <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl border border-gray-100 max-h-[85vh] overflow-y-auto">
+      <div
+        className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+        onClick={() => setSelectedStudent(null)}
+      >
+          <div
+            className="bg-white w-full max-w-2xl rounded-2xl shadow-xl border border-gray-100 max-h-[85vh] overflow-y-auto"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <h3 className="text-lg font-bold text-gray-800">
                 Student Information Card
@@ -1391,12 +1735,6 @@ export function StaffDashboard() {
                   className="px-3 py-1.5 rounded-lg text-sm font-bold text-red-700 bg-red-100 hover:bg-red-200"
                 >
                   Delete
-                </button>
-                <button
-                  onClick={() => setSelectedStudent(null)}
-                  className="px-3 py-1.5 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100">
-
-                  Close
                 </button>
               </div>
             </div>
@@ -1528,10 +1866,10 @@ export function StaffDashboard() {
                 <h4 className="text-sm font-bold text-gray-800 mb-3">
                   Requirements / Uploaded PDFs
                 </h4>
-                {selectedStudent.requirements.length === 0 ?
+                {selectedStudentRequirements.length === 0 ?
                 <p className="text-sm text-gray-500">No uploaded requirement files yet.</p> :
                 <div className="space-y-3">
-                    {selectedStudent.requirements.map((requirement) =>
+                    {selectedStudentRequirements.map((requirement) =>
                   <div
                     key={requirement.id}
                     className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">

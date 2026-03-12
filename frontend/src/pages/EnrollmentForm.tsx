@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEnrollment } from '../context/EnrollmentContext';
+import {
+  PhilippineAddressOption,
+  fetchBarangaysByCityMunicipality,
+  fetchCitiesMunicipalitiesByProvince,
+  fetchCitiesMunicipalitiesByRegion,
+  fetchProvincesByRegion,
+  fetchRegions
+} from '../lib/philippineAddress';
 // Removed unused useAuth import
 
 const ENROLLMENT_DRAFT_STORAGE_KEY = 'enrollment-form-draft';
@@ -8,17 +16,61 @@ let enrollmentDraftFile: File | null = null;
 let enrollmentDraftPreviewUrl: string | null = null;
 let enrollmentDraftIncomeProofFile: File | null = null;
 
+const inferProvinceFromRegion = (regionName: string) =>
+  regionName.includes('National Capital Region') ? 'Metro Manila' : regionName;
+
+const beneficiaryProgramOptions = [
+  'None / Not currently enrolled in a beneficiary program',
+  '4Ps (Pantawid Pamilyang Pilipino Program)',
+  'AICS (Assistance to Individuals in Crisis Situation)',
+  'AKAP (Ayuda para sa Kapos ang Kita Program)',
+  'UCT (Unconditional Cash Transfer)',
+  'Social Pension for Indigent Senior Citizens',
+  'Solo Parent Cash Assistance / Solo Parent Benefits',
+  'PWD Assistance Program',
+  'Supplementary Feeding Program',
+  'SLP (Sustainable Livelihood Program)',
+  'TUPAD',
+  'DOLE Integrated Livelihood Program (Kabuhayan)',
+  'Government Internship Program (GIP)',
+  'JobStart Philippines',
+  'TES (Tertiary Education Subsidy)',
+  'Tulong Dunong Program',
+  'Educational Assistance Program',
+  'ESGP-PA (Expanded Students\' Grants-in-Aid Program for Poverty Alleviation)',
+  'PhilHealth Sponsored Program',
+  'Walang Gutom Program / Food Stamp Program',
+  'Rice Assistance / Rice Subsidy Program',
+  'Medical Assistance Program',
+  'Burial / Funeral Assistance Program',
+  'Other National or LGU Assistance Program'
+] as const;
+
+const MAX_UPLOAD_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const allowedUploadMimeTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+const allowedUploadExtensions = ['.jpg', '.jpeg', '.png', '.pdf'];
+
 interface FormData {
   // Learner Info
   childFirstName: string;
   childMiddleName: string;
   childLastName: string;
+  childPhilSysNumber: string;
   sex: 'Male' | 'Female' | '';
   dateOfBirth: string;
   age: number;
+  region: string;
+  regionCode: string;
+  streetAddress: string;
+  barangay: string;
+  municipalityCode: string;
+  municipality: string;
+  provinceCode: string;
+  province: string;
   address: string;
   healthConcerns: string;
-  financialProgram: 'Regular' | 'Subsidized' | 'Scholarship' | '';
+  financialProgram: string;
+  financialProgramOther: string;
   enrolledSiblings: number;
   idPicture: File | null;
   // Guardian Info
@@ -33,6 +85,11 @@ interface FormData {
   motherContact: string;
   fatherContact: string;
   guardianContact: string;
+  soloParentStatus: 'Yes' | 'No' | '';
+  parentGuardianPhilSysNumber: string;
+  incomeSourceCategory: 'Salary/Wages' | 'Business' | 'Both' | 'Other' | '';
+  incomeSourceCategoryOther: string;
+  parentGuardianSpecialStatus: 'None' | 'Person with Disability' | 'Senior Citizen' | 'Both' | '';
   monthlyIncome: string;
   incomeProof: File | null;
   // Program Info
@@ -44,12 +101,22 @@ const initialFormData: FormData = {
   childFirstName: '',
   childMiddleName: '',
   childLastName: '',
+  childPhilSysNumber: '',
   sex: '',
   dateOfBirth: '',
   age: 0,
+  region: '',
+  regionCode: '',
+  streetAddress: '',
+  barangay: '',
+  municipalityCode: '',
+  municipality: '',
+  provinceCode: '',
+  province: '',
   address: '',
   healthConcerns: '',
   financialProgram: '',
+  financialProgramOther: '',
   enrolledSiblings: 0,
   idPicture: null,
   motherName: '',
@@ -63,15 +130,207 @@ const initialFormData: FormData = {
   motherContact: '',
   fatherContact: '',
   guardianContact: '',
+  soloParentStatus: '',
+  parentGuardianPhilSysNumber: '',
+  incomeSourceCategory: '',
+  incomeSourceCategoryOther: '',
+  parentGuardianSpecialStatus: '',
   monthlyIncome: '',
   incomeProof: null,
-  program: 'Pre-Kindergarten 1',
+  program: '',
   schoolYear: '2024-2025',
   schedule: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
 };
 interface EnrollmentFormProps {
   onSuccess: () => void;
 }
+
+const composeAddress = (
+  data: Pick<FormData, 'streetAddress' | 'barangay' | 'municipality' | 'province' | 'region'>
+) =>
+  [data.streetAddress, data.barangay, data.municipality, data.province, data.region]
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .join(', ');
+
+interface AgeBreakdown {
+  years: number;
+  months: number;
+  totalMonths: number;
+}
+
+interface ProgramPlacement {
+  name: string;
+  ageLabel: string;
+  iconLabel: string;
+  scheduleLabel: string;
+  timeLabel: string;
+  accentClassName: string;
+  borderClassName: string;
+  badgeClassName: string;
+}
+
+const parseDateInput = (dateOfBirth: string) => {
+  const [yearText = '', monthText = '', dayText = ''] = dateOfBirth.split('-');
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  const parsedDate = new Date(year, month - 1, day);
+
+  if (
+    parsedDate.getFullYear() !== year ||
+    parsedDate.getMonth() !== month - 1 ||
+    parsedDate.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return parsedDate;
+};
+
+const getAgeBreakdown = (dateOfBirth: string): AgeBreakdown | null => {
+  if (!dateOfBirth) {
+    return null;
+  }
+
+  const birthDate = parseDateInput(dateOfBirth);
+
+  if (!birthDate) {
+    return null;
+  }
+
+  const today = new Date();
+  let years = today.getFullYear() - birthDate.getFullYear();
+  let months = today.getMonth() - birthDate.getMonth();
+  const days = today.getDate() - birthDate.getDate();
+
+  if (days < 0) {
+    months -= 1;
+  }
+
+  if (months < 0) {
+    years -= 1;
+    months += 12;
+  }
+
+  const totalMonths = years * 12 + months;
+
+  return {
+    years,
+    months,
+    totalMonths
+  };
+};
+
+const formatDateInputValue = (value: Date) => {
+  const year = value.getFullYear();
+  const month = `${value.getMonth() + 1}`.padStart(2, '0');
+  const day = `${value.getDate()}`.padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+};
+
+const getAllowedBirthdateRange = () => {
+  const today = new Date();
+  const latestBirthdate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const earliestBirthdate = new Date(today.getFullYear() - 6, today.getMonth(), today.getDate() + 1);
+
+  return {
+    min: formatDateInputValue(earliestBirthdate),
+    max: formatDateInputValue(latestBirthdate)
+  };
+};
+
+const getProgramPlacement = (ageBreakdown: AgeBreakdown | null): ProgramPlacement | null => {
+  if (!ageBreakdown || ageBreakdown.totalMonths < 0) {
+    return null;
+  }
+
+  if (ageBreakdown.totalMonths <= 35) {
+    return {
+      name: 'ITEd (Infant/Toddler)',
+      ageLabel: 'Birth to 2 years 11 months',
+      iconLabel: 'IT',
+      scheduleLabel: 'Monday - Friday',
+      timeLabel: 'Daycare Guided Routine',
+      accentClassName: 'bg-[#FDE68A]/25',
+      borderClassName: 'border-[#FDE68A]',
+      badgeClassName: 'bg-[#F59E0B]'
+    };
+  }
+
+  if (ageBreakdown.totalMonths >= 36 && ageBreakdown.totalMonths <= 47) {
+    return {
+      name: 'Pre-Kindergarten 1',
+      ageLabel: '3 years old only',
+      iconLabel: 'PK',
+      scheduleLabel: 'Monday - Friday',
+      timeLabel: '8:00 AM - 11:00 AM',
+      accentClassName: 'bg-[#BAE6FD]/20',
+      borderClassName: 'border-[#BAE6FD]',
+      badgeClassName: 'bg-[#38BDF8]'
+    };
+  }
+
+  if (ageBreakdown.totalMonths >= 48 && ageBreakdown.totalMonths <= 71) {
+    return {
+      name: 'Pre-Kindergarten 2',
+      ageLabel: '4 to 5 years old',
+      iconLabel: 'P2',
+      scheduleLabel: 'Monday - Friday',
+      timeLabel: 'Schedule assigned by school',
+      accentClassName: 'bg-[#DCFCE7]/50',
+      borderClassName: 'border-[#86EFAC]',
+      badgeClassName: 'bg-[#22C55E]'
+    };
+  }
+
+  return null;
+};
+
+const getProgramAgeValidationMessage = (ageBreakdown: AgeBreakdown | null) => {
+  if (!ageBreakdown) {
+    return null;
+  }
+
+  if (ageBreakdown.totalMonths < 0) {
+    return 'Birthday cannot be in the future.';
+  }
+
+  if (
+    ageBreakdown.totalMonths <= 35 ||
+    (ageBreakdown.totalMonths >= 36 && ageBreakdown.totalMonths <= 47) ||
+    (ageBreakdown.totalMonths >= 48 && ageBreakdown.totalMonths <= 71)
+  ) {
+    return null;
+  }
+
+  return 'The learner age does not match the available enrollment programs. ITEd is for birth to 2 years 11 months, Pre-Kindergarten 1 is for 3-year-olds only, and Pre-Kindergarten 2 is for 4 to 5 years old.';
+};
+
+const validateUploadFile = (file: File, label: string) => {
+  const normalizedName = file.name.toLowerCase();
+  const hasAllowedMimeType = allowedUploadMimeTypes.includes(file.type);
+  const hasAllowedExtension = allowedUploadExtensions.some((extension) =>
+    normalizedName.endsWith(extension)
+  );
+
+  if (!hasAllowedMimeType || !hasAllowedExtension) {
+    return `${label} must be a JPEG, PNG, or PDF file.`;
+  }
+
+  if (file.size > MAX_UPLOAD_FILE_SIZE_BYTES) {
+    return `${label} must be 5MB or smaller.`;
+  }
+
+  return null;
+};
+
 export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
   const { addEnrollment } = useEnrollment();
   // Removed unused user variable
@@ -80,6 +339,40 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [regionOptions, setRegionOptions] = useState<PhilippineAddressOption[]>([]);
+  const [provinceOptions, setProvinceOptions] = useState<PhilippineAddressOption[]>([]);
+  const [municipalityOptions, setMunicipalityOptions] = useState<PhilippineAddressOption[]>([]);
+  const [barangayOptions, setBarangayOptions] = useState<PhilippineAddressOption[]>([]);
+  const [addressLookupError, setAddressLookupError] = useState<string | null>(null);
+  const [isLoadingRegions, setIsLoadingRegions] = useState(false);
+  const [isLoadingProvinces, setIsLoadingProvinces] = useState(false);
+  const [isLoadingMunicipalities, setIsLoadingMunicipalities] = useState(false);
+  const [isLoadingBarangays, setIsLoadingBarangays] = useState(false);
+  const isRegionSelected = formData.regionCode.trim().length > 0;
+  const hasProvinceLevel = provinceOptions.length > 0;
+  const isProvinceSelected = hasProvinceLevel ?
+    formData.provinceCode.trim().length > 0 :
+    formData.province.trim().length > 0;
+  const isMunicipalitySelected = formData.municipalityCode.trim().length > 0;
+  const isProvinceAutoFilled = isRegionSelected && !isLoadingProvinces && !hasProvinceLevel;
+  const isNonCaintaMunicipality =
+    formData.municipality.trim().length > 0 && formData.municipality.trim().toLowerCase() !== 'cainta';
+  const ageBreakdown = getAgeBreakdown(formData.dateOfBirth);
+  const assignedProgram = getProgramPlacement(ageBreakdown);
+  const ageValidationMessage = getProgramAgeValidationMessage(ageBreakdown);
+  const exactAgeLabel = ageBreakdown ? `${ageBreakdown.years} years ${ageBreakdown.months} months` : 'Age will appear after birthday selection';
+  const allowedBirthdateRange = getAllowedBirthdateRange();
+  const eligibilityNotification = ageValidationMessage ?
+    `Electronic Notice to Parent/Guardian: ${ageValidationMessage} Submission cannot proceed until the learner falls within the DSWD age ranges.` :
+    null;
+
+  const showEnrollmentNotification = (message: string) => {
+    setSubmitError(message);
+
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     const rawDraft = sessionStorage.getItem(ENROLLMENT_DRAFT_STORAGE_KEY);
@@ -92,9 +385,14 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
         };
 
         if (parsedDraft.formData) {
+          const nextAgeBreakdown = getAgeBreakdown(parsedDraft.formData.dateOfBirth || '');
+          const nextProgram = getProgramPlacement(nextAgeBreakdown);
+
           setFormData((prev) => ({
             ...prev,
             ...parsedDraft.formData,
+            age: nextAgeBreakdown?.years ?? prev.age,
+            program: nextProgram?.name || '',
             idPicture: enrollmentDraftFile,
             incomeProof: enrollmentDraftIncomeProofFile
           }));
@@ -133,6 +431,204 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
     );
   }, [currentStep, formData]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadRegions = async () => {
+      setIsLoadingRegions(true);
+
+      try {
+        const nextRegions = await fetchRegions();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setRegionOptions(nextRegions);
+        setAddressLookupError(null);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setAddressLookupError(
+          error instanceof Error ? error.message : 'Unable to load Philippines address options.'
+        );
+      } finally {
+        if (isMounted) {
+          setIsLoadingRegions(false);
+        }
+      }
+    };
+
+    void loadRegions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!formData.regionCode) {
+      setProvinceOptions([]);
+      setMunicipalityOptions([]);
+      setBarangayOptions([]);
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadProvinceLevel = async () => {
+      setIsLoadingProvinces(true);
+      setMunicipalityOptions([]);
+      setBarangayOptions([]);
+
+      try {
+        const nextProvinces = await fetchProvincesByRegion(formData.regionCode);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setProvinceOptions(nextProvinces);
+        setAddressLookupError(null);
+
+        if (nextProvinces.length > 0) {
+          setIsLoadingMunicipalities(false);
+          return;
+        }
+
+        const nextProvince = inferProvinceFromRegion(formData.region);
+
+        setFormData((prev) => ({
+          ...prev,
+          province: nextProvince,
+          provinceCode: '',
+          address: composeAddress({
+            ...prev,
+            province: nextProvince
+          })
+        }));
+
+        setIsLoadingMunicipalities(true);
+        const nextMunicipalities = await fetchCitiesMunicipalitiesByRegion(formData.regionCode);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setMunicipalityOptions(nextMunicipalities);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setAddressLookupError(
+          error instanceof Error ? error.message : 'Unable to load province and city options.'
+        );
+      } finally {
+        if (isMounted) {
+          setIsLoadingProvinces(false);
+          setIsLoadingMunicipalities(false);
+        }
+      }
+    };
+
+    void loadProvinceLevel();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [formData.region, formData.regionCode]);
+
+  useEffect(() => {
+    if (!formData.provinceCode) {
+      if (hasProvinceLevel) {
+        setMunicipalityOptions([]);
+        setBarangayOptions([]);
+      }
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadMunicipalities = async () => {
+      setIsLoadingMunicipalities(true);
+      setBarangayOptions([]);
+
+      try {
+        const nextMunicipalities = await fetchCitiesMunicipalitiesByProvince(formData.provinceCode);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setMunicipalityOptions(nextMunicipalities);
+        setAddressLookupError(null);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setAddressLookupError(
+          error instanceof Error ? error.message : 'Unable to load city and municipality options.'
+        );
+      } finally {
+        if (isMounted) {
+          setIsLoadingMunicipalities(false);
+        }
+      }
+    };
+
+    void loadMunicipalities();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [formData.provinceCode, hasProvinceLevel]);
+
+  useEffect(() => {
+    if (!formData.municipalityCode) {
+      setBarangayOptions([]);
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadBarangays = async () => {
+      setIsLoadingBarangays(true);
+
+      try {
+        const nextBarangays = await fetchBarangaysByCityMunicipality(formData.municipalityCode);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setBarangayOptions(nextBarangays);
+        setAddressLookupError(null);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setAddressLookupError(
+          error instanceof Error ? error.message : 'Unable to load barangay options.'
+        );
+      } finally {
+        if (isMounted) {
+          setIsLoadingBarangays(false);
+        }
+      }
+    };
+
+    void loadBarangays();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [formData.municipalityCode]);
+
   const steps = [
   {
     number: 1,
@@ -156,17 +652,97 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
       };
       // Auto-calculate age if DOB changes
       if (field === 'dateOfBirth') {
-        const birthDate = new Date(value as string);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || m === 0 && today.getDate() < birthDate.getDate()) {
-          age--;
-        }
-        newData.age = age;
+        const nextAgeBreakdown = getAgeBreakdown(String(value));
+        const nextProgram = getProgramPlacement(nextAgeBreakdown);
+
+        newData.age = nextAgeBreakdown?.years ?? 0;
+        newData.program = nextProgram?.name || '';
       }
+
+      if (
+        field === 'streetAddress' ||
+        field === 'barangay' ||
+        field === 'municipality' ||
+        field === 'province' ||
+        field === 'region'
+      ) {
+        newData.address = composeAddress(newData);
+      }
+
       return newData;
     });
+  };
+
+  const handleRegionChange = (regionCode: string) => {
+    const selectedRegion = regionOptions.find((region) => region.code === regionCode);
+
+    setSubmitError(null);
+    setAddressLookupError(null);
+    setFormData((prev) => {
+      const nextData = {
+        ...prev,
+        regionCode,
+        region: selectedRegion?.name || '',
+        provinceCode: '',
+        province: '',
+        municipalityCode: '',
+        municipality: '',
+        barangay: ''
+      };
+
+      return {
+        ...nextData,
+        address: composeAddress(nextData)
+      };
+    });
+  };
+
+  const handleProvinceChange = (provinceCode: string) => {
+    const selectedProvince = provinceOptions.find((province) => province.code === provinceCode);
+
+    setSubmitError(null);
+    setAddressLookupError(null);
+    setFormData((prev) => {
+      const nextData = {
+        ...prev,
+        provinceCode,
+        province: selectedProvince?.name || '',
+        municipalityCode: '',
+        municipality: '',
+        barangay: ''
+      };
+
+      return {
+        ...nextData,
+        address: composeAddress(nextData)
+      };
+    });
+  };
+
+  const handleMunicipalityChange = (municipalityCode: string) => {
+    const selectedMunicipality = municipalityOptions.find(
+      (municipality) => municipality.code === municipalityCode
+    );
+
+    setSubmitError(null);
+    setAddressLookupError(null);
+    setFormData((prev) => {
+      const nextData = {
+        ...prev,
+        municipalityCode,
+        municipality: selectedMunicipality?.name || '',
+        barangay: ''
+      };
+
+      return {
+        ...nextData,
+        address: composeAddress(nextData)
+      };
+    });
+  };
+
+  const handleBarangayChange = (barangay: string) => {
+    updateFormData('barangay', barangay);
   };
 
   const formatGuardianContact = (value: string) => {
@@ -197,7 +773,15 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const objectUrl = URL.createObjectURL(file);
+      const fileValidationError = validateUploadFile(file, 'ID picture');
+
+      if (fileValidationError) {
+        showEnrollmentNotification(fileValidationError);
+        e.target.value = '';
+        return;
+      }
+
+      const objectUrl = file.type === 'application/pdf' ? null : URL.createObjectURL(file);
 
       enrollmentDraftFile = file;
       enrollmentDraftPreviewUrl = objectUrl;
@@ -210,6 +794,14 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
   const handleIncomeProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      const fileValidationError = validateUploadFile(file, 'Proof of income');
+
+      if (fileValidationError) {
+        showEnrollmentNotification(fileValidationError);
+        e.target.value = '';
+        return;
+      }
+
       enrollmentDraftIncomeProofFile = file;
       updateFormData('incomeProof', file);
     }
@@ -239,8 +831,22 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
       if (!formData.childLastName.trim()) return 'Last name is required.';
       if (!formData.sex) return 'Sex is required.';
       if (!formData.dateOfBirth) return 'Birthday is required.';
-      if (!formData.address.trim()) return 'Complete address is required.';
+      if (!formData.region.trim()) return 'Region is required.';
+      if (!formData.streetAddress.trim()) return 'Street address is required.';
+      if (!formData.municipality.trim()) return 'City or municipality is required.';
+      if (!formData.barangay.trim()) return 'Barangay is required.';
+      if (!formData.province.trim()) return 'Province is required.';
       if (!formData.financialProgram) return 'Financial program is required.';
+      if (
+        formData.financialProgram === 'Other National or LGU Assistance Program' &&
+        !formData.financialProgramOther.trim()
+      ) {
+        return 'Please specify the beneficiary program.';
+      }
+
+      if (ageValidationMessage) {
+        return ageValidationMessage;
+      }
     }
 
     if (step === 2) {
@@ -294,6 +900,13 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
         return 'Please provide at least one complete caregiver profile (Mother, Father, or Guardian).';
       }
 
+      if (!formData.incomeSourceCategory) return 'Source of income is required.';
+      if (
+        formData.incomeSourceCategory === 'Other' &&
+        !formData.incomeSourceCategoryOther.trim()
+      ) {
+        return 'Please specify the source of income.';
+      }
       if (!formData.monthlyIncome) return 'Monthly family income is required.';
       if (!formData.incomeProof) return 'Proof of income (ITR) is required.';
     }
@@ -306,7 +919,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
       const error = validateStep(step);
       if (error) {
         setCurrentStep(step);
-        setSubmitError(error);
+        showEnrollmentNotification(error);
         return false;
       }
     }
@@ -325,7 +938,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
       const error = validateStep(step);
       if (error) {
         setCurrentStep(step);
-        setSubmitError(error);
+        showEnrollmentNotification(error);
         return;
       }
     }
@@ -338,7 +951,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
     if (currentStep < 3) {
       const error = validateStep(currentStep);
       if (error) {
-        setSubmitError(error);
+        showEnrollmentNotification(error);
         return;
       }
 
@@ -360,7 +973,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
     const { error } = await addEnrollment(formData);
 
     if (error) {
-      setSubmitError(error);
+      showEnrollmentNotification(error);
       setIsSubmitting(false);
       return;
     }
@@ -477,6 +1090,14 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                       alt="ID Preview"
                       className="w-full h-full object-cover" /> :
 
+                    formData.idPicture?.type === 'application/pdf' ?
+                    <div className="text-center p-2">
+                          <span className="text-xl block mb-1 font-bold">PDF</span>
+                          <span className="text-xs text-gray-400 font-medium break-words">
+                            {formData.idPicture.name}
+                          </span>
+                        </div> :
+
 
                     <div className="text-center p-2">
                           <span className="text-xl block mb-1 font-bold">ID</span>
@@ -487,7 +1108,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     }
                       <input
                       type="file"
-                      accept="image/*"
+                      accept=".jpg,.jpeg,.png,.pdf"
                       onChange={handleFileChange}
                       className="absolute inset-0 opacity-0 cursor-pointer" />
 
@@ -574,6 +1195,8 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     </label>
                     <input
                     type="date"
+                    min={allowedBirthdateRange.min}
+                    max={allowedBirthdateRange.max}
                     value={formData.dateOfBirth}
                     onChange={(e) =>
                     updateFormData(
@@ -599,16 +1222,159 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
 
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
-                    Complete Address {requiredMark}
+                    Child's PhilSys Number
                   </label>
-                  <textarea
-                  value={formData.address}
-                  onChange={(e) => updateFormData('address', e.target.value)}
-                  rows={2}
-                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors resize-none"
-                  placeholder="House No., Street, Barangay, City, Province" />
+                  <input
+                  type="text"
+                  value={formData.childPhilSysNumber}
+                  onChange={(e) =>
+                  updateFormData('childPhilSysNumber', e.target.value)
+                  }
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                  placeholder="Enter the child's PhilSys Number" />
 
                 </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                      Street Address {requiredMark}
+                    </label>
+                    <input
+                    type="text"
+                    value={formData.streetAddress}
+                    onChange={(e) => updateFormData('streetAddress', e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    placeholder="House No., Street, Subdivision" />
+
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                      Region {requiredMark}
+                    </label>
+                    <select
+                    value={formData.regionCode}
+                    onChange={(e) => handleRegionChange(e.target.value)}
+                    disabled={isLoadingRegions}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white disabled:bg-gray-50 disabled:text-gray-400">
+
+                      <option value="">{isLoadingRegions ? 'Loading regions...' : 'Select Region'}</option>
+                      {regionOptions.map((region) =>
+                      <option key={region.code} value={region.code}>
+                          {region.name}
+                        </option>
+                      )}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                      Province {requiredMark}
+                    </label>
+                    {isProvinceAutoFilled ?
+                    <input
+                      type="text"
+                      value={formData.province}
+                      readOnly
+                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 bg-gray-50 text-gray-500 font-medium focus:outline-none"
+                      placeholder="Province"
+                    /> :
+                    <select
+                      value={formData.provinceCode}
+                      onChange={(e) => handleProvinceChange(e.target.value)}
+                      disabled={!isRegionSelected || isLoadingProvinces}
+                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white disabled:bg-gray-50 disabled:text-gray-400">
+
+                        <option value="">
+                          {!isRegionSelected ?
+                            'Select region first' :
+                          isLoadingProvinces ?
+                            'Loading provinces...' :
+                            'Select Province'}
+                        </option>
+                        {provinceOptions.map((province) =>
+                        <option key={province.code} value={province.code}>
+                            {province.name}
+                          </option>
+                        )}
+                      </select>}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                      City / Municipality {requiredMark}
+                    </label>
+                    <select
+                      value={formData.municipalityCode}
+                      onChange={(e) => handleMunicipalityChange(e.target.value)}
+                      disabled={!isProvinceSelected || isLoadingMunicipalities}
+                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white disabled:bg-gray-50 disabled:text-gray-400">
+
+                        <option value="">
+                          {!isRegionSelected ?
+                            'Select region first' :
+                          hasProvinceLevel && !formData.provinceCode ?
+                            'Select province first' :
+                          isLoadingMunicipalities ?
+                            'Loading cities and municipalities...' :
+                            'Select City / Municipality'}
+                        </option>
+                        {municipalityOptions.map((municipality) =>
+                        <option key={municipality.code} value={municipality.code}>
+                            {municipality.name}
+                          </option>
+                        )}
+                      </select>
+
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                      Barangay {requiredMark}
+                    </label>
+                    <select
+                      value={formData.barangay}
+                      onChange={(e) => handleBarangayChange(e.target.value)}
+                      disabled={!isMunicipalitySelected || isLoadingBarangays}
+                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white disabled:bg-gray-50 disabled:text-gray-400">
+
+                        <option value="">
+                          {!isMunicipalitySelected ?
+                            'Select city / municipality first' :
+                          isLoadingBarangays ?
+                            'Loading barangays...' :
+                            'Select Barangay'}
+                        </option>
+                        {barangayOptions.map((barangay) =>
+                        <option key={barangay.code} value={barangay.name}>
+                            {barangay.name}
+                          </option>
+                        )}
+                      </select>
+
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                      Full Address
+                    </label>
+                    <textarea
+                    value={formData.address}
+                    readOnly
+                    rows={3}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 bg-gray-50 text-gray-500 font-medium focus:outline-none resize-none"
+                    placeholder="Address preview" />
+
+                  </div>
+                </div>
+
+                {addressLookupError ?
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                    {addressLookupError}
+                  </div> :
+                null}
+
+                {isNonCaintaMunicipality ?
+                <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-medium text-orange-700">
+                    Applicants outside Cainta will be automatically placed on the waitlist after submission.
+                  </div> :
+                null}
 
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
@@ -628,20 +1394,37 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
-                      Financial Program {requiredMark}
+                      Beneficiary Program {requiredMark}
                     </label>
                     <select
                     value={formData.financialProgram}
-                    onChange={(e) =>
-                    updateFormData('financialProgram', e.target.value)
+                    onChange={(e) => {
+                    const value = e.target.value;
+                    updateFormData('financialProgram', value);
+                    if (value !== 'Other National or LGU Assistance Program') {
+                      updateFormData('financialProgramOther', '');
                     }
+                    }}
                     className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white">
 
-                      <option value="">Select Program Type</option>
-                      <option value="Regular">Regular</option>
-                      <option value="Subsidized">Subsidized</option>
-                      <option value="Scholarship">Scholarship</option>
+                      <option value="">Select Beneficiary Program</option>
+                      {beneficiaryProgramOptions.map((programOption) =>
+                      <option key={programOption} value={programOption}>
+                          {programOption}
+                        </option>
+                      )}
                     </select>
+                    {formData.financialProgram === 'Other National or LGU Assistance Program' ?
+                    <input
+                      type="text"
+                      value={formData.financialProgramOther}
+                      onChange={(e) =>
+                      updateFormData('financialProgramOther', e.target.value)
+                      }
+                      className="mt-2 w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                      placeholder="Please specify" /> :
+
+                    null}
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
@@ -905,8 +1688,95 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                      Solo Parent Status
+                    </label>
+                    <select
+                    value={formData.soloParentStatus}
+                    onChange={(e) =>
+                    updateFormData('soloParentStatus', e.target.value)
+                    }
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white">
+
+                      <option value="">Select Status</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                      Parent/Guardian PhilSys Number
+                    </label>
+                    <input
+                    type="text"
+                    value={formData.parentGuardianPhilSysNumber}
+                    onChange={(e) =>
+                    updateFormData('parentGuardianPhilSysNumber', e.target.value)
+                    }
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    placeholder="Enter the parent or guardian's PhilSys Number" />
+
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                      Source of Income {requiredMark}
+                    </label>
+                    <select
+                    value={formData.incomeSourceCategory}
+                    onChange={(e) => {
+                    const value = e.target.value;
+                    updateFormData('incomeSourceCategory', value);
+                    if (value !== 'Other') {
+                      updateFormData('incomeSourceCategoryOther', '');
+                    }
+                    }}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white">
+
+                      <option value="">Select Income Source</option>
+                      <option value="Salary/Wages">Salary/Wages</option>
+                      <option value="Business">Business</option>
+                      <option value="Both">Both</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    {formData.incomeSourceCategory === 'Other' ?
+                    <input
+                      type="text"
+                      value={formData.incomeSourceCategoryOther}
+                      onChange={(e) =>
+                      updateFormData('incomeSourceCategoryOther', e.target.value)
+                      }
+                      className="mt-2 w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                      placeholder="Please specify" /> :
+
+                    null}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                      Parent/Guardian Disability or Senior Citizen Status
+                    </label>
+                    <select
+                    value={formData.parentGuardianSpecialStatus}
+                    onChange={(e) =>
+                    updateFormData('parentGuardianSpecialStatus', e.target.value)
+                    }
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white">
+
+                      <option value="">Select Status</option>
+                      <option value="None">None</option>
+                      <option value="Person with Disability">Person with Disability</option>
+                      <option value="Senior Citizen">Senior Citizen</option>
+                      <option value="Both">Both</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
                       Monthly Family Income {requiredMark}
                     </label>
@@ -924,6 +1794,17 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                       <option value="Above 50k">Above ₱50,000</option>
                     </select>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                      Household Income Notes
+                    </label>
+                    <p className="w-full rounded-xl border-2 border-gray-100 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-500">
+                      Use the fields above to identify whether the family income comes from salary/wages, business, or both.
+                    </p>
+                  </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
                       Proof of Income (ITR) {requiredMark}
@@ -932,7 +1813,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                       {formData.incomeProof ? formData.incomeProof.name : 'Upload file'}
                       <input
                       type="file"
-                      accept="image/*,.pdf"
+                      accept=".jpg,.jpeg,.png,.pdf"
                       onChange={handleIncomeProofChange}
                       className="hidden" />
 
@@ -969,53 +1850,57 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                   </h2>
                 </div>
 
-                <div className="bg-[#BAE6FD]/20 border-2 border-[#BAE6FD] rounded-2xl p-6 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 bg-[#BAE6FD] text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
-                    SELECTED
+                <div className={`relative overflow-hidden rounded-2xl border-2 p-6 ${assignedProgram ? `${assignedProgram.accentClassName} ${assignedProgram.borderClassName}` : 'border-red-200 bg-red-50'}`}>
+                  <div className={`absolute right-0 top-0 rounded-bl-xl px-3 py-1 text-xs font-bold text-white ${assignedProgram ? assignedProgram.badgeClassName : 'bg-red-500'}`}>
+                    {assignedProgram ? 'AUTO-ASSIGNED' : 'NOT ELIGIBLE'}
                   </div>
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-3xl shadow-sm">
-                      PK
+                  <div className="mb-4 flex items-center gap-4">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-3xl shadow-sm">
+                      {assignedProgram ? assignedProgram.iconLabel : '!'}
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-gray-800">
-                        Pre-Kindergarten 1
+                        {assignedProgram ? assignedProgram.name : 'No matching program'}
                       </h3>
-                      <p className="text-gray-600 text-sm">
-                        Ages 3-5 Years Old
+                      <p className="text-sm text-gray-600">
+                        {assignedProgram ? assignedProgram.ageLabel : 'The learner age does not match the available enrollment bands.'}
                       </p>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-500 font-medium">
-                        School Year
-                      </span>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-gray-500">Exact Age</span>
+                      <span className="font-bold text-gray-800">{exactAgeLabel}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-gray-500">School Year</span>
                       <span className="font-bold text-gray-800">2024-2025</span>
                     </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-500 font-medium">
-                        Schedule
-                      </span>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-gray-500">Schedule</span>
                       <span className="font-bold text-gray-800">
-                        Monday - Friday
+                        {assignedProgram ? assignedProgram.scheduleLabel : 'Unavailable'}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-500 font-medium">Time</span>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-gray-500">Time</span>
                       <span className="font-bold text-gray-800">
-                        8:00 AM - 11:00 AM
+                        {assignedProgram ? assignedProgram.timeLabel : 'Unavailable'}
                       </span>
                     </div>
                   </div>
                 </div>
 
+                {eligibilityNotification ?
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm font-medium text-red-700">
+                    {eligibilityNotification}
+                  </div> :
+                null}
+
                 <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-4 flex gap-3">
                   <span className="text-sm font-bold text-yellow-800">Note</span>
                   <p className="text-sm text-yellow-800">
-                    By submitting this form, you confirm that all information
-                    provided is true and correct. You will be redirected to the
-                    status page to track your application.
+                    Program placement is automatically based on the learner's exact age from the birthdate you entered to avoid manual placement errors.
                   </p>
                 </div>
               </motion.div>
@@ -1023,7 +1908,9 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
           </AnimatePresence>
 
           {submitError ?
-          <p className="mt-4 text-sm font-medium text-red-600">{submitError}</p> :
+          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+              Enrollment Notice: {submitError}
+            </div> :
           null}
 
           {/* Navigation Buttons */}

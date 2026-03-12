@@ -1,4 +1,5 @@
 -- Run this in your Supabase SQL Editor
+-- Passwords remain in Supabase Auth only; Supabase stores hashed credentials in auth.users.
 
 create extension if not exists "pgcrypto";
 
@@ -58,6 +59,18 @@ create table if not exists public.activity_logs (
   details jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
+
+create index if not exists idx_profiles_role on public.profiles(role);
+create index if not exists idx_enrollments_parent_submitted_at on public.enrollments(parent_id, submitted_at desc);
+create index if not exists idx_enrollments_status on public.enrollments(status);
+create index if not exists idx_enrollments_program on public.enrollments(program);
+create index if not exists idx_enrollments_submitted_at on public.enrollments(submitted_at desc);
+create index if not exists idx_enrollments_section on public.enrollments ((form_data ->> 'section'));
+create index if not exists idx_contact_messages_sender_updated_at on public.contact_messages(sender_id, updated_at desc);
+create index if not exists idx_contact_messages_status_updated_at on public.contact_messages(status, updated_at desc);
+create index if not exists idx_activity_logs_created_at on public.activity_logs(created_at desc);
+create index if not exists idx_activity_logs_entity_created_at on public.activity_logs(entity_type, created_at desc);
+create index if not exists idx_activity_logs_actor_created_at on public.activity_logs(actor_id, created_at desc);
 
 alter table public.profiles enable row level security;
 alter table public.enrollments enable row level security;
@@ -216,6 +229,182 @@ create policy "Staff or Admin can read activity logs"
   for select
   to authenticated
   using ((auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin'));
+
+drop policy if exists "Staff or Admin can insert activity logs" on public.activity_logs;
+create policy "Staff or Admin can insert activity logs"
+  on public.activity_logs
+  for insert
+  to authenticated
+  with check (
+    (auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin')
+    and (actor_id is null or actor_id = auth.uid())
+    and coalesce(actor_role, auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin')
+  );
+
+create or replace function public.app_encryption_key()
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  encryption_key text := nullif(current_setting('app.settings.encryption_key', true), '');
+begin
+  if encryption_key is null then
+    raise exception 'app.settings.encryption_key is not configured';
+  end if;
+
+  return encryption_key;
+end;
+$$;
+
+create or replace function public.encrypt_sensitive_form_data(input_data jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  result jsonb := coalesce(input_data, '{}'::jsonb);
+  encryption_key text := public.app_encryption_key();
+  sensitive_key text;
+  sensitive_keys constant text[] := array[
+    'incomeSourceCategory',
+    'incomeSourceCategoryOther',
+    'monthlyIncome',
+    'healthConcerns'
+  ];
+  current_value jsonb;
+begin
+  foreach sensitive_key in array sensitive_keys loop
+    if result ? sensitive_key then
+      current_value := result -> sensitive_key;
+
+      if current_value is not null
+        and jsonb_typeof(current_value) <> 'null'
+        and not (jsonb_typeof(current_value) = 'object' and current_value ? '__encrypted') then
+        result := jsonb_set(
+          result,
+          array[sensitive_key],
+          jsonb_build_object(
+            '__encrypted', true,
+            'ciphertext', encode(
+              pgp_sym_encrypt(current_value::text, encryption_key, 'cipher-algo=aes256, compress-algo=1'),
+              'base64'
+            )
+          ),
+          true
+        );
+      end if;
+    end if;
+  end loop;
+
+  return result;
+end;
+$$;
+
+create or replace function public.decrypt_sensitive_form_data(input_data jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  result jsonb := coalesce(input_data, '{}'::jsonb);
+  encryption_key text := public.app_encryption_key();
+  sensitive_key text;
+  sensitive_keys constant text[] := array[
+    'incomeSourceCategory',
+    'incomeSourceCategoryOther',
+    'monthlyIncome',
+    'healthConcerns'
+  ];
+  current_value jsonb;
+  decrypted_value text;
+begin
+  foreach sensitive_key in array sensitive_keys loop
+    if result ? sensitive_key then
+      current_value := result -> sensitive_key;
+
+      if jsonb_typeof(current_value) = 'object'
+        and current_value ? '__encrypted'
+        and current_value ->> '__encrypted' = 'true'
+        and current_value ? 'ciphertext' then
+        decrypted_value := pgp_sym_decrypt(
+          decode(current_value ->> 'ciphertext', 'base64'),
+          encryption_key
+        );
+
+        result := jsonb_set(result, array[sensitive_key], decrypted_value::jsonb, true);
+      end if;
+    end if;
+  end loop;
+
+  return result;
+end;
+$$;
+
+create or replace function public.set_enrollment_form_data_encryption()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  new.form_data := public.encrypt_sensitive_form_data(new.form_data);
+  return new;
+end;
+$$;
+
+drop trigger if exists tr_encrypt_enrollment_form_data on public.enrollments;
+create trigger tr_encrypt_enrollment_form_data
+before insert or update of form_data on public.enrollments
+for each row execute function public.set_enrollment_form_data_encryption();
+
+create or replace function public.get_enrollments_secure()
+returns table (
+  id uuid,
+  parent_id uuid,
+  child_first_name text,
+  child_last_name text,
+  program text,
+  status text,
+  role text,
+  form_data jsonb,
+  requirements jsonb,
+  submitted_at timestamptz
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_user_id uuid := auth.uid();
+  current_role text := coalesce(auth.jwt() -> 'user_metadata' ->> 'role', 'guardian');
+begin
+  if current_user_id is null then
+    raise exception 'Authentication required';
+  end if;
+
+  return query
+  select
+    e.id,
+    e.parent_id,
+    e.child_first_name,
+    e.child_last_name,
+    e.program,
+    e.status,
+    e.role,
+    public.decrypt_sensitive_form_data(e.form_data) as form_data,
+    e.requirements,
+    e.submitted_at
+  from public.enrollments e
+  where current_role in ('staff', 'admin') or e.parent_id = current_user_id
+  order by e.submitted_at desc;
+end;
+$$;
+
+grant execute on function public.get_enrollments_secure() to authenticated;
 
 create or replace function public.log_staff_activity()
 returns trigger
@@ -576,3 +765,4 @@ using (
   bucket_id = 'enrollment-files'
   and (auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin')
 );
+

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { UserIcon, LockIcon, ArrowRightIcon } from 'lucide-react';
+import schoolLogo from '../../school-logo.png';
 interface LoginPageProps {
   onSwitchToSignup: () => void;
 }
@@ -9,6 +10,7 @@ export function LoginPage({ onSwitchToSignup }: LoginPageProps) {
   const { login, requestPasswordReset } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLogoVisible, setIsLogoVisible] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
@@ -65,8 +67,15 @@ export function LoginPage({ onSwitchToSignup }: LoginPageProps) {
 
         {/* Header */}
         <div className="bg-gradient-to-r from-[#1D4ED8] to-[#60A5FA] p-8 text-center">
-          <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-white/90 border border-blue-100 flex items-center justify-center text-xs font-bold text-blue-700">
-            LOGO
+          <div className="mx-auto mb-3 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-blue-100 bg-white/95 shadow-sm">
+            {isLogoVisible ?
+              <img
+                src={schoolLogo}
+                alt="St. Joseph Daycare Center logo"
+                className="h-full w-full object-contain"
+                onError={() => setIsLogoVisible(false)}
+              /> :
+              <span className="text-xs font-bold text-blue-700">LOGO</span>}
           </div>
           <h1 className="text-2xl font-bold text-gray-800">
             St. Joseph Daycare Center
