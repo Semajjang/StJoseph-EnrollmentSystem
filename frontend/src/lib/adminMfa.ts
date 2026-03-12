@@ -1,23 +1,23 @@
-const ADMIN_MFA_SESSION_KEY_PREFIX = 'admin-mfa-session:';
+const MFA_SESSION_KEY_PREFIX = 'mfa-session:';
 
-export interface AdminMfaSession {
+export interface MfaSession {
   factorId: string;
   verifiedAt: string;
 }
 
-export const loadAdminMfaSession = (userId: string): AdminMfaSession | null => {
+export const loadMfaSession = (userId: string): MfaSession | null => {
   if (typeof window === 'undefined') {
     return null;
   }
 
   try {
-    const storedValue = window.sessionStorage.getItem(`${ADMIN_MFA_SESSION_KEY_PREFIX}${userId}`);
+    const storedValue = window.sessionStorage.getItem(`${MFA_SESSION_KEY_PREFIX}${userId}`);
 
     if (!storedValue) {
       return null;
     }
 
-    const parsedValue = JSON.parse(storedValue) as Partial<AdminMfaSession>;
+    const parsedValue = JSON.parse(storedValue) as Partial<MfaSession>;
 
     if (typeof parsedValue.factorId !== 'string' || typeof parsedValue.verifiedAt !== 'string') {
       return null;
@@ -32,18 +32,18 @@ export const loadAdminMfaSession = (userId: string): AdminMfaSession | null => {
   }
 };
 
-export const saveAdminMfaSession = (userId: string, session: AdminMfaSession) => {
+export const saveMfaSession = (userId: string, session: MfaSession) => {
   if (typeof window === 'undefined') {
     return;
   }
 
   window.sessionStorage.setItem(
-    `${ADMIN_MFA_SESSION_KEY_PREFIX}${userId}`,
+    `${MFA_SESSION_KEY_PREFIX}${userId}`,
     JSON.stringify(session)
   );
 };
 
-export const clearAllAdminMfaSessions = () => {
+export const clearAllMfaSessions = () => {
   if (typeof window === 'undefined') {
     return;
   }
@@ -53,7 +53,7 @@ export const clearAllAdminMfaSessions = () => {
   for (let index = 0; index < window.sessionStorage.length; index += 1) {
     const key = window.sessionStorage.key(index);
 
-    if (key?.startsWith(ADMIN_MFA_SESSION_KEY_PREFIX)) {
+    if (key?.startsWith(MFA_SESSION_KEY_PREFIX)) {
       keysToRemove.push(key);
     }
   }
@@ -62,3 +62,8 @@ export const clearAllAdminMfaSessions = () => {
     window.sessionStorage.removeItem(key);
   });
 };
+
+export type AdminMfaSession = MfaSession;
+export const loadAdminMfaSession = loadMfaSession;
+export const saveAdminMfaSession = saveMfaSession;
+export const clearAllAdminMfaSessions = clearAllMfaSessions;

@@ -7,7 +7,7 @@ import {
   ReactNode
 } from 'react';
 import { supabase } from '../lib/supabase';
-import { clearAllAdminMfaSessions } from '../lib/adminMfa';
+import { clearAllMfaSessions } from '../lib/adminMfa';
 import { clearAllStaffAccessSessions } from '../lib/staffAccess';
 
 export type UserRole = 'guardian' | 'staff' | 'admin' | 'parent';
@@ -209,7 +209,7 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
 
         if (_event === 'SIGNED_OUT') {
           setIsPasswordRecovery(false);
-          clearAllAdminMfaSessions();
+          clearAllMfaSessions();
           clearAllStaffAccessSessions();
         }
 
@@ -456,7 +456,7 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
   const logout = useCallback(async () => {
     setUser(null);
     setIsLoading(false);
-    clearAllAdminMfaSessions();
+    clearAllMfaSessions();
     clearAllStaffAccessSessions();
 
     try {

@@ -4,9 +4,9 @@ import { Sidebar } from './components/Sidebar';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { EnrollmentProvider } from './context/EnrollmentContext';
 import {
-  AdminMfaSession,
-  loadAdminMfaSession,
-  saveAdminMfaSession
+  loadMfaSession,
+  MfaSession,
+  saveMfaSession
 } from './lib/adminMfa';
 import {
   loadStaffAccessSession,
@@ -35,6 +35,7 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then((module)
 
 const ADMIN_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
 const STAFF_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
+const GUARDIAN_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
 
 function PageLoader() {
   return (
@@ -48,11 +49,17 @@ function AppContent() {
   const { user, isLoading, isPasswordRecovery, logout } = useAuth();
   const [activePage, setActivePage] = useState('home');
   const [isLoginView, setIsLoginView] = useState(true);
-  const [adminMfaSession, setAdminMfaSession] = useState<AdminMfaSession | null>(null);
+  const [mfaSession, setMfaSession] = useState<MfaSession | null>(null);
   const [staffAccessSession, setStaffAccessSession] = useState<StaffAccessSession | null>(null);
   const [staffAccessWarning, setStaffAccessWarning] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isManagementRole = user?.role === 'admin' || user?.role === 'staff';
+  const requiresMfa = user?.role === 'guardian' || user?.role === 'staff';
+  const inactivityTimeoutDuration = user?.role === 'staff' ?
+    STAFF_IDLE_TIMEOUT_MS :
+    user?.role === 'admin' ?
+      ADMIN_IDLE_TIMEOUT_MS :
+      GUARDIAN_IDLE_TIMEOUT_MS;
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -67,13 +74,13 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (user?.role !== 'admin') {
-      setAdminMfaSession(null);
+    if (!user || !requiresMfa) {
+      setMfaSession(null);
       return;
     }
 
-    setAdminMfaSession(loadAdminMfaSession(user.id));
-  }, [user?.id, user?.role]);
+    setMfaSession(loadMfaSession(user.id));
+  }, [requiresMfa, user]);
 
   useEffect(() => {
     if (user?.role !== 'staff') {
@@ -100,19 +107,10 @@ function AppContent() {
   }, [activePage]);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !user || !isManagementRole) {
+    if (typeof window === 'undefined' || !user) {
       return;
     }
 
-    if (user.role === 'staff' && !staffAccessSession) {
-      return;
-    }
-
-    if (user.role === 'admin' && !adminMfaSession) {
-      return;
-    }
-
-    const timeoutDuration = user.role === 'admin' ? ADMIN_IDLE_TIMEOUT_MS : STAFF_IDLE_TIMEOUT_MS;
     let hasLoggedOut = false;
 
     const handleTimeout = () => {
@@ -121,14 +119,14 @@ function AppContent() {
       }
 
       hasLoggedOut = true;
-      setAdminMfaSession(null);
+      setMfaSession(null);
       setStaffAccessSession(null);
       setStaffAccessWarning(null);
       window.alert('Your session expired due to inactivity. Please sign in again.');
       void logout();
     };
 
-    let timeoutHandle = window.setTimeout(handleTimeout, timeoutDuration);
+    let timeoutHandle = window.setTimeout(handleTimeout, inactivityTimeoutDuration);
 
     const resetTimeout = () => {
       if (hasLoggedOut || document.visibilityState === 'hidden') {
@@ -136,7 +134,7 @@ function AppContent() {
       }
 
       window.clearTimeout(timeoutHandle);
-      timeoutHandle = window.setTimeout(handleTimeout, timeoutDuration);
+      timeoutHandle = window.setTimeout(handleTimeout, inactivityTimeoutDuration);
     };
 
     const activityEvents: Array<keyof WindowEventMap> = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
@@ -154,7 +152,7 @@ function AppContent() {
       });
       document.removeEventListener('visibilitychange', resetTimeout);
     };
-  }, [adminMfaSession, isManagementRole, logout, staffAccessSession, user]);
+  }, [inactivityTimeoutDuration, logout, mfaSession, staffAccessSession, user]);
 
   if (isLoading && user) {
     return (
@@ -206,20 +204,20 @@ function AppContent() {
     };
   };
 
-  if (user.role === 'staff' && !staffAccessSession) {
-    return <StaffAccessGatePage onVerify={handleVerifyStaffAccess} />;
-  }
-
-  if (user.role === 'admin' && !adminMfaSession) {
+  if (requiresMfa && !mfaSession) {
     return (
       <AdminMfaGatePage
         onVerify={(session) => {
-          saveAdminMfaSession(user.id, session);
-          setAdminMfaSession(session);
-          setActivePage('adminDashboard');
+          saveMfaSession(user.id, session);
+          setMfaSession(session);
+          setActivePage(user.role === 'staff' ? 'staffDashboard' : 'home');
         }}
       />
     );
+  }
+
+  if (user.role === 'staff' && !staffAccessSession) {
+    return <StaffAccessGatePage onVerify={handleVerifyStaffAccess} />;
   }
 
   const renderPage = () => {

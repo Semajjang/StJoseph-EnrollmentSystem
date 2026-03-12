@@ -25,6 +25,30 @@ interface EnrolledFactor {
 
 const getMfaClient = () => (supabase.auth as typeof supabase.auth & { mfa: any }).mfa;
 
+const getMfaRoleLabel = (role: string | undefined) => {
+  if (role === 'staff') {
+    return {
+      heading: 'Staff Multi-Factor Verification',
+      description: 'Staff access requires an authenticator code before the management portal opens.',
+      accountLabel: 'Signed in staff account',
+      defaultName: 'Staff Member',
+      continueLabel: 'Continue to the staff portal',
+      setupLabel: 'protect the staff portal',
+      friendlyName: 'Staff Portal Authenticator'
+    };
+  }
+
+  return {
+    heading: 'Guardian Multi-Factor Verification',
+    description: 'Guardian access requires an authenticator code before the family portal opens.',
+    accountLabel: 'Signed in guardian account',
+    defaultName: 'Guardian',
+    continueLabel: 'Continue to the guardian portal',
+    setupLabel: 'protect the guardian portal',
+    friendlyName: 'Guardian Portal Authenticator'
+  };
+};
+
 export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
   const { user, logout } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
@@ -37,6 +61,21 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const hasEnrollmentStep = useMemo(() => !!qrCodeMarkup || !!sharedSecret, [qrCodeMarkup, sharedSecret]);
+  const qrCodeImageSrc = useMemo(() => {
+    if (!qrCodeMarkup) {
+      return null;
+    }
+
+    return qrCodeMarkup.startsWith('data:image/') ? qrCodeMarkup : null;
+  }, [qrCodeMarkup]);
+  const qrCodeSvgMarkup = useMemo(() => {
+    if (!qrCodeMarkup || qrCodeImageSrc) {
+      return null;
+    }
+
+    return qrCodeMarkup;
+  }, [qrCodeImageSrc, qrCodeMarkup]);
+  const roleContent = useMemo(() => getMfaRoleLabel(user?.role), [user?.role]);
 
   useEffect(() => {
     let isMounted = true;
@@ -64,9 +103,9 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
 
         if (verifiedTotpFactor?.id) {
           setFactorId(verifiedTotpFactor.id);
-          setInfoMessage('Enter the code from your authenticator app to continue to the admin dashboard.');
+          setInfoMessage(`Enter the code from your authenticator app to ${roleContent.continueLabel.toLowerCase()}.`);
         } else {
-          setInfoMessage('Set up an authenticator app to protect the admin dashboard with multi-factor authentication.');
+          setInfoMessage(`Set up an authenticator app to ${roleContent.setupLabel} with multi-factor authentication.`);
         }
       } catch (error) {
         if (!isMounted) {
@@ -96,7 +135,7 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
     try {
       const { data, error } = await getMfaClient().enroll({
         factorType: 'totp',
-        friendlyName: 'Admin Portal Authenticator'
+        friendlyName: roleContent.friendlyName
       });
 
       if (error) {
@@ -116,7 +155,7 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
       setFactorId(enrolledFactor.id);
       setQrCodeMarkup(enrolledFactor.totp?.qr_code || null);
       setSharedSecret(enrolledFactor.totp?.secret || null);
-      setInfoMessage('Scan the QR code with your authenticator app, then enter the generated 6-digit code to verify this admin account.');
+      setInfoMessage('Scan the QR code with your authenticator app, then enter the generated 6-digit code to verify this account.');
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Unable to enroll MFA.');
     } finally {
@@ -179,16 +218,16 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-blue-100 bg-white/90 text-blue-700">
             <ShieldCheckIcon className="h-8 w-8" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">Admin Multi-Factor Verification</h1>
+          <h1 className="text-2xl font-bold text-gray-800">{roleContent.heading}</h1>
           <p className="mt-2 font-medium text-blue-900">
-            Administrative access requires an additional authenticator code before the dashboard opens.
+            {roleContent.description}
           </p>
         </div>
 
         <div className="p-8">
           <div className="mb-6 rounded-2xl border border-blue-100 bg-[#EFF6FF] px-4 py-3 text-sm text-gray-700">
-            <p className="font-bold text-gray-800">Signed in admin account</p>
-            <p className="mt-1">{user?.name || 'Administrator'}</p>
+            <p className="font-bold text-gray-800">{roleContent.accountLabel}</p>
+            <p className="mt-1">{user?.name || roleContent.defaultName}</p>
             <p className="text-xs text-gray-500">{user?.email}</p>
           </div>
 
@@ -221,8 +260,14 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
                   <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                     <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Scan QR Code</p>
                     <div className="mt-4 flex justify-center rounded-2xl bg-gray-50 p-4">
-                      {qrCodeMarkup ? (
-                        <div className="h-[220px] w-[220px]" dangerouslySetInnerHTML={{ __html: qrCodeMarkup }} />
+                      {qrCodeImageSrc ? (
+                        <img
+                          src={qrCodeImageSrc}
+                          alt="Authenticator app QR code"
+                          className="h-[220px] w-[220px]"
+                        />
+                      ) : qrCodeSvgMarkup ? (
+                        <div className="h-[220px] w-[220px]" dangerouslySetInnerHTML={{ __html: qrCodeSvgMarkup }} />
                       ) : (
                         <div className="flex h-[220px] w-[220px] items-center justify-center text-center text-sm font-medium text-gray-500">
                           QR code unavailable. Use the shared secret manually in your authenticator app.

@@ -9,6 +9,14 @@ import {
   fetchProvincesByRegion,
   fetchRegions
 } from '../lib/philippineAddress';
+import {
+  AgeBreakdown,
+  fetchAgeRules,
+  getAllowedBirthdateRange,
+  getProgramAgeValidationMessage,
+  getProgramPlacement,
+  loadAgeRules
+} from '../lib/ageRules';
 // Removed unused useAuth import
 
 const ENROLLMENT_DRAFT_STORAGE_KEY = 'enrollment-form-draft';
@@ -153,23 +161,6 @@ const composeAddress = (
     .filter(Boolean)
     .join(', ');
 
-interface AgeBreakdown {
-  years: number;
-  months: number;
-  totalMonths: number;
-}
-
-interface ProgramPlacement {
-  name: string;
-  ageLabel: string;
-  iconLabel: string;
-  scheduleLabel: string;
-  timeLabel: string;
-  accentClassName: string;
-  borderClassName: string;
-  badgeClassName: string;
-}
-
 const parseDateInput = (dateOfBirth: string) => {
   const [yearText = '', monthText = '', dayText = ''] = dateOfBirth.split('-');
   const year = Number(yearText);
@@ -227,92 +218,6 @@ const getAgeBreakdown = (dateOfBirth: string): AgeBreakdown | null => {
   };
 };
 
-const formatDateInputValue = (value: Date) => {
-  const year = value.getFullYear();
-  const month = `${value.getMonth() + 1}`.padStart(2, '0');
-  const day = `${value.getDate()}`.padStart(2, '0');
-
-  return `${year}-${month}-${day}`;
-};
-
-const getAllowedBirthdateRange = () => {
-  const today = new Date();
-  const latestBirthdate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const earliestBirthdate = new Date(today.getFullYear() - 6, today.getMonth(), today.getDate() + 1);
-
-  return {
-    min: formatDateInputValue(earliestBirthdate),
-    max: formatDateInputValue(latestBirthdate)
-  };
-};
-
-const getProgramPlacement = (ageBreakdown: AgeBreakdown | null): ProgramPlacement | null => {
-  if (!ageBreakdown || ageBreakdown.totalMonths < 0) {
-    return null;
-  }
-
-  if (ageBreakdown.totalMonths <= 35) {
-    return {
-      name: 'ITEd (Infant/Toddler)',
-      ageLabel: 'Birth to 2 years 11 months',
-      iconLabel: 'IT',
-      scheduleLabel: 'Monday - Friday',
-      timeLabel: 'Daycare Guided Routine',
-      accentClassName: 'bg-[#FDE68A]/25',
-      borderClassName: 'border-[#FDE68A]',
-      badgeClassName: 'bg-[#F59E0B]'
-    };
-  }
-
-  if (ageBreakdown.totalMonths >= 36 && ageBreakdown.totalMonths <= 47) {
-    return {
-      name: 'Pre-Kindergarten 1',
-      ageLabel: '3 years old only',
-      iconLabel: 'PK',
-      scheduleLabel: 'Monday - Friday',
-      timeLabel: '8:00 AM - 11:00 AM',
-      accentClassName: 'bg-[#BAE6FD]/20',
-      borderClassName: 'border-[#BAE6FD]',
-      badgeClassName: 'bg-[#38BDF8]'
-    };
-  }
-
-  if (ageBreakdown.totalMonths >= 48 && ageBreakdown.totalMonths <= 71) {
-    return {
-      name: 'Pre-Kindergarten 2',
-      ageLabel: '4 to 5 years old',
-      iconLabel: 'P2',
-      scheduleLabel: 'Monday - Friday',
-      timeLabel: 'Schedule assigned by school',
-      accentClassName: 'bg-[#DCFCE7]/50',
-      borderClassName: 'border-[#86EFAC]',
-      badgeClassName: 'bg-[#22C55E]'
-    };
-  }
-
-  return null;
-};
-
-const getProgramAgeValidationMessage = (ageBreakdown: AgeBreakdown | null) => {
-  if (!ageBreakdown) {
-    return null;
-  }
-
-  if (ageBreakdown.totalMonths < 0) {
-    return 'Birthday cannot be in the future.';
-  }
-
-  if (
-    ageBreakdown.totalMonths <= 35 ||
-    (ageBreakdown.totalMonths >= 36 && ageBreakdown.totalMonths <= 47) ||
-    (ageBreakdown.totalMonths >= 48 && ageBreakdown.totalMonths <= 71)
-  ) {
-    return null;
-  }
-
-  return 'The learner age does not match the available enrollment programs. ITEd is for birth to 2 years 11 months, Pre-Kindergarten 1 is for 3-year-olds only, and Pre-Kindergarten 2 is for 4 to 5 years old.';
-};
-
 const validateUploadFile = (file: File, label: string) => {
   const normalizedName = file.name.toLowerCase();
   const hasAllowedMimeType = allowedUploadMimeTypes.includes(file.type);
@@ -336,6 +241,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
   // Removed unused user variable
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
+  const [ageRules, setAgeRules] = useState(() => loadAgeRules());
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -358,10 +264,10 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
   const isNonCaintaMunicipality =
     formData.municipality.trim().length > 0 && formData.municipality.trim().toLowerCase() !== 'cainta';
   const ageBreakdown = getAgeBreakdown(formData.dateOfBirth);
-  const assignedProgram = getProgramPlacement(ageBreakdown);
-  const ageValidationMessage = getProgramAgeValidationMessage(ageBreakdown);
+  const assignedProgram = getProgramPlacement(ageBreakdown, ageRules);
+  const ageValidationMessage = getProgramAgeValidationMessage(ageBreakdown, ageRules);
   const exactAgeLabel = ageBreakdown ? `${ageBreakdown.years} years ${ageBreakdown.months} months` : 'Age will appear after birthday selection';
-  const allowedBirthdateRange = getAllowedBirthdateRange();
+  const allowedBirthdateRange = getAllowedBirthdateRange(ageRules);
   const eligibilityNotification = ageValidationMessage ?
     `Electronic Notice to Parent/Guardian: ${ageValidationMessage} Submission cannot proceed until the learner falls within the DSWD age ranges.` :
     null;
@@ -375,6 +281,34 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
   };
 
   useEffect(() => {
+    const loadProgramAgeRules = async () => {
+      const nextRules = await fetchAgeRules();
+      setAgeRules(nextRules);
+    };
+
+    void loadProgramAgeRules();
+  }, []);
+
+  useEffect(() => {
+    setFormData((prev) => {
+      const nextAgeBreakdown = getAgeBreakdown(prev.dateOfBirth);
+      const nextProgram = getProgramPlacement(nextAgeBreakdown, ageRules);
+      const nextAge = nextAgeBreakdown?.years ?? 0;
+      const nextProgramName = nextProgram?.name || '';
+
+      if (prev.age === nextAge && prev.program === nextProgramName) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        age: nextAge,
+        program: nextProgramName
+      };
+    });
+  }, [ageRules]);
+
+  useEffect(() => {
     const rawDraft = sessionStorage.getItem(ENROLLMENT_DRAFT_STORAGE_KEY);
 
     if (rawDraft) {
@@ -386,7 +320,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
 
         if (parsedDraft.formData) {
           const nextAgeBreakdown = getAgeBreakdown(parsedDraft.formData.dateOfBirth || '');
-          const nextProgram = getProgramPlacement(nextAgeBreakdown);
+          const nextProgram = getProgramPlacement(nextAgeBreakdown, ageRules);
 
           setFormData((prev) => ({
             ...prev,
@@ -413,7 +347,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
     if (enrollmentDraftPreviewUrl) {
       setPreviewUrl(enrollmentDraftPreviewUrl);
     }
-  }, []);
+  }, [ageRules]);
 
   useEffect(() => {
     const serializedFormData = {
@@ -653,7 +587,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
       // Auto-calculate age if DOB changes
       if (field === 'dateOfBirth') {
         const nextAgeBreakdown = getAgeBreakdown(String(value));
-        const nextProgram = getProgramPlacement(nextAgeBreakdown);
+        const nextProgram = getProgramPlacement(nextAgeBreakdown, ageRules);
 
         newData.age = nextAgeBreakdown?.years ?? 0;
         newData.program = nextProgram?.name || '';

@@ -8,6 +8,7 @@ import {
   PerformanceMetric,
   subscribePerformanceMetrics
 } from '../lib/performanceMonitor';
+import { AgeRule, fetchAgeRules, loadAgeRules, saveAgeRules } from '../lib/ageRules';
 import { supabase } from '../lib/supabase';
 
 type BackupTable = 'profiles' | 'enrollments' | 'site_content' | 'contact_messages' | 'activity_logs';
@@ -43,6 +44,15 @@ interface BackupBundle {
   };
   backupTime: string;
   tables: Record<BackupTable, Record<string, unknown>[]>;
+}
+
+interface RestoreExecutionResult {
+  profiles: number;
+  enrollments: number;
+  site_content: number;
+  contact_messages: number;
+  activity_logs: number;
+  total: number;
 }
 
 const backupTables: BackupTable[] = [
@@ -335,8 +345,14 @@ export function AdminDashboard() {
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
   const [backupError, setBackupError] = useState<string | null>(null);
   const [isGeneratingBackup, setIsGeneratingBackup] = useState(false);
+  const [ageRules, setAgeRules] = useState<AgeRule[]>(() => loadAgeRules());
+  const [ageRuleStatus, setAgeRuleStatus] = useState<string | null>(null);
+  const [ageRuleError, setAgeRuleError] = useState<string | null>(null);
+  const [isLoadingAgeRules, setIsLoadingAgeRules] = useState(false);
+  const [isSavingAgeRules, setIsSavingAgeRules] = useState(false);
   const [restoreStatus, setRestoreStatus] = useState<string | null>(null);
   const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [isApplyingRestore, setIsApplyingRestore] = useState(false);
   const [restoreTables, setRestoreTables] = useState<Record<BackupTable, Record<string, unknown>[]> | null>(null);
 
   const loadActivityLogs = useCallback(async () => {
@@ -373,6 +389,24 @@ export function AdminDashboard() {
     });
 
     return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const loadProgramAgeRules = async () => {
+      setIsLoadingAgeRules(true);
+      setAgeRuleError(null);
+
+      try {
+        const nextRules = await fetchAgeRules();
+        setAgeRules(nextRules);
+      } catch (error) {
+        setAgeRuleError(error instanceof Error ? error.message : 'Unable to load age rules.');
+      } finally {
+        setIsLoadingAgeRules(false);
+      }
+    };
+
+    void loadProgramAgeRules();
   }, []);
 
   useEffect(() => {
@@ -667,6 +701,57 @@ export function AdminDashboard() {
     }
   };
 
+  const updateAgeRule = (
+    ruleId: AgeRule['id'],
+    field: 'name' | 'ageLabel' | 'scheduleLabel' | 'timeLabel' | 'minMonths' | 'maxMonths',
+    value: string
+  ) => {
+    setAgeRuleError(null);
+    setAgeRuleStatus(null);
+    setAgeRules((prev) =>
+      prev.map((rule) => {
+        if (rule.id !== ruleId) {
+          return rule;
+        }
+
+        if (field === 'minMonths' || field === 'maxMonths') {
+          const nextValue = Number(value);
+
+          return {
+            ...rule,
+            [field]: Number.isNaN(nextValue) ? 0 : Math.max(0, Math.round(nextValue))
+          };
+        }
+
+        return {
+          ...rule,
+          [field]: value
+        };
+      })
+    );
+  };
+
+  const handleSaveAgeRules = async () => {
+    setIsSavingAgeRules(true);
+    setAgeRuleError(null);
+    setAgeRuleStatus(null);
+
+    try {
+      const result = await saveAgeRules(ageRules);
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      setAgeRules(result.rules);
+      setAgeRuleStatus('Program age rules saved. Guardian enrollment auto-assignment now uses the updated bands.');
+    } catch (error) {
+      setAgeRuleError(error instanceof Error ? error.message : 'Unable to save age rules.');
+    } finally {
+      setIsSavingAgeRules(false);
+    }
+  };
+
   const handleRestoreFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
@@ -685,7 +770,7 @@ export function AdminDashboard() {
         const normalizedTables = normalizeRestoreTables(parsedValue);
 
         setRestoreTables(normalizedTables);
-        setRestoreStatus('Restore package loaded. Review the table counts below, then download the normalized restore file for execution.');
+        setRestoreStatus('Restore package loaded. Review the table counts below, then apply the admin restore workflow or export a normalized restore file.');
       } else if (file.name.toLowerCase().endsWith('.csv')) {
         const [headerLine, ...dataLines] = fileContents.split(/\r?\n/).filter(Boolean);
         const headers = parseCsvLine(headerLine || '');
@@ -704,7 +789,7 @@ export function AdminDashboard() {
 
         const normalizedTables = normalizeRestoreTables(normalizedRows);
         setRestoreTables(normalizedTables);
-        setRestoreStatus('Restore CSV loaded. Review the package summary and download the normalized restore file for the developer workflow.');
+        setRestoreStatus('Restore CSV loaded. Review the package summary and apply the admin restore workflow when ready.');
       } else {
         throw new Error('Upload a .json or .csv backup file.');
       }
@@ -751,6 +836,36 @@ export function AdminDashboard() {
     );
   };
 
+  const applyRestoreBundle = async () => {
+    if (!restoreTables) {
+      return;
+    }
+
+    setIsApplyingRestore(true);
+    setRestoreError(null);
+    setRestoreStatus(null);
+
+    try {
+      const restoreBundle = buildRestoreDownloadBundle(restoreTables);
+      const { data, error } = await supabase.rpc('restore_backup_bundle', {
+        restore_bundle: restoreBundle
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const result = (data || {}) as Partial<RestoreExecutionResult>;
+      const totalRows = typeof result.total === 'number' ? result.total : 0;
+      setRestoreStatus(`Restore applied successfully. ${totalRows} records were merged into the managed tables.`);
+      void loadActivityLogs();
+    } catch (error) {
+      setRestoreError(error instanceof Error ? error.message : 'Unable to apply restore package.');
+    } finally {
+      setIsApplyingRestore(false);
+    }
+  };
+
   const restoreTableCounts = useMemo(() => {
     if (!restoreTables) {
       return [] as Array<{ label: string; value: number }>;
@@ -767,7 +882,7 @@ export function AdminDashboard() {
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-blue-100">Admin Dashboard</p>
             <h1 className="mt-3 text-4xl font-extrabold leading-tight">System maintenance, audit review, and recovery readiness</h1>
             <p className="mt-4 max-w-3xl text-sm font-medium leading-7 text-blue-50/95 md:text-base">
-              Provide a maintenance interface for the web developer to prepare database backups and restore packages, review audit logs with detailed filtering, and monitor enrollment performance during peak periods.
+              Provide a maintenance interface for backup and restore operations, admin age-rule updates, requirement oversight through the sidebar manager, and audit review during peak enrollment periods.
             </p>
           </div>
 
@@ -1006,6 +1121,125 @@ export function AdminDashboard() {
           </div>
         </section>
 
+        <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.5fr_1fr]">
+          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">Program Age Rules</h2>
+                <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                  Update the enrollment age bands used to auto-assign learners into programs. These rules are stored in site content so the guardian enrollment form and admin maintenance view stay aligned.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-800">
+                Requirement document review is available from the sidebar under Requirements Manager.
+              </div>
+            </div>
+
+            {ageRuleError ? <p className="mt-4 text-sm font-medium text-red-600">{ageRuleError}</p> : null}
+            {ageRuleStatus ? <p className="mt-4 text-sm font-medium text-emerald-700">{ageRuleStatus}</p> : null}
+
+            <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+              {ageRules.map((rule) => (
+                <div key={rule.id} className="rounded-3xl border border-gray-100 bg-[#F8FAFC] p-5">
+                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500">{rule.id}</p>
+                  <div className="mt-3 space-y-4">
+                    <label className="block">
+                      <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Program Name</span>
+                      <input
+                        type="text"
+                        value={rule.name}
+                        onChange={(event) => updateAgeRule(rule.id, 'name', event.target.value)}
+                        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none focus:border-[#60A5FA]"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Display Age Label</span>
+                      <input
+                        type="text"
+                        value={rule.ageLabel}
+                        onChange={(event) => updateAgeRule(rule.id, 'ageLabel', event.target.value)}
+                        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none focus:border-[#60A5FA]"
+                      />
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="block">
+                        <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Min Months</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={rule.minMonths}
+                          onChange={(event) => updateAgeRule(rule.id, 'minMonths', event.target.value)}
+                          className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none focus:border-[#60A5FA]"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Max Months</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={rule.maxMonths}
+                          onChange={(event) => updateAgeRule(rule.id, 'maxMonths', event.target.value)}
+                          className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none focus:border-[#60A5FA]"
+                        />
+                      </label>
+                    </div>
+                    <label className="block">
+                      <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Schedule Label</span>
+                      <input
+                        type="text"
+                        value={rule.scheduleLabel}
+                        onChange={(event) => updateAgeRule(rule.id, 'scheduleLabel', event.target.value)}
+                        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none focus:border-[#60A5FA]"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Time Label</span>
+                      <input
+                        type="text"
+                        value={rule.timeLabel}
+                        onChange={(event) => updateAgeRule(rule.id, 'timeLabel', event.target.value)}
+                        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none focus:border-[#60A5FA]"
+                      />
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => void handleSaveAgeRules()}
+                disabled={isLoadingAgeRules || isSavingAgeRules}
+                className="rounded-xl bg-[#1D4ED8] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:bg-blue-300"
+              >
+                {isSavingAgeRules ? 'Saving Rules...' : isLoadingAgeRules ? 'Loading Rules...' : 'Save Age Rules'}
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+            <h2 className="text-2xl font-bold text-gray-800">Admin Maintenance Access</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Admin accounts can now use this dashboard for backup and restore work, update program age rules here, and open the sidebar Requirements Manager to review enrollment documents.
+            </p>
+            <div className="mt-5 space-y-3">
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Requirements</p>
+                <p className="mt-2 text-sm font-semibold text-gray-800">Use Requirements Manager in the sidebar to open the same requirement-review surface used by staff.</p>
+              </div>
+              <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-blue-700">Age Rules</p>
+                <p className="mt-2 text-sm font-semibold text-gray-800">Changes saved here immediately affect guardian eligibility messaging and auto-assigned programs.</p>
+              </div>
+              <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Restore</p>
+                <p className="mt-2 text-sm font-semibold text-gray-800">Uploaded restore bundles can now be merged directly into the managed tables through an admin-only database function.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-bold text-gray-800">System Maintenance</h2>
@@ -1057,7 +1291,7 @@ export function AdminDashboard() {
           <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-bold text-gray-800">Restore Package Builder</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Upload a backup JSON or CSV package, review the table counts, and download a normalized restore file for the developer restore process.
+              Upload a backup JSON or CSV package, review the table counts, then either execute the admin restore workflow or download a normalized restore file.
             </p>
 
             <div className="mt-5 rounded-2xl border border-dashed border-gray-300 bg-[#F8FAFC] p-5">
@@ -1069,7 +1303,7 @@ export function AdminDashboard() {
                 className="mt-3 block w-full text-sm text-gray-600 file:mr-4 file:rounded-xl file:border-0 file:bg-[#1D4ED8] file:px-4 file:py-2 file:font-bold file:text-white hover:file:bg-[#1E40AF]"
               />
               <p className="mt-3 text-xs text-gray-500">
-                Direct database restore still requires a privileged SQL or service-role workflow. This interface prepares the restore package and summarized export files.
+                The restore action performs an authenticated admin-only merge across profiles, enrollments, site content, contact messages, and activity logs.
               </p>
             </div>
 
@@ -1088,6 +1322,14 @@ export function AdminDashboard() {
                 </div>
 
                 <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void applyRestoreBundle()}
+                    disabled={isApplyingRestore}
+                    className="rounded-xl bg-[#1D4ED8] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:bg-blue-300"
+                  >
+                    {isApplyingRestore ? 'Applying Restore...' : 'Apply Restore'}
+                  </button>
                   <button
                     type="button"
                     onClick={() => downloadRestoreBundle('json')}

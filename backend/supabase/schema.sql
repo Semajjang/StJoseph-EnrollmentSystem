@@ -406,6 +406,251 @@ $$;
 
 grant execute on function public.get_enrollments_secure() to authenticated;
 
+create or replace function public.restore_backup_bundle(restore_bundle jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_user_id uuid := auth.uid();
+  current_role text := coalesce(auth.jwt() -> 'user_metadata' ->> 'role', 'guardian');
+  actor_name text := coalesce(
+    (select p.full_name from public.profiles p where p.id = current_user_id limit 1),
+    auth.jwt() -> 'user_metadata' ->> 'full_name',
+    'Unknown Admin'
+  );
+  tables_payload jsonb := case
+    when jsonb_typeof(restore_bundle -> 'tables') = 'object' then restore_bundle -> 'tables'
+    when jsonb_typeof(restore_bundle) = 'object' then restore_bundle
+    else '{}'::jsonb
+  end;
+  profile_row jsonb;
+  enrollment_row jsonb;
+  site_content_row jsonb;
+  contact_message_row jsonb;
+  activity_log_row jsonb;
+  profiles_count integer := 0;
+  enrollments_count integer := 0;
+  site_content_count integer := 0;
+  contact_messages_count integer := 0;
+  activity_logs_count integer := 0;
+begin
+  if current_user_id is null then
+    raise exception 'Authentication required';
+  end if;
+
+  if current_role <> 'admin' then
+    raise exception 'Admin access required';
+  end if;
+
+  for profile_row in
+    select value from jsonb_array_elements(coalesce(tables_payload -> 'profiles', '[]'::jsonb))
+  loop
+    if coalesce(profile_row ->> 'id', '') = '' then
+      continue;
+    end if;
+
+    insert into public.profiles (id, full_name, first_name, middle_name, last_name, suffix, role, phone, created_at)
+    values (
+      (profile_row ->> 'id')::uuid,
+      coalesce(nullif(profile_row ->> 'full_name', ''), 'Unknown User'),
+      nullif(profile_row ->> 'first_name', ''),
+      nullif(profile_row ->> 'middle_name', ''),
+      nullif(profile_row ->> 'last_name', ''),
+      nullif(profile_row ->> 'suffix', ''),
+      coalesce(nullif(profile_row ->> 'role', ''), 'guardian'),
+      nullif(profile_row ->> 'phone', ''),
+      coalesce(nullif(profile_row ->> 'created_at', '')::timestamptz, now())
+    )
+    on conflict (id) do update set
+      full_name = excluded.full_name,
+      first_name = excluded.first_name,
+      middle_name = excluded.middle_name,
+      last_name = excluded.last_name,
+      suffix = excluded.suffix,
+      role = excluded.role,
+      phone = excluded.phone,
+      created_at = excluded.created_at;
+
+    profiles_count := profiles_count + 1;
+  end loop;
+
+  for site_content_row in
+    select value from jsonb_array_elements(coalesce(tables_payload -> 'site_content', '[]'::jsonb))
+  loop
+    if coalesce(site_content_row ->> 'key', '') = '' then
+      continue;
+    end if;
+
+    insert into public.site_content (key, content, updated_at)
+    values (
+      site_content_row ->> 'key',
+      coalesce(site_content_row -> 'content', '{}'::jsonb),
+      coalesce(nullif(site_content_row ->> 'updated_at', '')::timestamptz, now())
+    )
+    on conflict (key) do update set
+      content = excluded.content,
+      updated_at = excluded.updated_at;
+
+    site_content_count := site_content_count + 1;
+  end loop;
+
+  for contact_message_row in
+    select value from jsonb_array_elements(coalesce(tables_payload -> 'contact_messages', '[]'::jsonb))
+  loop
+    if coalesce(contact_message_row ->> 'id', '') = '' then
+      continue;
+    end if;
+
+    insert into public.contact_messages (
+      id,
+      sender_id,
+      sender_name,
+      sender_email,
+      sender_phone,
+      subject,
+      body,
+      status,
+      replies,
+      created_at,
+      updated_at
+    )
+    values (
+      (contact_message_row ->> 'id')::uuid,
+      nullif(contact_message_row ->> 'sender_id', '')::uuid,
+      coalesce(nullif(contact_message_row ->> 'sender_name', ''), 'Unknown Sender'),
+      coalesce(nullif(contact_message_row ->> 'sender_email', ''), 'unknown@example.com'),
+      nullif(contact_message_row ->> 'sender_phone', ''),
+      coalesce(nullif(contact_message_row ->> 'subject', ''), 'General Inquiry'),
+      coalesce(nullif(contact_message_row ->> 'body', ''), ''),
+      coalesce(nullif(contact_message_row ->> 'status', ''), 'New'),
+      coalesce(contact_message_row -> 'replies', '[]'::jsonb),
+      coalesce(nullif(contact_message_row ->> 'created_at', '')::timestamptz, now()),
+      coalesce(nullif(contact_message_row ->> 'updated_at', '')::timestamptz, now())
+    )
+    on conflict (id) do update set
+      sender_id = excluded.sender_id,
+      sender_name = excluded.sender_name,
+      sender_email = excluded.sender_email,
+      sender_phone = excluded.sender_phone,
+      subject = excluded.subject,
+      body = excluded.body,
+      status = excluded.status,
+      replies = excluded.replies,
+      created_at = excluded.created_at,
+      updated_at = excluded.updated_at;
+
+    contact_messages_count := contact_messages_count + 1;
+  end loop;
+
+  for enrollment_row in
+    select value from jsonb_array_elements(coalesce(tables_payload -> 'enrollments', '[]'::jsonb))
+  loop
+    if coalesce(enrollment_row ->> 'id', '') = '' or coalesce(enrollment_row ->> 'parent_id', '') = '' then
+      continue;
+    end if;
+
+    insert into public.enrollments (
+      id,
+      parent_id,
+      child_first_name,
+      child_last_name,
+      program,
+      status,
+      role,
+      form_data,
+      requirements,
+      submitted_at
+    )
+    values (
+      (enrollment_row ->> 'id')::uuid,
+      (enrollment_row ->> 'parent_id')::uuid,
+      coalesce(nullif(enrollment_row ->> 'child_first_name', ''), 'Unknown'),
+      coalesce(nullif(enrollment_row ->> 'child_last_name', ''), 'Student'),
+      coalesce(nullif(enrollment_row ->> 'program', ''), 'Pre-Kindergarten 1'),
+      coalesce(nullif(enrollment_row ->> 'status', ''), 'Pending'),
+      coalesce(nullif(enrollment_row ->> 'role', ''), 'Student'),
+      coalesce(enrollment_row -> 'form_data', '{}'::jsonb),
+      coalesce(enrollment_row -> 'requirements', '[]'::jsonb),
+      coalesce(nullif(enrollment_row ->> 'submitted_at', '')::timestamptz, now())
+    )
+    on conflict (id) do update set
+      parent_id = excluded.parent_id,
+      child_first_name = excluded.child_first_name,
+      child_last_name = excluded.child_last_name,
+      program = excluded.program,
+      status = excluded.status,
+      role = excluded.role,
+      form_data = excluded.form_data,
+      requirements = excluded.requirements,
+      submitted_at = excluded.submitted_at;
+
+    enrollments_count := enrollments_count + 1;
+  end loop;
+
+  for activity_log_row in
+    select value from jsonb_array_elements(coalesce(tables_payload -> 'activity_logs', '[]'::jsonb))
+  loop
+    if coalesce(activity_log_row ->> 'id', '') = '' then
+      continue;
+    end if;
+
+    insert into public.activity_logs (id, actor_id, actor_role, actor_name, action, entity_type, entity_id, details, created_at)
+    values (
+      (activity_log_row ->> 'id')::uuid,
+      nullif(activity_log_row ->> 'actor_id', '')::uuid,
+      nullif(activity_log_row ->> 'actor_role', ''),
+      nullif(activity_log_row ->> 'actor_name', ''),
+      coalesce(nullif(activity_log_row ->> 'action', ''), 'restore_record'),
+      coalesce(nullif(activity_log_row ->> 'entity_type', ''), 'system_maintenance'),
+      coalesce(nullif(activity_log_row ->> 'entity_id', ''), gen_random_uuid()::text),
+      coalesce(activity_log_row -> 'details', '{}'::jsonb),
+      coalesce(nullif(activity_log_row ->> 'created_at', '')::timestamptz, now())
+    )
+    on conflict (id) do update set
+      actor_id = excluded.actor_id,
+      actor_role = excluded.actor_role,
+      actor_name = excluded.actor_name,
+      action = excluded.action,
+      entity_type = excluded.entity_type,
+      entity_id = excluded.entity_id,
+      details = excluded.details,
+      created_at = excluded.created_at;
+
+    activity_logs_count := activity_logs_count + 1;
+  end loop;
+
+  insert into public.activity_logs (actor_id, actor_role, actor_name, action, entity_type, entity_id, details)
+  values (
+    current_user_id,
+    current_role,
+    actor_name,
+    'restore_backup_bundle',
+    'system_maintenance',
+    coalesce(restore_bundle ->> 'exportedAt', restore_bundle ->> 'generatedAt', gen_random_uuid()::text),
+    jsonb_build_object(
+      'profiles', profiles_count,
+      'enrollments', enrollments_count,
+      'site_content', site_content_count,
+      'contact_messages', contact_messages_count,
+      'activity_logs', activity_logs_count
+    )
+  );
+
+  return jsonb_build_object(
+    'profiles', profiles_count,
+    'enrollments', enrollments_count,
+    'site_content', site_content_count,
+    'contact_messages', contact_messages_count,
+    'activity_logs', activity_logs_count,
+    'total', profiles_count + enrollments_count + site_content_count + contact_messages_count + activity_logs_count
+  );
+end;
+$$;
+
+grant execute on function public.restore_backup_bundle(jsonb) to authenticated;
+
 create or replace function public.log_staff_activity()
 returns trigger
 language plpgsql
@@ -437,7 +682,7 @@ begin
   end if;
 
   if tg_table_name = 'site_content' then
-    if tg_op = 'INSERT' and new.key in ('homepage', 'contact-page') then
+    if tg_op = 'INSERT' and new.key in ('homepage', 'contact-page', 'age-rules') then
       insert into public.activity_logs (actor_id, actor_role, actor_name, action, entity_type, entity_id, details)
       values (
         actor_profile_id,
@@ -448,7 +693,7 @@ begin
         new.key,
         jsonb_build_object('key', new.key, 'operation', tg_op)
       );
-    elsif tg_op = 'UPDATE' and new.key in ('homepage', 'contact-page') and new.content is distinct from old.content then
+    elsif tg_op = 'UPDATE' and new.key in ('homepage', 'contact-page', 'age-rules') and new.content is distinct from old.content then
       if new.key = 'homepage' then
         if
           new.content ->> 'heroEyebrow' is distinct from old.content ->> 'heroEyebrow' or
@@ -585,6 +830,17 @@ begin
             new.key,
             jsonb_build_object('key', new.key)
           );
+        elsif new.key = 'age-rules' then
+          insert into public.activity_logs (actor_id, actor_role, actor_name, action, entity_type, entity_id, details)
+          values (
+            actor_profile_id,
+            actor_role,
+            actor_name,
+            'update_age_rules',
+            'site_content',
+            new.key,
+            jsonb_build_object('key', new.key)
+          );
         else
         insert into public.activity_logs (actor_id, actor_role, actor_name, action, entity_type, entity_id, details)
         values (
@@ -704,6 +960,41 @@ values (
     'email', 'stjosephes.cainta2a@gmail.com',
     'address', 'Cainta, Rizal, Philippines',
     'officeHours', 'Monday to Friday, 8:00 AM to 5:00 PM'
+  )
+)
+on conflict (key) do nothing;
+
+insert into public.site_content (key, content)
+values (
+  'age-rules',
+  jsonb_build_array(
+    jsonb_build_object(
+      'id', 'ited',
+      'name', 'ITEd (Infant/Toddler)',
+      'ageLabel', 'Birth to 2 years 11 months',
+      'scheduleLabel', 'Monday - Friday',
+      'timeLabel', 'Daycare Guided Routine',
+      'minMonths', 0,
+      'maxMonths', 35
+    ),
+    jsonb_build_object(
+      'id', 'prek1',
+      'name', 'Pre-Kindergarten 1',
+      'ageLabel', '3 years old only',
+      'scheduleLabel', 'Monday - Friday',
+      'timeLabel', '8:00 AM - 11:00 AM',
+      'minMonths', 36,
+      'maxMonths', 47
+    ),
+    jsonb_build_object(
+      'id', 'prek2',
+      'name', 'Pre-Kindergarten 2',
+      'ageLabel', '4 to 5 years old',
+      'scheduleLabel', 'Monday - Friday',
+      'timeLabel', 'Schedule assigned by school',
+      'minMonths', 48,
+      'maxMonths', 71
+    )
   )
 )
 on conflict (key) do nothing;

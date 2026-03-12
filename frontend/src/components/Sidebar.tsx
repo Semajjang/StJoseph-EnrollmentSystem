@@ -93,6 +93,11 @@ export function Sidebar({ activePage, onNavigate, isOpen, onClose }: SidebarProp
     icon: Building2Icon
   },
   {
+    id: 'staffDashboard',
+    label: 'Requirements Manager',
+    icon: FolderOpenIcon
+  },
+  {
     id: 'homepageManager',
     label: 'Homepage Manager',
     icon: HouseIcon
