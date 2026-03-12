@@ -211,6 +211,7 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
       }
 
       const authUser = data.session.user;
+      completePendingMfaRequest(authUser.id);
       const fallbackRole = normalizeRole(authUser.user_metadata?.role);
       setUser(buildUserFromProfile(authUser, null, fallbackRole));
       void loadProfileAndUpdateUser(authUser);

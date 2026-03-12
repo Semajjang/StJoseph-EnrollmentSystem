@@ -15,6 +15,7 @@ export function SignupPage({ onSwitchToLogin }: SignupPageProps) {
   const { signup } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     middleName: '',
@@ -43,6 +44,7 @@ export function SignupPage({ onSwitchToLogin }: SignupPageProps) {
     try {
       setIsLoading(true);
       setErrorMessage(null);
+      setSuccessMessage(null);
 
       const { error } = await signup({
         firstName: formData.firstName,
@@ -57,6 +59,18 @@ export function SignupPage({ onSwitchToLogin }: SignupPageProps) {
 
       if (error) {
         setErrorMessage(error);
+      } else {
+        setSuccessMessage('Account created. Sign in with your new password to continue, then complete the email verification step when the portal asks for it.');
+        setFormData({
+          firstName: '',
+          middleName: '',
+          lastName: '',
+          suffix: '',
+          email: '',
+          phone: '',
+          password: '',
+          confirmPassword: ''
+        });
       }
     } catch (error) {
       setErrorMessage(
@@ -245,6 +259,10 @@ export function SignupPage({ onSwitchToLogin }: SignupPageProps) {
 
             {errorMessage ?
             <p className="text-sm font-medium text-red-600">{errorMessage}</p> :
+            null}
+
+            {successMessage ?
+            <p className="text-sm font-medium text-green-700">{successMessage}</p> :
             null}
 
             <button
