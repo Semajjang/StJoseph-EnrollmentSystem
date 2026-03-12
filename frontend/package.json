@@ -2,7 +2,7 @@
   "name": "magic-patterns-vite-template",
   "version": "0.0.1",
   "private": true,
-  "homepage": "https://semajjang.github.io",
+  "homepage": "https://semajjang.github.io/WebSys2-StJoseph/",
   "type": "module",
   "scripts": {
     "dev": "vite",

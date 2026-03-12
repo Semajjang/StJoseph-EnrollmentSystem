@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { supabase } from '../lib/supabase';
 import { clearAllMfaSessions } from '../lib/adminMfa';
+import { getEmailChangeRedirectUrl, getPasswordResetRedirectUrl } from '../lib/authRedirects';
 import { clearAllStaffAccessSessions } from '../lib/staffAccess';
 
 export type UserRole = 'guardian' | 'staff' | 'admin' | 'parent';
@@ -100,40 +101,6 @@ const clearRecoveryUrl = () => {
 
   const nextUrl = `${window.location.pathname}${window.location.search}`;
   window.history.replaceState({}, document.title, nextUrl);
-};
-
-const getPasswordResetRedirectUrl = () => {
-  const configuredRedirectUrl = import.meta.env.VITE_PASSWORD_RESET_REDIRECT_URL?.trim();
-
-  if (configuredRedirectUrl) {
-    return configuredRedirectUrl;
-  }
-
-  if (typeof window === 'undefined') {
-    return undefined;
-  }
-
-  const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-
-  if (isLocalHost) {
-    return undefined;
-  }
-
-  return `${window.location.origin}${window.location.pathname}`;
-};
-
-const getEmailChangeRedirectUrl = () => {
-  const configuredRedirectUrl = import.meta.env.VITE_EMAIL_CHANGE_REDIRECT_URL?.trim();
-
-  if (configuredRedirectUrl) {
-    return configuredRedirectUrl;
-  }
-
-  if (typeof window === 'undefined') {
-    return undefined;
-  }
-
-  return `${window.location.origin}${window.location.pathname}`;
 };
 
 export function AuthProvider({ children }: {children: ReactNode;}) {

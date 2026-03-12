@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { MailIcon, LogOutIcon, ShieldCheckIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { getMfaEmailRedirectUrl } from '../lib/authRedirects';
 import { useAuth } from '../context/AuthContext';
 
 interface AdminMfaGatePageProps {
@@ -34,7 +35,6 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const allowTemporarySkip = user?.role === 'guardian' || user?.email?.toLowerCase() === 'staff@gmail.com';
 
   const roleContent = useMemo(() => getMfaRoleLabel(user?.role), [user?.role]);
 
@@ -59,7 +59,8 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
         const { error } = await supabase.auth.signInWithOtp({
           email: user.email,
           options: {
-            shouldCreateUser: false
+            shouldCreateUser: false,
+            emailRedirectTo: getMfaEmailRedirectUrl()
           }
         });
 
@@ -109,7 +110,8 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
       const { error } = await supabase.auth.signInWithOtp({
         email: user.email,
         options: {
-          shouldCreateUser: false
+          shouldCreateUser: false,
+          emailRedirectTo: getMfaEmailRedirectUrl()
         }
       });
 
@@ -164,17 +166,6 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleTemporarySkip = () => {
-    if (!allowTemporarySkip) {
-      return;
-    }
-
-    onVerify({
-      factorId: `temporary-skip:${user?.email?.toLowerCase() || user?.role || 'unknown'}`,
-      verifiedAt: new Date().toISOString()
-    });
   };
 
   return (
@@ -248,16 +239,6 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
               >
                 {isSubmitting ? 'Verifying...' : 'Verify and Continue'}
               </button>
-
-              {allowTemporarySkip ? (
-                <button
-                  type="button"
-                  onClick={handleTemporarySkip}
-                  className="w-full rounded-xl border border-amber-300 bg-amber-50 py-3 text-sm font-bold text-amber-800 transition-colors hover:bg-amber-100"
-                >
-                  Temporary Skip MFA
-                </button>
-              ) : null}
             </div>
           )}
 

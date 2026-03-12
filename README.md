@@ -33,6 +33,18 @@ Use these test accounts for local/demo access:
 - For password reset emails in production, set `VITE_PASSWORD_RESET_REDIRECT_URL` in `frontend/.env` to your deployed frontend URL and add that same URL to Supabase Auth redirect URLs.
 - Do not commit real Supabase secrets (service role keys, production API keys, private tokens) to the repository.
 
+## GitHub Pages Deploy
+
+1. From `frontend/`, run `npm install` if dependencies are not installed yet.
+2. Run `npm run deploy` to build and publish the `dist` folder to the `gh-pages` branch.
+3. In the GitHub repository settings, configure GitHub Pages to serve from the `gh-pages` branch.
+
+Production URL for this repository:
+
+- `https://semajjang.github.io/WebSys2-StJoseph/`
+
+Supabase Auth redirect URLs should include that same Pages URL for password reset and email-change flows.
+
 ## Security Deployment Notes
 
 - Administrative accounts are now gated by TOTP MFA in the frontend. Enable Supabase Auth MFA in your project before testing admin access.
