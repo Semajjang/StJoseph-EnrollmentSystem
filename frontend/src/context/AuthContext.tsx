@@ -7,7 +7,7 @@ import {
   ReactNode
 } from 'react';
 import { supabase } from '../lib/supabase';
-import { clearAllMfaSessions } from '../lib/adminMfa';
+import { clearAllMfaSessions, completePendingMfaRequest } from '../lib/adminMfa';
 import { getEmailChangeRedirectUrl, getPasswordResetRedirectUrl } from '../lib/authRedirects';
 import { clearAllStaffAccessSessions } from '../lib/staffAccess';
 
@@ -249,6 +249,8 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
           setUser(null);
           return;
         }
+
+        completePendingMfaRequest(session.user.id);
 
         const fallbackRole = normalizeRole(session.user.user_metadata?.role);
         setUser(buildUserFromProfile(session.user, null, fallbackRole));

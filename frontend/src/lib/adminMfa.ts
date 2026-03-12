@@ -1,4 +1,6 @@
 const MFA_SESSION_KEY_PREFIX = 'mfa-session:';
+const MFA_PENDING_REQUEST_KEY_PREFIX = 'mfa-pending:';
+const MFA_PENDING_REQUEST_MAX_AGE_MS = 15 * 60 * 1000;
 
 const readAuthCallbackType = () => {
   if (typeof window === 'undefined') {
@@ -16,6 +18,11 @@ export interface MfaSession {
   verifiedAt: string;
 }
 
+interface PendingMfaRequest {
+  email: string;
+  requestedAt: string;
+}
+
 export const isEmailMfaCallbackUrl = () => {
   const callbackType = readAuthCallbackType();
   return callbackType === 'magiclink' || callbackType === 'email';
@@ -27,6 +34,79 @@ export const clearAuthCallbackUrl = () => {
   }
 
   window.history.replaceState({}, document.title, window.location.pathname);
+};
+
+const loadPendingMfaRequest = (userId: string): PendingMfaRequest | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const storedValue = window.sessionStorage.getItem(`${MFA_PENDING_REQUEST_KEY_PREFIX}${userId}`);
+
+    if (!storedValue) {
+      return null;
+    }
+
+    const parsedValue = JSON.parse(storedValue) as Partial<PendingMfaRequest>;
+
+    if (typeof parsedValue.email !== 'string' || typeof parsedValue.requestedAt !== 'string') {
+      return null;
+    }
+
+    const requestedAtTime = new Date(parsedValue.requestedAt).getTime();
+
+    if (Number.isNaN(requestedAtTime) || Date.now() - requestedAtTime > MFA_PENDING_REQUEST_MAX_AGE_MS) {
+      window.sessionStorage.removeItem(`${MFA_PENDING_REQUEST_KEY_PREFIX}${userId}`);
+      return null;
+    }
+
+    return {
+      email: parsedValue.email,
+      requestedAt: parsedValue.requestedAt
+    };
+  } catch {
+    return null;
+  }
+};
+
+export const savePendingMfaRequest = (userId: string, email: string) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.sessionStorage.setItem(
+    `${MFA_PENDING_REQUEST_KEY_PREFIX}${userId}`,
+    JSON.stringify({
+      email,
+      requestedAt: new Date().toISOString()
+    })
+  );
+};
+
+export const clearPendingMfaRequest = (userId: string) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.sessionStorage.removeItem(`${MFA_PENDING_REQUEST_KEY_PREFIX}${userId}`);
+};
+
+export const completePendingMfaRequest = (userId: string): MfaSession | null => {
+  const pendingRequest = loadPendingMfaRequest(userId);
+
+  if (!pendingRequest) {
+    return null;
+  }
+
+  const session = {
+    factorId: `email-link:${pendingRequest.email}`,
+    verifiedAt: new Date().toISOString()
+  };
+
+  saveMfaSession(userId, session);
+  clearPendingMfaRequest(userId);
+  return session;
 };
 
 export const loadMfaSession = (userId: string): MfaSession | null => {
@@ -77,7 +157,7 @@ export const clearAllMfaSessions = () => {
   for (let index = 0; index < window.sessionStorage.length; index += 1) {
     const key = window.sessionStorage.key(index);
 
-    if (key?.startsWith(MFA_SESSION_KEY_PREFIX)) {
+    if (key?.startsWith(MFA_SESSION_KEY_PREFIX) || key?.startsWith(MFA_PENDING_REQUEST_KEY_PREFIX)) {
       keysToRemove.push(key);
     }
   }

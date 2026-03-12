@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { MailIcon, LogOutIcon, ShieldCheckIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getMfaEmailRedirectUrl } from '../lib/authRedirects';
+import { savePendingMfaRequest } from '../lib/adminMfa';
 import { useAuth } from '../context/AuthContext';
 
 const getMfaRoleLabel = (role: string | undefined) => {
@@ -69,6 +70,7 @@ export function AdminMfaGatePage() {
           return;
         }
 
+        savePendingMfaRequest(user.id, user.email);
         setHasSentCode(true);
         setInfoMessage(`We sent a verification email to ${user.email}. Open the email link to continue.`);
       } catch (error) {
@@ -115,6 +117,7 @@ export function AdminMfaGatePage() {
         return;
       }
 
+      savePendingMfaRequest(user.id, user.email);
       setHasSentCode(true);
       setInfoMessage(`A new verification email was sent to ${user.email}. Open the email link to continue.`);
     } catch (error) {
