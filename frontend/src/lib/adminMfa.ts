@@ -1,9 +1,33 @@
 const MFA_SESSION_KEY_PREFIX = 'mfa-session:';
 
+const readAuthCallbackType = () => {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const searchParams = new URLSearchParams(window.location.search);
+
+  return (hashParams.get('type') || searchParams.get('type') || '').trim().toLowerCase();
+};
+
 export interface MfaSession {
   factorId: string;
   verifiedAt: string;
 }
+
+export const isEmailMfaCallbackUrl = () => {
+  const callbackType = readAuthCallbackType();
+  return callbackType === 'magiclink' || callbackType === 'email';
+};
+
+export const clearAuthCallbackUrl = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.history.replaceState({}, document.title, window.location.pathname);
+};
 
 export const loadMfaSession = (userId: string): MfaSession | null => {
   if (typeof window === 'undefined') {

@@ -13,7 +13,7 @@ const getMfaRoleLabel = (role: string | undefined) => {
   if (role === 'staff') {
     return {
       heading: 'Staff Multi-Factor Verification',
-      description: 'Staff access requires an email verification code before the management portal opens.',
+      description: 'Staff access requires a Supabase email verification step before the management portal opens.',
       accountLabel: 'Signed in staff account',
       defaultName: 'Staff Member'
     };
@@ -21,7 +21,7 @@ const getMfaRoleLabel = (role: string | undefined) => {
 
   return {
     heading: 'Guardian Multi-Factor Verification',
-    description: 'Guardian access requires an email verification code before the family portal opens.',
+    description: 'Guardian access requires a Supabase email verification step before the family portal opens.',
     accountLabel: 'Signed in guardian account',
     defaultName: 'Guardian'
   };
@@ -75,7 +75,7 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
         }
 
         setHasSentCode(true);
-        setInfoMessage(`We sent a verification code to ${user.email}. Enter it below to continue.`);
+        setInfoMessage(`We sent a verification email to ${user.email}. Open the email link to continue, or enter the 6-digit code below if your template shows one.`);
       } catch (error) {
         if (!isMounted) {
           return;
@@ -121,7 +121,7 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
       }
 
       setHasSentCode(true);
-      setInfoMessage(`A new verification code was sent to ${user.email}.`);
+      setInfoMessage(`A new verification email was sent to ${user.email}. Open the email link to continue, or enter the 6-digit code below if your template shows one.`);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Unable to send MFA code.');
     } finally {
@@ -211,7 +211,7 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1D4ED8] py-3 font-bold text-white transition-colors hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:bg-blue-300"
               >
                 <MailIcon className="h-5 w-5" />
-                {isSubmitting ? 'Sending Code...' : hasSentCode ? 'Resend Verification Code' : 'Send Verification Code'}
+                {isSubmitting ? 'Sending Email...' : hasSentCode ? 'Resend Verification Email' : 'Send Verification Email'}
               </button>
 
               <div>
@@ -227,6 +227,9 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
                   className="w-full rounded-xl border-2 border-blue-100 bg-[#EFF6FF] px-4 py-3 focus:border-[#60A5FA] focus:outline-none transition-colors"
                   placeholder="Enter 6-digit code"
                 />
+                <p className="mt-2 text-xs text-gray-500">
+                  If the email opens a verification link instead of showing a code, just click that link and you will be returned here automatically.
+                </p>
               </div>
 
               {errorMessage ? <p className="text-sm font-medium text-red-600">{errorMessage}</p> : null}

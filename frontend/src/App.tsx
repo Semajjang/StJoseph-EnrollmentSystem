@@ -4,6 +4,8 @@ import { Sidebar } from './components/Sidebar';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { EnrollmentProvider } from './context/EnrollmentContext';
 import {
+  clearAuthCallbackUrl,
+  isEmailMfaCallbackUrl,
   loadMfaSession,
   MfaSession,
   saveMfaSession
@@ -72,6 +74,22 @@ function AppContent() {
 
     setMfaSession(loadMfaSession(user.id));
   }, [requiresMfa, user]);
+
+  useEffect(() => {
+    if (!user || !requiresMfa || mfaSession || !isEmailMfaCallbackUrl()) {
+      return;
+    }
+
+    const nextSession = {
+      factorId: `email-link:${user.email || user.id}`,
+      verifiedAt: new Date().toISOString()
+    };
+
+    saveMfaSession(user.id, nextSession);
+    setMfaSession(nextSession);
+    clearAuthCallbackUrl();
+    setActivePage(user.role === 'staff' ? 'staffDashboard' : 'home');
+  }, [mfaSession, requiresMfa, user]);
 
   useEffect(() => {
     if (user?.role === 'admin') {

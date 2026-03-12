@@ -47,7 +47,7 @@ Supabase Auth redirect URLs should include that same Pages URL for password rese
 
 ## Security Deployment Notes
 
-- Administrative accounts are now gated by TOTP MFA in the frontend. Enable Supabase Auth MFA in your project before testing admin access.
+- Guardian and staff access are now gated by Supabase email verification in the frontend. Set the Supabase Site URL and redirect URLs to your deployed frontend before testing MFA or password reset emails.
 - Passwords are already hashed and stored by Supabase Auth. This app does not keep plaintext passwords in application tables.
 - Apply `backend/supabase/schema.sql` in Supabase to enable sensitive-field encryption and the `get_enrollments_secure()` RPC.
 - Optionally configure a Postgres setting named `app.settings.encryption_key` in Supabase to enable encryption for sensitive enrollment fields. If it is not configured, enrollment records will still work, but those fields will be stored unencrypted.
