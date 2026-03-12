@@ -170,15 +170,7 @@ function AppContent() {
   }
 
   if (requiresMfa && !mfaSession) {
-    return (
-      <AdminMfaGatePage
-        onVerify={(session) => {
-          saveMfaSession(user.id, session);
-          setMfaSession(session);
-          setActivePage(user.role === 'staff' ? 'staffDashboard' : 'home');
-        }}
-      />
-    );
+    return <AdminMfaGatePage />;
   }
 
 

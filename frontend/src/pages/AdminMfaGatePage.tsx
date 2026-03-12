@@ -5,10 +5,6 @@ import { supabase } from '../lib/supabase';
 import { getMfaEmailRedirectUrl } from '../lib/authRedirects';
 import { useAuth } from '../context/AuthContext';
 
-interface AdminMfaGatePageProps {
-  onVerify: (session: { factorId: string; verifiedAt: string }) => void;
-}
-
 const getMfaRoleLabel = (role: string | undefined) => {
   if (role === 'staff') {
     return {
@@ -27,11 +23,10 @@ const getMfaRoleLabel = (role: string | undefined) => {
   };
 };
 
-export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
+export function AdminMfaGatePage() {
   const { user, logout } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [hasSentCode, setHasSentCode] = useState(false);
-  const [verificationCode, setVerificationCode] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -75,7 +70,7 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
         }
 
         setHasSentCode(true);
-        setInfoMessage(`We sent a verification email to ${user.email}. Open the email link to continue, or enter the 6-digit code below if your template shows one.`);
+        setInfoMessage(`We sent a verification email to ${user.email}. Open the email link to continue.`);
       } catch (error) {
         if (!isMounted) {
           return;
@@ -121,48 +116,9 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
       }
 
       setHasSentCode(true);
-      setInfoMessage(`A new verification email was sent to ${user.email}. Open the email link to continue, or enter the 6-digit code below if your template shows one.`);
+      setInfoMessage(`A new verification email was sent to ${user.email}. Open the email link to continue.`);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Unable to send MFA code.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleVerifyCode = async () => {
-    const normalizedCode = verificationCode.trim();
-
-    if (!user?.email) {
-      setErrorMessage('No email is available for this account.');
-      return;
-    }
-
-    if (normalizedCode.length < 6) {
-      setErrorMessage('Enter the 6-digit verification code from your email.');
-      return;
-    }
-
-    setErrorMessage(null);
-    setIsSubmitting(true);
-
-    try {
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email: user.email,
-        token: normalizedCode,
-        type: 'email'
-      });
-
-      if (verifyError) {
-        setErrorMessage(verifyError.message);
-        return;
-      }
-
-      onVerify({
-        factorId: `email:${user.email}`,
-        verifiedAt: new Date().toISOString()
-      });
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Unable to verify the MFA code.');
     } finally {
       setIsSubmitting(false);
     }
@@ -214,34 +170,11 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
                 {isSubmitting ? 'Sending Email...' : hasSentCode ? 'Resend Verification Email' : 'Send Verification Email'}
               </button>
 
-              <div>
-                <label className="mb-1 block text-sm font-bold text-gray-700">
-                  Email Verification Code <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={verificationCode}
-                  onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className="w-full rounded-xl border-2 border-blue-100 bg-[#EFF6FF] px-4 py-3 focus:border-[#60A5FA] focus:outline-none transition-colors"
-                  placeholder="Enter 6-digit code"
-                />
-                <p className="mt-2 text-xs text-gray-500">
-                  If the email opens a verification link instead of showing a code, just click that link and you will be returned here automatically.
-                </p>
+              <div className="rounded-2xl border border-blue-100 bg-[#EFF6FF] px-4 py-3 text-sm text-gray-700">
+                Click the verification link in your email. After Supabase sends you back to the portal, this screen will close automatically.
               </div>
 
               {errorMessage ? <p className="text-sm font-medium text-red-600">{errorMessage}</p> : null}
-
-              <button
-                type="button"
-                onClick={() => void handleVerifyCode()}
-                disabled={isSubmitting || !hasSentCode}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1D4ED8] py-3 font-bold text-white transition-colors hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:bg-blue-300"
-              >
-                {isSubmitting ? 'Verifying...' : 'Verify and Continue'}
-              </button>
             </div>
           )}
 
