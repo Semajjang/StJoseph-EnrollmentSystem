@@ -47,7 +47,7 @@ function AppContent() {
   const [mfaSession, setMfaSession] = useState<MfaSession | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isManagementRole = user?.role === 'admin' || user?.role === 'staff';
-  const requiresMfa = user?.role === 'guardian' || user?.role === 'staff';
+  const requiresMfa = user?.role === 'guardian' || user?.role === 'staff' || user?.role === 'admin';
   const inactivityTimeoutDuration = user?.role === 'staff' ?
     STAFF_IDLE_TIMEOUT_MS :
     user?.role === 'admin' ?
@@ -170,7 +170,7 @@ function AppContent() {
   }
 
   if (requiresMfa && !mfaSession) {
-    return <AdminMfaGatePage />;
+    return <AdminMfaGatePage onSkip={setMfaSession} />;
   }
 
 

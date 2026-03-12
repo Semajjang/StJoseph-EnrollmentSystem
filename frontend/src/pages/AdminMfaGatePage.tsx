@@ -1,12 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { MailIcon, LogOutIcon, ShieldCheckIcon } from 'lucide-react';
+import { MailIcon, LogOutIcon, ShieldCheckIcon, SkipForwardIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getMfaEmailRedirectUrl } from '../lib/authRedirects';
-import { savePendingMfaRequest } from '../lib/adminMfa';
+import { MfaSession, saveMfaSession, savePendingMfaRequest } from '../lib/adminMfa';
 import { useAuth } from '../context/AuthContext';
 
 const getMfaRoleLabel = (role: string | undefined) => {
+  if (role === 'admin') {
+    return {
+      heading: 'Admin Multi-Factor Verification',
+      description: 'Admin access requires a Supabase email verification step before the administration portal opens.',
+      accountLabel: 'Signed in admin account',
+      defaultName: 'Administrator'
+    };
+  }
+
   if (role === 'staff') {
     return {
       heading: 'Staff Multi-Factor Verification',
@@ -24,7 +33,11 @@ const getMfaRoleLabel = (role: string | undefined) => {
   };
 };
 
-export function AdminMfaGatePage() {
+interface AdminMfaGatePageProps {
+  onSkip: (session: MfaSession) => void;
+}
+
+export function AdminMfaGatePage({ onSkip }: AdminMfaGatePageProps) {
   const { user, logout } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [hasSentCode, setHasSentCode] = useState(false);
@@ -33,6 +46,20 @@ export function AdminMfaGatePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const roleContent = useMemo(() => getMfaRoleLabel(user?.role), [user?.role]);
+
+  const handleSkip = () => {
+    if (!user) {
+      return;
+    }
+
+    const session = {
+      factorId: `mfa-skip:${user.role}`,
+      verifiedAt: new Date().toISOString()
+    };
+
+    saveMfaSession(user.id, session);
+    onSkip(session);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -176,6 +203,15 @@ export function AdminMfaGatePage() {
               <div className="rounded-2xl border border-blue-100 bg-[#EFF6FF] px-4 py-3 text-sm text-gray-700">
                 Click the verification link in your email. After Supabase sends you back to the portal, this screen will close automatically.
               </div>
+
+              <button
+                type="button"
+                onClick={handleSkip}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 py-3 font-bold text-amber-800 transition-colors hover:bg-amber-100"
+              >
+                <SkipForwardIcon className="h-5 w-5" />
+                Skip MFA For Now
+              </button>
 
               {errorMessage ? <p className="text-sm font-medium text-red-600">{errorMessage}</p> : null}
             </div>
