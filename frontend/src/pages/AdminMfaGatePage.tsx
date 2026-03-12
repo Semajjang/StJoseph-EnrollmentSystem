@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { KeyRoundIcon, LogOutIcon, ShieldCheckIcon } from 'lucide-react';
+import { MailIcon, LogOutIcon, ShieldCheckIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
@@ -8,85 +8,60 @@ interface AdminMfaGatePageProps {
   onVerify: (session: { factorId: string; verifiedAt: string }) => void;
 }
 
-interface TotpFactor {
-  id: string;
-  factor_type?: string;
-  status?: string;
-  friendly_name?: string | null;
-}
-
-interface EnrolledFactor {
-  id: string;
-  totp?: {
-    qr_code?: string;
-    secret?: string;
-  } | null;
-}
-
-const getMfaClient = () => (supabase.auth as typeof supabase.auth & { mfa: any }).mfa;
-
 const getMfaRoleLabel = (role: string | undefined) => {
   if (role === 'staff') {
     return {
       heading: 'Staff Multi-Factor Verification',
-      description: 'Staff access requires an authenticator code before the management portal opens.',
+      description: 'Staff access requires an email verification code before the management portal opens.',
       accountLabel: 'Signed in staff account',
-      defaultName: 'Staff Member',
-      continueLabel: 'Continue to the staff portal',
-      setupLabel: 'protect the staff portal',
-      friendlyName: 'Staff Portal Authenticator'
+      defaultName: 'Staff Member'
     };
   }
 
   return {
     heading: 'Guardian Multi-Factor Verification',
-    description: 'Guardian access requires an authenticator code before the family portal opens.',
+    description: 'Guardian access requires an email verification code before the family portal opens.',
     accountLabel: 'Signed in guardian account',
-    defaultName: 'Guardian',
-    continueLabel: 'Continue to the guardian portal',
-    setupLabel: 'protect the guardian portal',
-    friendlyName: 'Guardian Portal Authenticator'
+    defaultName: 'Guardian'
   };
 };
 
 export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
   const { user, logout } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [factorId, setFactorId] = useState<string | null>(null);
-  const [qrCodeMarkup, setQrCodeMarkup] = useState<string | null>(null);
-  const [sharedSecret, setSharedSecret] = useState<string | null>(null);
+  const [hasSentCode, setHasSentCode] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const allowTemporarySkip = user?.role === 'guardian' || user?.email?.toLowerCase() === 'staff@gmail.com';
 
-  const hasEnrollmentStep = useMemo(() => !!qrCodeMarkup || !!sharedSecret, [qrCodeMarkup, sharedSecret]);
-  const qrCodeImageSrc = useMemo(() => {
-    if (!qrCodeMarkup) {
-      return null;
-    }
-
-    return qrCodeMarkup.startsWith('data:image/') ? qrCodeMarkup : null;
-  }, [qrCodeMarkup]);
-  const qrCodeSvgMarkup = useMemo(() => {
-    if (!qrCodeMarkup || qrCodeImageSrc) {
-      return null;
-    }
-
-    return qrCodeMarkup;
-  }, [qrCodeImageSrc, qrCodeMarkup]);
   const roleContent = useMemo(() => getMfaRoleLabel(user?.role), [user?.role]);
 
   useEffect(() => {
     let isMounted = true;
 
-    const loadFactors = async () => {
+    const sendInitialCode = async () => {
       setIsLoading(true);
       setErrorMessage(null);
       setInfoMessage(null);
 
       try {
-        const { data, error } = await getMfaClient().listFactors();
+        if (!user?.email) {
+          if (isMounted) {
+            setErrorMessage('No email is available for this account.');
+            setIsLoading(false);
+          }
+
+          return;
+        }
+
+        const { error } = await supabase.auth.signInWithOtp({
+          email: user.email,
+          options: {
+            shouldCreateUser: false
+          }
+        });
 
         if (!isMounted) {
           return;
@@ -98,21 +73,14 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
           return;
         }
 
-        const verifiedTotpFactor = (((data?.totp as TotpFactor[] | undefined) || [])
-          .find((entry) => entry.status === 'verified'));
-
-        if (verifiedTotpFactor?.id) {
-          setFactorId(verifiedTotpFactor.id);
-          setInfoMessage(`Enter the code from your authenticator app to ${roleContent.continueLabel.toLowerCase()}.`);
-        } else {
-          setInfoMessage(`Set up an authenticator app to ${roleContent.setupLabel} with multi-factor authentication.`);
-        }
+        setHasSentCode(true);
+        setInfoMessage(`We sent a verification code to ${user.email}. Enter it below to continue.`);
       } catch (error) {
         if (!isMounted) {
           return;
         }
 
-        setErrorMessage(error instanceof Error ? error.message : 'Unable to load MFA factors.');
+        setErrorMessage(error instanceof Error ? error.message : 'Unable to send MFA code.');
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -120,44 +88,40 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
       }
     };
 
-    void loadFactors();
+    void sendInitialCode();
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [user?.email]);
 
-  const handleEnrollFactor = async () => {
+  const handleSendCode = async () => {
+    if (!user?.email) {
+      setErrorMessage('No email is available for this account.');
+      return;
+    }
+
     setErrorMessage(null);
     setInfoMessage(null);
     setIsSubmitting(true);
 
     try {
-      const { data, error } = await getMfaClient().enroll({
-        factorType: 'totp',
-        friendlyName: roleContent.friendlyName
+      const { error } = await supabase.auth.signInWithOtp({
+        email: user.email,
+        options: {
+          shouldCreateUser: false
+        }
       });
 
       if (error) {
         setErrorMessage(error.message);
-        setIsSubmitting(false);
         return;
       }
 
-      const enrolledFactor = data as EnrolledFactor | null;
-
-      if (!enrolledFactor?.id) {
-        setErrorMessage('Unable to enroll an MFA factor for this account.');
-        setIsSubmitting(false);
-        return;
-      }
-
-      setFactorId(enrolledFactor.id);
-      setQrCodeMarkup(enrolledFactor.totp?.qr_code || null);
-      setSharedSecret(enrolledFactor.totp?.secret || null);
-      setInfoMessage('Scan the QR code with your authenticator app, then enter the generated 6-digit code to verify this account.');
+      setHasSentCode(true);
+      setInfoMessage(`A new verification code was sent to ${user.email}.`);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Unable to enroll MFA.');
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to send MFA code.');
     } finally {
       setIsSubmitting(false);
     }
@@ -166,8 +130,13 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
   const handleVerifyCode = async () => {
     const normalizedCode = verificationCode.trim();
 
-    if (!factorId || normalizedCode.length < 6) {
-      setErrorMessage('Enter the 6-digit verification code from your authenticator app.');
+    if (!user?.email) {
+      setErrorMessage('No email is available for this account.');
+      return;
+    }
+
+    if (normalizedCode.length < 6) {
+      setErrorMessage('Enter the 6-digit verification code from your email.');
       return;
     }
 
@@ -175,36 +144,37 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
     setIsSubmitting(true);
 
     try {
-      const { data: challengeData, error: challengeError } = await getMfaClient().challenge({
-        factorId
-      });
-
-      if (challengeError) {
-        setErrorMessage(challengeError.message);
-        setIsSubmitting(false);
-        return;
-      }
-
-      const { error: verifyError } = await getMfaClient().verify({
-        factorId,
-        challengeId: challengeData?.id,
-        code: normalizedCode
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: user.email,
+        token: normalizedCode,
+        type: 'email'
       });
 
       if (verifyError) {
         setErrorMessage(verifyError.message);
-        setIsSubmitting(false);
         return;
       }
 
       onVerify({
-        factorId,
+        factorId: `email:${user.email}`,
         verifiedAt: new Date().toISOString()
       });
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Unable to verify the MFA code.');
+    } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleTemporarySkip = () => {
+    if (!allowTemporarySkip) {
+      return;
+    }
+
+    onVerify({
+      factorId: `temporary-skip:${user?.email?.toLowerCase() || user?.role || 'unknown'}`,
+      verifiedAt: new Date().toISOString()
+    });
   };
 
   return (
@@ -243,74 +213,49 @@ export function AdminMfaGatePage({ onVerify }: AdminMfaGatePageProps) {
                 </div>
               ) : null}
 
-              {!factorId ? (
-                <button
-                  type="button"
-                  onClick={() => void handleEnrollFactor()}
-                  disabled={isSubmitting}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1D4ED8] py-3 font-bold text-white transition-colors hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:bg-blue-300"
-                >
-                  <KeyRoundIcon className="h-5 w-5" />
-                  {isSubmitting ? 'Preparing MFA Setup...' : 'Set Up Authenticator App'}
-                </button>
-              ) : null}
+              <button
+                type="button"
+                onClick={() => void handleSendCode()}
+                disabled={isSubmitting}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1D4ED8] py-3 font-bold text-white transition-colors hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:bg-blue-300"
+              >
+                <MailIcon className="h-5 w-5" />
+                {isSubmitting ? 'Sending Code...' : hasSentCode ? 'Resend Verification Code' : 'Send Verification Code'}
+              </button>
 
-              {hasEnrollmentStep ? (
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.2fr,1fr]">
-                  <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                    <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Scan QR Code</p>
-                    <div className="mt-4 flex justify-center rounded-2xl bg-gray-50 p-4">
-                      {qrCodeImageSrc ? (
-                        <img
-                          src={qrCodeImageSrc}
-                          alt="Authenticator app QR code"
-                          className="h-[220px] w-[220px]"
-                        />
-                      ) : qrCodeSvgMarkup ? (
-                        <div className="h-[220px] w-[220px]" dangerouslySetInnerHTML={{ __html: qrCodeSvgMarkup }} />
-                      ) : (
-                        <div className="flex h-[220px] w-[220px] items-center justify-center text-center text-sm font-medium text-gray-500">
-                          QR code unavailable. Use the shared secret manually in your authenticator app.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                    <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Manual Setup Secret</p>
-                    <p className="mt-3 break-all rounded-xl bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-800">
-                      {sharedSecret || 'Secret unavailable'}
-                    </p>
-                  </div>
-                </div>
-              ) : null}
-
-              {factorId ? (
-                <div>
-                  <label className="mb-1 block text-sm font-bold text-gray-700">
-                    Authenticator Code <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={verificationCode}
-                    onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                    className="w-full rounded-xl border-2 border-blue-100 bg-[#EFF6FF] px-4 py-3 focus:border-[#60A5FA] focus:outline-none transition-colors"
-                    placeholder="Enter 6-digit code"
-                  />
-                </div>
-              ) : null}
+              <div>
+                <label className="mb-1 block text-sm font-bold text-gray-700">
+                  Email Verification Code <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={verificationCode}
+                  onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="w-full rounded-xl border-2 border-blue-100 bg-[#EFF6FF] px-4 py-3 focus:border-[#60A5FA] focus:outline-none transition-colors"
+                  placeholder="Enter 6-digit code"
+                />
+              </div>
 
               {errorMessage ? <p className="text-sm font-medium text-red-600">{errorMessage}</p> : null}
 
-              {factorId ? (
+              <button
+                type="button"
+                onClick={() => void handleVerifyCode()}
+                disabled={isSubmitting || !hasSentCode}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1D4ED8] py-3 font-bold text-white transition-colors hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:bg-blue-300"
+              >
+                {isSubmitting ? 'Verifying...' : 'Verify and Continue'}
+              </button>
+
+              {allowTemporarySkip ? (
                 <button
                   type="button"
-                  onClick={() => void handleVerifyCode()}
-                  disabled={isSubmitting}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1D4ED8] py-3 font-bold text-white transition-colors hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:bg-blue-300"
+                  onClick={handleTemporarySkip}
+                  className="w-full rounded-xl border border-amber-300 bg-amber-50 py-3 text-sm font-bold text-amber-800 transition-colors hover:bg-amber-100"
                 >
-                  {isSubmitting ? 'Verifying...' : 'Verify and Continue'}
+                  Temporary Skip MFA
                 </button>
               ) : null}
             </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEnrollment } from '../context/EnrollmentContext';
 import {
@@ -11,6 +11,7 @@ import {
 } from '../lib/philippineAddress';
 import {
   AgeBreakdown,
+  AgeRule,
   fetchAgeRules,
   getAllowedBirthdateRange,
   getProgramAgeValidationMessage,
@@ -59,6 +60,7 @@ const allowedUploadMimeTypes = ['image/jpeg', 'image/png', 'application/pdf'];
 const allowedUploadExtensions = ['.jpg', '.jpeg', '.png', '.pdf'];
 
 interface FormData {
+  enrolledSiblingDetails: EnrolledSiblingInfo[];
   // Learner Info
   childFirstName: string;
   childMiddleName: string;
@@ -105,7 +107,59 @@ interface FormData {
   schoolYear: string;
   schedule: string[];
 }
+
+interface EnrolledSiblingInfo {
+  name: string;
+  sex: 'Male' | 'Female' | '';
+  dateOfBirth: string;
+  age: number;
+  program: string;
+}
+
+const createEmptySiblingInfo = (): EnrolledSiblingInfo => ({
+  name: '',
+  sex: '',
+  dateOfBirth: '',
+  age: 0,
+  program: ''
+});
+
+const syncSiblingDetailsCount = (
+  siblingDetails: EnrolledSiblingInfo[],
+  siblingCount: number
+) => {
+  const normalizedCount = Math.max(0, siblingCount);
+
+  if (siblingDetails.length === normalizedCount) {
+    return siblingDetails;
+  }
+
+  if (siblingDetails.length > normalizedCount) {
+    return siblingDetails.slice(0, normalizedCount);
+  }
+
+  return [
+    ...siblingDetails,
+    ...Array.from({ length: normalizedCount - siblingDetails.length }, () => createEmptySiblingInfo())
+  ];
+};
+
+const buildSiblingDataFromBirthday = (
+  sibling: EnrolledSiblingInfo,
+  ageRules: AgeRule[]
+): EnrolledSiblingInfo => {
+  const nextAgeBreakdown = getAgeBreakdown(sibling.dateOfBirth);
+  const nextProgram = getProgramPlacement(nextAgeBreakdown, ageRules);
+
+  return {
+    ...sibling,
+    age: nextAgeBreakdown?.years ?? 0,
+    program: nextProgram?.name || ''
+  };
+};
+
 const initialFormData: FormData = {
+  enrolledSiblingDetails: [],
   childFirstName: '',
   childMiddleName: '',
   childLastName: '',
@@ -160,6 +214,11 @@ const composeAddress = (
     .map((value) => value.trim())
     .filter(Boolean)
     .join(', ');
+
+const getEffectiveIdPicture = (idPicture: File | null) => idPicture || enrollmentDraftFile;
+
+const getEffectiveIncomeProof = (incomeProof: File | null) =>
+  incomeProof || enrollmentDraftIncomeProofFile;
 
 const parseDateInput = (dateOfBirth: string) => {
   const [yearText = '', monthText = '', dayText = ''] = dateOfBirth.split('-');
@@ -254,6 +313,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
   const [isLoadingProvinces, setIsLoadingProvinces] = useState(false);
   const [isLoadingMunicipalities, setIsLoadingMunicipalities] = useState(false);
   const [isLoadingBarangays, setIsLoadingBarangays] = useState(false);
+  const enrollmentNoticeRef = useRef<HTMLDivElement | null>(null);
   const isRegionSelected = formData.regionCode.trim().length > 0;
   const hasProvinceLevel = provinceOptions.length > 0;
   const isProvinceSelected = hasProvinceLevel ?
@@ -261,8 +321,11 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
     formData.province.trim().length > 0;
   const isMunicipalitySelected = formData.municipalityCode.trim().length > 0;
   const isProvinceAutoFilled = isRegionSelected && !isLoadingProvinces && !hasProvinceLevel;
-  const isNonCaintaMunicipality =
-    formData.municipality.trim().length > 0 && formData.municipality.trim().toLowerCase() !== 'cainta';
+  const normalizedMunicipality = formData.municipality.trim().toLowerCase();
+  const normalizedProvince = formData.province.trim().toLowerCase();
+  const shouldAutoWaitlistForAddress =
+    (normalizedMunicipality.length > 0 && normalizedMunicipality !== 'cainta') ||
+    (normalizedProvince.length > 0 && normalizedProvince !== 'rizal');
   const ageBreakdown = getAgeBreakdown(formData.dateOfBirth);
   const assignedProgram = getProgramPlacement(ageBreakdown, ageRules);
   const ageValidationMessage = getProgramAgeValidationMessage(ageBreakdown, ageRules);
@@ -271,14 +334,23 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
   const eligibilityNotification = ageValidationMessage ?
     `Electronic Notice to Parent/Guardian: ${ageValidationMessage} Submission cannot proceed until the learner falls within the DSWD age ranges.` :
     null;
+  const siblingBirthdateRange = allowedBirthdateRange;
+  const effectiveIdPicture = getEffectiveIdPicture(formData.idPicture);
 
   const showEnrollmentNotification = (message: string) => {
     setSubmitError(message);
-
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
   };
+
+  useEffect(() => {
+    if (!submitError) {
+      return;
+    }
+
+    enrollmentNoticeRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    });
+  }, [submitError]);
 
   useEffect(() => {
     const loadProgramAgeRules = async () => {
@@ -321,10 +393,27 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
         if (parsedDraft.formData) {
           const nextAgeBreakdown = getAgeBreakdown(parsedDraft.formData.dateOfBirth || '');
           const nextProgram = getProgramPlacement(nextAgeBreakdown, ageRules);
+          const nextSiblingCount = Number(parsedDraft.formData.enrolledSiblings) || 0;
+          const nextSiblingDetails = syncSiblingDetailsCount(
+            Array.isArray(parsedDraft.formData.enrolledSiblingDetails) ?
+              (parsedDraft.formData.enrolledSiblingDetails as EnrolledSiblingInfo[]).map((sibling) =>
+                buildSiblingDataFromBirthday(
+                  {
+                    ...createEmptySiblingInfo(),
+                    ...sibling
+                  },
+                  ageRules
+                )
+              ) :
+              [],
+            nextSiblingCount
+          );
 
           setFormData((prev) => ({
             ...prev,
             ...parsedDraft.formData,
+            enrolledSiblings: nextSiblingCount,
+            enrolledSiblingDetails: nextSiblingDetails,
             age: nextAgeBreakdown?.years ?? prev.age,
             program: nextProgram?.name || '',
             idPicture: enrollmentDraftFile,
@@ -584,6 +673,15 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
         ...prev,
         [field]: value
       };
+
+      if (field === 'enrolledSiblings') {
+        newData.enrolledSiblings = Math.max(0, Number(value) || 0);
+        newData.enrolledSiblingDetails = syncSiblingDetailsCount(
+          prev.enrolledSiblingDetails,
+          newData.enrolledSiblings
+        );
+      }
+
       // Auto-calculate age if DOB changes
       if (field === 'dateOfBirth') {
         const nextAgeBreakdown = getAgeBreakdown(String(value));
@@ -604,6 +702,37 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
       }
 
       return newData;
+    });
+  };
+
+  const updateSiblingFormData = (
+    siblingIndex: number,
+    field: keyof EnrolledSiblingInfo,
+    value: string
+  ) => {
+    setSubmitError(null);
+    setFormData((prev) => {
+      const nextSiblingDetails = prev.enrolledSiblingDetails.map((sibling, currentIndex) => {
+        if (currentIndex !== siblingIndex) {
+          return sibling;
+        }
+
+        const nextSibling = {
+          ...sibling,
+          [field]: value
+        } as EnrolledSiblingInfo;
+
+        if (field === 'dateOfBirth') {
+          return buildSiblingDataFromBirthday(nextSibling, ageRules);
+        }
+
+        return nextSibling;
+      });
+
+      return {
+        ...prev,
+        enrolledSiblingDetails: nextSiblingDetails
+      };
     });
   };
 
@@ -759,8 +888,11 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
   const isValidContactNumber = (value: string) => /^09\d{9}$/.test(value);
 
   const validateStep = (step: number) => {
+    const currentEffectiveIdPicture = getEffectiveIdPicture(formData.idPicture);
+    const currentEffectiveIncomeProof = getEffectiveIncomeProof(formData.incomeProof);
+
     if (step === 1) {
-      if (!formData.idPicture) return 'ID picture is required.';
+      if (!currentEffectiveIdPicture) return 'ID picture is required.';
       if (!formData.childFirstName.trim()) return 'First name is required.';
       if (!formData.childLastName.trim()) return 'Last name is required.';
       if (!formData.sex) return 'Sex is required.';
@@ -776,6 +908,10 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
         !formData.financialProgramOther.trim()
       ) {
         return 'Please specify the beneficiary program.';
+      }
+
+      if (formData.enrolledSiblingDetails.some((sibling) => !sibling.name.trim() || !sibling.sex || !sibling.dateOfBirth)) {
+        return 'Complete each enrolled sibling entry with name, birthday, and sex.';
       }
 
       if (ageValidationMessage) {
@@ -842,7 +978,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
         return 'Please specify the source of income.';
       }
       if (!formData.monthlyIncome) return 'Monthly family income is required.';
-      if (!formData.incomeProof) return 'Proof of income (ITR) is required.';
+      if (!currentEffectiveIncomeProof) return 'Proof of income (ITR) is required.';
     }
 
     return null;
@@ -904,7 +1040,16 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
     setIsSubmitting(true);
     setSubmitError(null);
 
-    const { error } = await addEnrollment(formData);
+    const currentEffectiveIdPicture = getEffectiveIdPicture(formData.idPicture);
+    const currentEffectiveIncomeProof = getEffectiveIncomeProof(formData.incomeProof);
+
+    const submissionData = {
+      ...formData,
+      idPicture: currentEffectiveIdPicture,
+      incomeProof: currentEffectiveIncomeProof
+    };
+
+    const { error } = await addEnrollment(submissionData);
 
     if (error) {
       showEnrollmentNotification(error);
@@ -986,6 +1131,15 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
       {/* Form Card */}
       <div className="max-w-3xl mx-auto">
         <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-50">
+          {submitError ?
+          <div
+            ref={enrollmentNoticeRef}
+            className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+          >
+              Enrollment Notice: {submitError}
+            </div> :
+          null}
+
           <AnimatePresence mode="wait">
             {/* Step 1: Learner Info */}
             {currentStep === 1 &&
@@ -1024,11 +1178,11 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                       alt="ID Preview"
                       className="w-full h-full object-cover" /> :
 
-                    formData.idPicture?.type === 'application/pdf' ?
+                    effectiveIdPicture?.type === 'application/pdf' ?
                     <div className="text-center p-2">
                           <span className="text-xl block mb-1 font-bold">PDF</span>
                           <span className="text-xs text-gray-400 font-medium break-words">
-                            {formData.idPicture.name}
+                            {effectiveIdPicture.name}
                           </span>
                         </div> :
 
@@ -1304,9 +1458,9 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                   </div> :
                 null}
 
-                {isNonCaintaMunicipality ?
+                {shouldAutoWaitlistForAddress ?
                 <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-medium text-orange-700">
-                    Applicants outside Cainta will be automatically placed on the waitlist after submission.
+                    Applicants outside Cainta, Rizal will be automatically placed on the waitlist after submission.
                   </div> :
                 null}
 
@@ -1378,6 +1532,98 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
 
                   </div>
                 </div>
+
+                {formData.enrolledSiblingDetails.length > 0 ?
+                  <div className="space-y-4 rounded-3xl border border-blue-100 bg-[#F8FBFF] p-5">
+                    <div>
+                      <h3 className="text-sm font-extrabold uppercase tracking-[0.18em] text-sky-700">
+                        Enrolled Sibling Details
+                      </h3>
+                      <p className="mt-1 text-sm text-gray-500">
+                        Add each enrolled sibling&apos;s name, birthday, and sex. Age and program are calculated automatically.
+                      </p>
+                    </div>
+
+                    {formData.enrolledSiblingDetails.map((sibling, siblingIndex) => (
+                      <div
+                        key={`enrolled-sibling-${siblingIndex}`}
+                        className="grid grid-cols-1 gap-4 rounded-2xl border border-blue-100 bg-white p-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1.15fr)_minmax(0,0.8fr)]"
+                      >
+                        <div className="lg:col-[1] lg:row-[1]">
+                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                            Sibling Name {requiredMark}
+                          </label>
+                          <input
+                            type="text"
+                            value={sibling.name}
+                            onChange={(event) => updateSiblingFormData(siblingIndex, 'name', event.target.value)}
+                            className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                            placeholder={`Sibling ${siblingIndex + 1} full name`}
+                          />
+                        </div>
+
+                        <div className="lg:col-[2] lg:row-[1]">
+                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                            Birthday {requiredMark}
+                          </label>
+                          <input
+                            type="date"
+                            min={siblingBirthdateRange.min}
+                            max={siblingBirthdateRange.max}
+                            value={sibling.dateOfBirth}
+                            onChange={(event) =>
+                              updateSiblingFormData(
+                                siblingIndex,
+                                'dateOfBirth',
+                                normalizeDateOfBirthInput(event.target.value)
+                              )
+                            }
+                            className="w-full min-w-0 px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                          />
+                        </div>
+
+                        <div className="lg:col-[3] lg:row-[1]">
+                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                            Age
+                          </label>
+                          <input
+                            type="text"
+                            value={sibling.dateOfBirth ? `${sibling.age} years old` : ''}
+                            readOnly
+                            className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 bg-gray-50 text-gray-500 focus:outline-none"
+                          />
+                        </div>
+
+                        <div className="lg:col-[1] lg:row-[2]">
+                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                            Sex {requiredMark}
+                          </label>
+                          <select
+                            value={sibling.sex}
+                            onChange={(event) => updateSiblingFormData(siblingIndex, 'sex', event.target.value)}
+                            className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                          >
+                            <option value="">Select Sex</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                          </select>
+                        </div>
+
+                        <div className="lg:col-[2/4] lg:row-[2]">
+                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                            Program Placement
+                          </label>
+                          <input
+                            type="text"
+                            value={sibling.program || (sibling.dateOfBirth ? 'No matching program' : '')}
+                            readOnly
+                            className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 bg-gray-50 text-gray-500 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div> :
+                  null}
               </motion.div>
             }
 
@@ -1689,27 +1935,6 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
 
                     null}
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
-                      Parent/Guardian Disability or Senior Citizen Status
-                    </label>
-                    <select
-                    value={formData.parentGuardianSpecialStatus}
-                    onChange={(e) =>
-                    updateFormData('parentGuardianSpecialStatus', e.target.value)
-                    }
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white">
-
-                      <option value="">Select Status</option>
-                      <option value="None">None</option>
-                      <option value="Person with Disability">Person with Disability</option>
-                      <option value="Senior Citizen">Senior Citizen</option>
-                      <option value="Both">Both</option>
-                    </select>
-                  </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
                       Monthly Family Income {requiredMark}
@@ -1730,17 +1955,27 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
-                      Household Income Notes
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:items-end">
+                  <div>
+                    <label className="mb-1 block min-h-[2.5rem] text-xs font-bold uppercase text-gray-500">
+                      Parent/Guardian Disability or Senior Citizen Status
                     </label>
-                    <p className="w-full rounded-xl border-2 border-gray-100 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-500">
-                      Use the fields above to identify whether the family income comes from salary/wages, business, or both.
-                    </p>
+                    <select
+                    value={formData.parentGuardianSpecialStatus}
+                    onChange={(e) =>
+                    updateFormData('parentGuardianSpecialStatus', e.target.value)
+                    }
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white">
+
+                      <option value="">Select Status</option>
+                      <option value="None">None</option>
+                      <option value="Person with Disability">Person with Disability</option>
+                      <option value="Senior Citizen">Senior Citizen</option>
+                      <option value="Both">Both</option>
+                    </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="mb-1 block min-h-[2.5rem] text-xs font-bold uppercase text-gray-500">
                       Proof of Income (ITR) {requiredMark}
                     </label>
                     <label className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus-within:border-[#BAE6FD] transition-colors bg-white cursor-pointer block text-sm text-gray-600 truncate">
@@ -1840,13 +2075,6 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
               </motion.div>
             }
           </AnimatePresence>
-
-          {submitError ?
-          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-              Enrollment Notice: {submitError}
-            </div> :
-          null}
-
           {/* Navigation Buttons */}
           <div className="flex justify-between mt-8 pt-6 border-t border-gray-100">
             <button

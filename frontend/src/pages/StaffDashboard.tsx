@@ -100,6 +100,82 @@ const buildSectionLabel = (sectionName: string, startTime: string, endTime: stri
   return `${sectionName} (${formattedTime})`;
 };
 
+const parseSectionTimeToInput = (value: string) => {
+  const match = value.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+
+  if (!match) {
+    return '';
+  }
+
+  const [, hourText, minuteText, meridiemText] = match;
+  const meridiem = meridiemText.toUpperCase();
+  let hours = Number(hourText);
+  const minutes = Number(minuteText);
+
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes) || hours < 1 || hours > 12) {
+    return '';
+  }
+
+  if (meridiem === 'AM') {
+    hours = hours === 12 ? 0 : hours;
+  } else {
+    hours = hours === 12 ? 12 : hours + 12;
+  }
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};
+
+const getSectionSortTime = (label: string) => {
+  const parsedSection = parseSectionLabel(label);
+
+  if (!parsedSection.startTime) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  const [hourText = '0', minuteText = '0'] = parsedSection.startTime.split(':');
+  return Number(hourText) * 60 + Number(minuteText);
+};
+
+const compareSectionLabels = (left: string, right: string) => {
+  const leftTime = getSectionSortTime(left);
+  const rightTime = getSectionSortTime(right);
+
+  if (leftTime !== rightTime) {
+    return leftTime - rightTime;
+  }
+
+  const leftSection = parseSectionLabel(left).sectionName;
+  const rightSection = parseSectionLabel(right).sectionName;
+  const sectionNameComparison = leftSection.localeCompare(rightSection);
+
+  if (sectionNameComparison !== 0) {
+    return sectionNameComparison;
+  }
+
+  return left.localeCompare(right);
+};
+
+const parseSectionLabel = (label: string) => {
+  const normalizedLabel = normalizeSectionName(label);
+  const match = normalizedLabel.match(/^(.*?)\s*\((\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)\)$/i);
+
+  if (!match) {
+    return {
+      sectionName: normalizedLabel,
+      startTime: '',
+      endTime: ''
+    };
+  }
+
+  const [, sectionName, startTimeText, endTimeText] = match;
+
+  return {
+    sectionName: normalizeSectionName(sectionName),
+    startTime: parseSectionTimeToInput(startTimeText),
+    endTime: parseSectionTimeToInput(endTimeText)
+  };
+};
+
 // Removed unused getStudentAddress and getStudentSex
 
 const getManagedProgram = (program: string): ManagedProgram | null => {
@@ -134,7 +210,8 @@ const readStoredSections = (): SectionCatalog => {
         nextCatalog[program] = programSections
           .filter((value): value is string => typeof value === 'string')
           .map(normalizeSectionName)
-          .filter(Boolean);
+          .filter(Boolean)
+          .sort(compareSectionLabels);
       }
     });
 
@@ -209,8 +286,63 @@ const fileFieldKeysToHide = new Set<string>([
   'idPicture',
   'id_picture',
   'learnerIdPicture',
+  'regionCode',
+  'provinceCode',
+  'municipalityCode',
   ...legacyRequirementFields.map((field) => field.key)
 ]);
+
+const submittedFieldLabels: Record<string, string> = {
+  childFirstName: 'Child First Name',
+  childMiddleName: 'Child Middle Name',
+  childLastName: 'Child Last Name',
+  childPhilSysNumber: 'Child PhilSys Number',
+  sex: 'Sex',
+  dateOfBirth: 'Birthday',
+  age: 'Age',
+  region: 'Region',
+  streetAddress: 'Street Address',
+  barangay: 'Barangay',
+  municipality: 'City / Municipality',
+  province: 'Province',
+  address: 'Full Address',
+  healthConcerns: 'Health Concerns / Allergies',
+  financialProgram: 'Beneficiary Program',
+  financialProgramOther: 'Beneficiary Program Details',
+  enrolledSiblings: 'Enrolled Siblings',
+  enrolledSiblingDetails: 'Enrolled Sibling Details',
+  motherName: "Mother's Name",
+  fatherName: "Father's Name",
+  guardianName: "Guardian's Name",
+  relationship: 'Relationship',
+  relationshipOther: 'Relationship Details',
+  guardianOccupation: "Guardian's Occupation",
+  motherOccupation: "Mother's Occupation",
+  fatherOccupation: "Father's Occupation",
+  motherContact: "Mother's Contact No.",
+  fatherContact: "Father's Contact No.",
+  guardianContact: "Guardian's Contact No.",
+  soloParentStatus: 'Solo Parent Status',
+  parentGuardianPhilSysNumber: 'Parent/Guardian PhilSys Number',
+  incomeSourceCategory: 'Source of Income',
+  incomeSourceCategoryOther: 'Source of Income Details',
+  parentGuardianSpecialStatus: 'Parent/Guardian Disability or Senior Citizen Status',
+  monthlyIncome: 'Monthly Family Income',
+  program: 'Program Placement',
+  schoolYear: 'School Year',
+  schedule: 'Schedule'
+};
+
+const formatSubmittedFieldLabel = (key: string) => {
+  if (submittedFieldLabels[key]) {
+    return submittedFieldLabels[key];
+  }
+
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+};
 
 const parseFileReference = (
   rawValue: unknown,
@@ -404,6 +536,30 @@ const getSourceOfIncome = (enrollment: EnrollmentData) => {
   return occupations.join(' / ');
 };
 
+const getSiblingDetails = (enrollment: EnrollmentData) => {
+  const rawValue = enrollment.formData?.enrolledSiblingDetails;
+
+  if (!Array.isArray(rawValue)) {
+    return [] as Array<Record<string, unknown>>;
+  }
+
+  return rawValue.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object');
+};
+
+const getSiblingNames = (enrollment: EnrollmentData) => {
+  return getSiblingDetails(enrollment)
+    .map((sibling) => (typeof sibling.name === 'string' ? sibling.name.trim() : ''))
+    .filter(Boolean)
+    .join(' / ');
+};
+
+const getSiblingPrograms = (enrollment: EnrollmentData) => {
+  return getSiblingDetails(enrollment)
+    .map((sibling) => (typeof sibling.program === 'string' ? sibling.program.trim() : ''))
+    .filter(Boolean)
+    .join(' / ');
+};
+
 const buildMasterlistExportRow = (enrollment: EnrollmentData) => [
   enrollment.childLastName,
   enrollment.childFirstName,
@@ -417,11 +573,15 @@ const buildMasterlistExportRow = (enrollment: EnrollmentData) => [
   getGuardianParentName(enrollment),
   getExportAddress(enrollment),
   getGuardianParentContact(enrollment),
-  getSourceOfIncome(enrollment)
+  getSourceOfIncome(enrollment),
+  getEnrollmentFormValue(enrollment, 'healthConcerns'),
+  String(enrollment.formData?.enrolledSiblings ?? getSiblingDetails(enrollment).length ?? 0),
+  getSiblingNames(enrollment),
+  getSiblingPrograms(enrollment)
 ];
 
 export function StaffDashboard() {
-  const { enrollments, updateStatus, updateSection, deleteEnrollment } = useEnrollment();
+  const { enrollments, isLoading, updateStatus, updateSection, deleteEnrollment } = useEnrollment();
   const [selectedStudent, setSelectedStudent] = useState<EnrollmentData | null>(
     null
   );
@@ -442,6 +602,10 @@ export function StaffDashboard() {
   const [newSectionStartTime, setNewSectionStartTime] = useState('');
   const [newSectionEndTime, setNewSectionEndTime] = useState('');
   const [isSectionInfoOpen, setIsSectionInfoOpen] = useState(false);
+  const [sectionEditName, setSectionEditName] = useState('');
+  const [sectionEditStartTime, setSectionEditStartTime] = useState('');
+  const [sectionEditEndTime, setSectionEditEndTime] = useState('');
+  const [isSavingSectionInfo, setIsSavingSectionInfo] = useState(false);
   const [isDeleteSectionConfirmOpen, setIsDeleteSectionConfirmOpen] = useState(false);
   const [isDeletingSection, setIsDeletingSection] = useState(false);
   const autoAssignInFlightRef = useRef<Set<string>>(new Set());
@@ -486,7 +650,7 @@ export function StaffDashboard() {
       }
     });
 
-    return Array.from(sectionSet).sort((left, right) => left.localeCompare(right));
+    return Array.from(sectionSet).sort(compareSectionLabels);
   }, [reviewableEnrollments]);
   const filteredMasterlist = useMemo(() => {
     return reviewableEnrollments.filter((enrollment) => {
@@ -586,9 +750,7 @@ export function StaffDashboard() {
       const section = normalizeSectionName(enrollment.section || '');
 
       if (program && section && !derivedCatalog[program].includes(section)) {
-        derivedCatalog[program] = [...derivedCatalog[program], section].sort((left, right) =>
-          left.localeCompare(right)
-        );
+        derivedCatalog[program] = [...derivedCatalog[program], section].sort(compareSectionLabels);
       }
     });
 
@@ -598,7 +760,7 @@ export function StaffDashboard() {
       managedPrograms.forEach((program) => {
         nextCatalog[program] = Array.from(
           new Set([...currentCatalog[program], ...derivedCatalog[program]])
-        ).sort((left, right) => left.localeCompare(right));
+        ).sort(compareSectionLabels);
       });
 
       const hasChanged = managedPrograms.some(
@@ -645,6 +807,20 @@ export function StaffDashboard() {
   }, [enrollments, selectedStudent]);
 
   useEffect(() => {
+    if (!selectedSection) {
+      setSectionEditName('');
+      setSectionEditStartTime('');
+      setSectionEditEndTime('');
+      return;
+    }
+
+    const parsedSection = parseSectionLabel(selectedSection);
+    setSectionEditName(parsedSection.sectionName);
+    setSectionEditStartTime(parsedSection.startTime);
+    setSectionEditEndTime(parsedSection.endTime);
+  }, [selectedSection]);
+
+  useEffect(() => {
     const assignStudentsAutomatically = async () => {
       for (const program of managedPrograms) {
         if (!autoAssignByProgram[program]) {
@@ -679,13 +855,7 @@ export function StaffDashboard() {
         for (const student of unassignedStudents) {
           const nextSection = [...sectionCounts.entries()]
             .filter(([, count]) => count < sectionCapacity)
-            .sort((left, right) => {
-              if (left[1] === right[1]) {
-                return left[0].localeCompare(right[0]);
-              }
-
-              return left[1] - right[1];
-            })[0]?.[0];
+            .sort((left, right) => compareSectionLabels(left[0], right[0]))[0]?.[0];
 
           if (!nextSection) {
             continue;
@@ -756,7 +926,13 @@ export function StaffDashboard() {
     }
 
     if (Array.isArray(value)) {
-      return value.length > 0 ? value.join(', ') : 'N/A';
+      if (value.length === 0) {
+        return 'N/A';
+      }
+
+      return value
+        .map((entry) => (typeof entry === 'object' ? JSON.stringify(entry) : String(entry)))
+        .join(', ');
     }
 
     if (typeof value === 'object') {
@@ -764,6 +940,47 @@ export function StaffDashboard() {
     }
 
     return String(value);
+  };
+
+  const renderSubmittedFieldValue = (key: string, value: unknown) => {
+    if (key === 'enrolledSiblingDetails' && Array.isArray(value)) {
+      const siblingDetails = value.filter(
+        (entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object'
+      );
+
+      if (siblingDetails.length === 0) {
+        return <p className="text-sm text-gray-800 break-words">N/A</p>;
+      }
+
+      return (
+        <div className="space-y-2">
+          {siblingDetails.map((sibling, index) => (
+            <div
+              key={`sibling-detail-${index}`}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2"
+            >
+              <p className="text-sm font-semibold text-gray-800">
+                {typeof sibling.name === 'string' && sibling.name.trim() ? sibling.name : `Sibling ${index + 1}`}
+              </p>
+              <p className="text-xs text-gray-600">
+                Birthday: {formatValue(sibling.dateOfBirth)}
+              </p>
+              <p className="text-xs text-gray-600">
+                Sex: {formatValue(sibling.sex)}
+              </p>
+              <p className="text-xs text-gray-600">
+                Age: {formatValue(sibling.age)}
+              </p>
+              <p className="text-xs text-gray-600">
+                Program: {formatValue(sibling.program)}
+              </p>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return <p className="text-sm text-gray-800 break-words">{formatValue(value)}</p>;
   };
 
   const openRequirementFile = async (
@@ -847,7 +1064,11 @@ export function StaffDashboard() {
       'Guardian / Parent Name',
       'Address',
       'Contact Number',
-      'Source of Income'
+      'Source of Income',
+      'Allergies / Health Conditions',
+      'Number of Siblings',
+      'Sibling Name',
+      'Sibling Program'
     ];
 
     const rows = filteredMasterlist.map(buildMasterlistExportRow);
@@ -893,7 +1114,11 @@ export function StaffDashboard() {
       'Guardian / Parent Name',
       'Address',
       'Contact Number',
-      'Source of Income'
+      'Source of Income',
+      'Allergies / Health Conditions',
+      'Number of Siblings',
+      'Sibling Name',
+      'Sibling Program'
     ];
 
     const rows = selectedSectionStudents.map(buildMasterlistExportRow);
@@ -939,7 +1164,7 @@ export function StaffDashboard() {
 
     const nextSections = Array.from(
       new Set([...sectionsByProgram[activeManagedProgram], nextSectionLabel])
-    ).sort((left, right) => left.localeCompare(right));
+    ).sort(compareSectionLabels);
 
     const nextCatalog = {
       ...sectionsByProgram,
@@ -968,6 +1193,15 @@ export function StaffDashboard() {
     nextSection: string | null
   ) => {
     const normalizedSection = nextSection ? normalizeSectionName(nextSection) : null;
+    const managedProgram = getManagedProgram(enrollment.program);
+    const currentSectionCount =
+      normalizedSection && managedProgram ?
+        sectionLoadByProgram[managedProgram][normalizedSection] || 0 :
+        0;
+    const isMovingToDifferentSection =
+      !!normalizedSection && enrollment.section !== normalizedSection;
+    const projectedSectionCount =
+      normalizedSection && isMovingToDifferentSection ? currentSectionCount + 1 : currentSectionCount;
     const { error } = await updateSection(enrollment.id, normalizedSection);
 
     if (error) {
@@ -985,6 +1219,12 @@ export function StaffDashboard() {
         }
       });
     }
+
+    if (normalizedSection && projectedSectionCount > sectionCapacity) {
+      window.alert(
+        `Warning: ${normalizedSection} is overloaded (${projectedSectionCount}/${sectionCapacity}).`
+      );
+    }
   };
 
   const canApproveEnrollment = (enrollment: EnrollmentData) => {
@@ -996,32 +1236,7 @@ export function StaffDashboard() {
 
     const sectionPool = sectionsByProgram[managedProgram];
 
-    if (sectionPool.length === 0) {
-      return false;
-    }
-
-    const sectionCounts = new Map<string, number>();
-    sectionPool.forEach((section) => sectionCounts.set(section, 0));
-
-    enrollments.forEach((student) => {
-      if (
-        student.id === enrollment.id ||
-        !programAliases[managedProgram].includes(student.program) ||
-        student.status !== 'Approved' ||
-        !student.section ||
-        !sectionCounts.has(student.section)
-      ) {
-        return;
-      }
-
-      sectionCounts.set(student.section, (sectionCounts.get(student.section) || 0) + 1);
-    });
-
-    if (enrollment.section && sectionCounts.has(enrollment.section)) {
-      return (sectionCounts.get(enrollment.section) || 0) < sectionCapacity;
-    }
-
-    return [...sectionCounts.values()].some((count) => count < sectionCapacity);
+    return sectionPool.length > 0;
   };
 
   const handleStudentStatusChange = async (
@@ -1089,6 +1304,69 @@ export function StaffDashboard() {
     }
   };
 
+  const handleSaveSectionInfo = async () => {
+    if (!activeManagedProgram || !selectedSection) {
+      return;
+    }
+
+    const normalizedSectionName = normalizeSectionName(sectionEditName);
+    const formattedSectionTimeRange = formatSectionTimeRange(
+      sectionEditStartTime,
+      sectionEditEndTime
+    );
+
+    if (!normalizedSectionName || !formattedSectionTimeRange) {
+      return;
+    }
+
+    const nextSectionLabel = buildSectionLabel(
+      normalizedSectionName,
+      sectionEditStartTime,
+      sectionEditEndTime
+    );
+
+    if (nextSectionLabel === selectedSection) {
+      setIsSectionInfoOpen(false);
+      return;
+    }
+
+    const existingSections = sectionsByProgram[activeManagedProgram];
+
+    if (existingSections.includes(nextSectionLabel)) {
+      window.alert('A section with that name and time already exists.');
+      return;
+    }
+
+    setIsSavingSectionInfo(true);
+
+    try {
+      const results = await Promise.all(
+        selectedSectionStudents.map((enrollment) => updateSection(enrollment.id, nextSectionLabel))
+      );
+
+      const firstError = results.find((result) => result.error);
+
+      if (firstError?.error) {
+        window.alert(firstError.error);
+        return;
+      }
+
+      const nextCatalog = {
+        ...sectionsByProgram,
+        [activeManagedProgram]: existingSections
+          .map((section) => section === selectedSection ? nextSectionLabel : section)
+          .sort(compareSectionLabels)
+      };
+
+      setSectionsByProgram(nextCatalog);
+      saveStoredSections(nextCatalog);
+      setSelectedSection(nextSectionLabel);
+      setIsSectionInfoOpen(false);
+    } finally {
+      setIsSavingSectionInfo(false);
+    }
+  };
+
   return (
     <div className="p-8 pb-24">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -1133,7 +1411,7 @@ export function StaffDashboard() {
               Total Enrolled
             </p>
             <p className="mt-3 text-4xl font-extrabold text-gray-800">
-              {aggregateSummary.totalEnrolled}
+              {isLoading ? '...' : aggregateSummary.totalEnrolled}
             </p>
           </div>
           <div className="rounded-3xl border border-yellow-100 bg-[#FFFBEA] p-6 shadow-sm">
@@ -1141,7 +1419,7 @@ export function StaffDashboard() {
               Pending
             </p>
             <p className="mt-3 text-4xl font-extrabold text-yellow-800">
-              {aggregateSummary.pending}
+              {isLoading ? '...' : aggregateSummary.pending}
             </p>
           </div>
           <div className="rounded-3xl border border-green-100 bg-[#F0FDF4] p-6 shadow-sm">
@@ -1149,7 +1427,7 @@ export function StaffDashboard() {
               Approved
             </p>
             <p className="mt-3 text-4xl font-extrabold text-green-800">
-              {aggregateSummary.approved}
+              {isLoading ? '...' : aggregateSummary.approved}
             </p>
           </div>
           <div className="rounded-3xl border border-orange-100 bg-[#FFF7ED] p-6 shadow-sm">
@@ -1157,7 +1435,7 @@ export function StaffDashboard() {
               Waitlisted
             </p>
             <p className="mt-3 text-4xl font-extrabold text-orange-800">
-              {aggregateSummary.waitlisted}
+              {isLoading ? '...' : aggregateSummary.waitlisted}
             </p>
           </div>
           <div className="rounded-3xl border border-red-100 bg-[#FEF2F2] p-6 shadow-sm">
@@ -1165,7 +1443,7 @@ export function StaffDashboard() {
               Rejected
             </p>
             <p className="mt-3 text-4xl font-extrabold text-red-800">
-              {aggregateSummary.rejected}
+              {isLoading ? '...' : aggregateSummary.rejected}
             </p>
           </div>
         </div>
@@ -1498,7 +1776,9 @@ export function StaffDashboard() {
                   colSpan={7}
                   className="px-6 py-12 text-center text-gray-500">
 
-                    {reviewableEnrollments.length === 0 ?
+                    {isLoading ?
+                      'Loading enrollments...' :
+                    reviewableEnrollments.length === 0 ?
                       'No applications are under review yet.' :
                       'No student records match the current filters.'}
                   </td>
@@ -1563,11 +1843,16 @@ export function StaffDashboard() {
 
                             return mergedOptions.map((section) => {
                               const sectionCount = managedProgram ? sectionLoadByProgram[managedProgram][section] || 0 : 0;
-                              const isFull = sectionCount >= sectionCapacity && student.section !== section;
+                              const sectionStatusLabel =
+                                sectionCount > sectionCapacity ?
+                                  ` (Overloaded: ${sectionCount}/${sectionCapacity})` :
+                                sectionCount === sectionCapacity ?
+                                  ` (Full: ${sectionCount}/${sectionCapacity})` :
+                                  '';
 
                               return (
-                              <option key={section} value={section} disabled={isFull}>
-                                {section}
+                              <option key={section} value={section}>
+                                {section}{sectionStatusLabel}
                               </option>
                               );
                             });
@@ -1663,15 +1948,100 @@ export function StaffDashboard() {
                   {selectedSectionStudents.length}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsDeleteSectionConfirmOpen(true)}
-                disabled={isDeletingSection}
-                className="inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-red-300"
-              >
-                <Trash2Icon className="h-4 w-4" />
-                {isDeletingSection ? 'Deleting...' : 'Delete Section'}
-              </button>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => void handleSaveSectionInfo()}
+                  disabled={
+                    isSavingSectionInfo ||
+                    !normalizeSectionName(sectionEditName) ||
+                    !formatSectionTimeRange(sectionEditStartTime, sectionEditEndTime)
+                  }
+                  className="inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-sky-300"
+                >
+                  {isSavingSectionInfo ? 'Saving...' : 'Save Changes'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteSectionConfirmOpen(true)}
+                  disabled={isDeletingSection || isSavingSectionInfo}
+                  className="inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-red-300"
+                >
+                  <Trash2Icon className="h-4 w-4" />
+                  {isDeletingSection ? 'Deleting...' : 'Delete Section'}
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 gap-4 rounded-2xl border border-gray-100 p-5 md:grid-cols-3">
+              <label className="flex flex-col gap-2">
+                <span className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                  Section Name
+                </span>
+                <input
+                  type="text"
+                  value={sectionEditName}
+                  onChange={(event) => setSectionEditName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      void handleSaveSectionInfo();
+                    }
+                  }}
+                  disabled={isSavingSectionInfo || isDeletingSection}
+                  className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-sky-300"
+                />
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                  Start Time
+                </span>
+                <input
+                  type="time"
+                  value={sectionEditStartTime}
+                  onChange={(event) => setSectionEditStartTime(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      void handleSaveSectionInfo();
+                    }
+                  }}
+                  disabled={isSavingSectionInfo || isDeletingSection}
+                  className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-sky-300"
+                />
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                  End Time
+                </span>
+                <input
+                  type="time"
+                  value={sectionEditEndTime}
+                  onChange={(event) => setSectionEditEndTime(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      void handleSaveSectionInfo();
+                    }
+                  }}
+                  disabled={isSavingSectionInfo || isDeletingSection}
+                  className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-sky-300"
+                />
+              </label>
+            </div>
+
+            <div className="mt-4 rounded-2xl bg-sky-50 p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-sky-700">
+                Updated Label Preview
+              </p>
+              <p className="mt-2 text-lg font-bold text-gray-800">
+                {buildSectionLabel(sectionEditName || selectedSection, sectionEditStartTime, sectionEditEndTime)}
+              </p>
+              {sectionEditStartTime && sectionEditEndTime && !isValidSectionTimeRange(sectionEditStartTime, sectionEditEndTime) ?
+                <p className="mt-2 text-sm font-semibold text-red-700">
+                  End time must be later than the start time.
+                </p> :
+                null}
             </div>
           </div>
         </div> :
@@ -1810,11 +2180,9 @@ export function StaffDashboard() {
                     className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
 
                         <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">
-                          {key}
+                          {formatSubmittedFieldLabel(key)}
                         </p>
-                        <p className="text-sm text-gray-800 break-words">
-                          {formatValue(value)}
-                        </p>
+                        {renderSubmittedFieldValue(key, value)}
                       </div>
                   )}
                   </div>

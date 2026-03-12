@@ -8,17 +8,10 @@ import {
   MfaSession,
   saveMfaSession
 } from './lib/adminMfa';
-import {
-  loadStaffAccessSession,
-  recordStaffAccessVerification,
-  saveStaffAccessSession,
-  StaffAccessSession
-} from './lib/staffAccess';
 import { AdminMfaGatePage } from './pages/AdminMfaGatePage';
 import { LoginPage } from './pages/LoginPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { SignupPage } from './pages/SignupPage';
-import { StaffAccessGatePage } from './pages/StaffAccessGatePage';
 
 const HomePage = lazy(() => import('./pages/HomePage').then((module) => ({ default: module.HomePage })));
 const EnrollmentForm = lazy(() => import('./pages/EnrollmentForm').then((module) => ({ default: module.EnrollmentForm })));
@@ -50,8 +43,6 @@ function AppContent() {
   const [activePage, setActivePage] = useState('home');
   const [isLoginView, setIsLoginView] = useState(true);
   const [mfaSession, setMfaSession] = useState<MfaSession | null>(null);
-  const [staffAccessSession, setStaffAccessSession] = useState<StaffAccessSession | null>(null);
-  const [staffAccessWarning, setStaffAccessWarning] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isManagementRole = user?.role === 'admin' || user?.role === 'staff';
   const requiresMfa = user?.role === 'guardian' || user?.role === 'staff';
@@ -83,16 +74,6 @@ function AppContent() {
   }, [requiresMfa, user]);
 
   useEffect(() => {
-    if (user?.role !== 'staff') {
-      setStaffAccessSession(null);
-      setStaffAccessWarning(null);
-      return;
-    }
-
-    setStaffAccessSession(loadStaffAccessSession(user.id));
-  }, [user?.id, user?.role]);
-
-  useEffect(() => {
     if (user?.role === 'admin') {
       setActivePage('adminDashboard');
     } else if (isManagementRole) {
@@ -120,8 +101,6 @@ function AppContent() {
 
       hasLoggedOut = true;
       setMfaSession(null);
-      setStaffAccessSession(null);
-      setStaffAccessWarning(null);
       window.alert('Your session expired due to inactivity. Please sign in again.');
       void logout();
     };
@@ -152,7 +131,7 @@ function AppContent() {
       });
       document.removeEventListener('visibilitychange', resetTimeout);
     };
-  }, [inactivityTimeoutDuration, logout, mfaSession, staffAccessSession, user]);
+  }, [inactivityTimeoutDuration, logout, mfaSession, user]);
 
   if (isLoading && user) {
     return (
@@ -172,38 +151,6 @@ function AppContent() {
       <SignupPage onSwitchToLogin={() => setIsLoginView(true)} />;
   }
 
-  const handleVerifyStaffAccess = async (session: StaffAccessSession) => {
-    saveStaffAccessSession(user.id, session);
-    setStaffAccessSession(session);
-    setActivePage('staffDashboard');
-
-    const { error } = await recordStaffAccessVerification({
-      userId: user.id,
-      accountName: user.name,
-      accountEmail: user.email,
-      openerName: session.openerName,
-      teacherId: session.teacherId
-    });
-
-    if (error) {
-      setStaffAccessWarning(
-        `Staff access was verified, but the activity log could not be saved because the live Supabase activity_logs insert policy is missing. Run the latest schema SQL, then new logins will be recorded automatically. ${error}`
-      );
-
-      return {
-        error: null,
-        warning: null
-      };
-    }
-
-    setStaffAccessWarning(null);
-
-    return {
-      error: null,
-      warning: null
-    };
-  };
-
   if (requiresMfa && !mfaSession) {
     return (
       <AdminMfaGatePage
@@ -216,9 +163,6 @@ function AppContent() {
     );
   }
 
-  if (user.role === 'staff' && !staffAccessSession) {
-    return <StaffAccessGatePage onVerify={handleVerifyStaffAccess} />;
-  }
 
   const renderPage = () => {
     switch (activePage) {
@@ -272,11 +216,6 @@ function AppContent() {
         onClose={() => setIsSidebarOpen(false)}
       />
       <main className="min-h-screen pt-16 transition-all duration-300 md:ml-[260px] md:pt-0">
-        {staffAccessWarning ?
-          <div className="border-b border-amber-200 bg-amber-50 px-8 py-3 text-sm font-medium text-amber-800">
-            {staffAccessWarning}
-          </div> :
-          null}
         <Suspense fallback={<PageLoader />}>
           {renderPage()}
         </Suspense>

@@ -25,6 +25,7 @@ export interface EnrollmentData {
 }
 interface EnrollmentContextType {
   enrollments: EnrollmentData[];
+  isLoading: boolean;
   addEnrollment: (data: any) => Promise<{ error: string | null }>;
   deleteEnrollment: (id: string) => Promise<{ error: string | null }>;
   updateStatus: (
@@ -52,6 +53,10 @@ interface EnrollmentRow {
   role: string;
   form_data: Record<string, unknown>;
   requirements: UploadedRequirement[] | null;
+}
+
+interface ProfileRoleRow {
+  role: string;
 }
 
 const ENROLLMENT_SELECT_COLUMNS = 'id, child_first_name, child_last_name, program, status, submitted_at, role, form_data, requirements';
@@ -85,13 +90,18 @@ const composeAddress = (formData: Record<string, unknown>) => {
 
 const shouldStartAsWaitlisted = (formData: Record<string, unknown>) => {
   const municipality = typeof formData.municipality === 'string' ? formData.municipality.trim().toLowerCase() : '';
+  const province = typeof formData.province === 'string' ? formData.province.trim().toLowerCase() : '';
 
   if (municipality) {
-    return municipality !== 'cainta';
+    return municipality !== 'cainta' || (!!province && province !== 'rizal');
+  }
+
+  if (province) {
+    return province !== 'rizal';
   }
 
   const address = typeof formData.address === 'string' ? formData.address.trim().toLowerCase() : '';
-  return address.length > 0 && !address.includes('cainta');
+  return address.length > 0 && (!address.includes('cainta') || !address.includes('rizal'));
 };
 
 const normalizeComparableText = (value: unknown) =>
@@ -100,21 +110,44 @@ const normalizeComparableText = (value: unknown) =>
 export function EnrollmentProvider({ children }: {children: ReactNode;}) {
   const { user } = useAuth();
   const [enrollments, setEnrollments] = useState<EnrollmentData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchEnrollments = useCallback(async () => {
     const finishMeasurement = createPerformanceTimer('fetch_enrollments', 'data-read');
+    setIsLoading(true);
 
     if (!user) {
       setEnrollments([]);
+      setIsLoading(false);
       finishMeasurement('success', 'No authenticated user.');
       return;
     }
 
-    const hasManagementAccess = user.role === 'admin' || user.role === 'staff';
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const resolvedRole = (profileData as ProfileRoleRow | null)?.role || user.role;
+    const hasManagementAccess = resolvedRole === 'admin' || resolvedRole === 'staff';
+
+    if (hasManagementAccess) {
+      await supabase.from('profiles').upsert({
+        id: user.id,
+        full_name: user.name,
+        role: resolvedRole,
+        phone: user.phone || null
+      });
+    }
+
     const { data: secureData, error: secureError } = await supabase.rpc('get_enrollments_secure');
 
-    if (!secureError && Array.isArray(secureData)) {
+    const shouldUseSecureData = !secureError && Array.isArray(secureData) && (!hasManagementAccess || secureData.length > 0);
+
+    if (shouldUseSecureData) {
       setEnrollments((secureData as EnrollmentRow[]).map(mapRowToEnrollment));
+      setIsLoading(false);
       finishMeasurement('success', `Loaded ${(secureData as EnrollmentRow[]).length} secure enrollment records.`);
       return;
     }
@@ -132,14 +165,16 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
 
     if (error || !data) {
       setEnrollments([]);
+      setIsLoading(false);
       finishMeasurement('error', secureError?.message || error?.message || 'Failed to fetch enrollments.');
       return;
     }
 
     setEnrollments((data as EnrollmentRow[]).map(mapRowToEnrollment));
+    setIsLoading(false);
     finishMeasurement(
       'success',
-      secureError ?
+      secureError || (hasManagementAccess && Array.isArray(secureData) && secureData.length === 0) ?
         `Loaded ${(data as EnrollmentRow[]).length} enrollment records using fallback table access.` :
         `Loaded ${(data as EnrollmentRow[]).length} enrollment records.`
     );
@@ -184,7 +219,7 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
 
     const { data: possibleDuplicates, error: duplicateCheckError } = await supabase
       .from('enrollments')
-      .select('id, child_first_name, child_last_name, form_data, parent_id')
+      .select('id, child_first_name, child_last_name, status, form_data, parent_id')
       .eq('parent_id', user.id)
       .ilike('child_first_name', formData.childFirstName.trim())
       .ilike('child_last_name', formData.childLastName.trim());
@@ -196,25 +231,32 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
       };
     }
 
-    const hasDuplicateEnrollment = (possibleDuplicates || []).some((row) => {
+    const duplicateEnrollment = (possibleDuplicates || []).find((row) => {
       const duplicateRow = row as {
         child_first_name?: unknown;
         child_last_name?: unknown;
+        status?: unknown;
         form_data?: Record<string, unknown>;
       };
 
-      return (
+      const isSameLearner = (
         normalizeComparableText(duplicateRow.child_first_name) === duplicateCheckFirstName &&
         normalizeComparableText(duplicateRow.child_last_name) === duplicateCheckLastName &&
         normalizeComparableText(duplicateRow.form_data?.childMiddleName) === duplicateCheckMiddleName &&
         normalizeComparableText(duplicateRow.form_data?.dateOfBirth) === duplicateCheckDateOfBirth
       );
+
+      if (!isSameLearner) {
+        return false;
+      }
+
+      return duplicateRow.status !== 'Rejected';
     });
 
-    if (hasDuplicateEnrollment) {
-      finishMeasurement('error', 'Duplicate learner entry detected.');
+    if (duplicateEnrollment) {
+      finishMeasurement('error', 'Duplicate learner enrollment is still active.');
       return {
-        error: 'Duplicate learner entry detected for this child name and date of birth. Please review the existing enrollment before submitting another one.'
+        error: 'The enrollment for this learner is still being processed. Please review the existing record before submitting another one. You can only resubmit after the previous enrollment has been rejected.'
       };
     }
 
@@ -478,6 +520,7 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
     <EnrollmentContext.Provider
       value={{
         enrollments,
+        isLoading,
         addEnrollment,
         deleteEnrollment,
         updateStatus,

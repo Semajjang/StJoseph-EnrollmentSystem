@@ -65,6 +65,23 @@ interface ProfileRow {
   phone: string | null;
 }
 
+const buildFallbackName = (authUser: {
+  email?: string | null;
+  user_metadata?: { full_name?: string | null };
+}) => {
+  const fallbackNameFromMetadata = authUser.user_metadata?.full_name?.trim();
+
+  if (fallbackNameFromMetadata) {
+    return fallbackNameFromMetadata;
+  }
+
+  if (authUser.email) {
+    return authUser.email.split('@')[0];
+  }
+
+  return 'User';
+};
+
 const isRecoveryUrl = () => {
   if (typeof window === 'undefined') {
     return false;
@@ -134,18 +151,71 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
   fallbackRole: UserRole = 'guardian'):
   User =>
   {
-    const fallbackNameFromMetadata = authUser.user_metadata?.full_name;
-    const fallbackNameFromEmail = authUser.email ?
-    authUser.email.split('@')[0] :
-    'User';
-
     return {
       id: authUser.id,
       email: authUser.email || '',
-      name: profile?.full_name || fallbackNameFromMetadata || fallbackNameFromEmail,
+      name: profile?.full_name || buildFallbackName(authUser),
       role: normalizeRole(profile?.role || fallbackRole),
       phone: profile?.phone || undefined
     };
+  };
+
+  const ensureProfileRecord = async (
+    authUser: {
+      id: string;
+      email?: string | null;
+      user_metadata?: { full_name?: string; role?: UserRole };
+    }
+  ): Promise<ProfileRow | null> => {
+    const fallbackRole = normalizeRole(authUser.user_metadata?.role);
+    const fallbackName = buildFallbackName(authUser);
+
+    const { data: existingProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, full_name, role, phone')
+      .eq('id', authUser.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error('Profile fetch failed:', profileError);
+      return null;
+    }
+
+    const normalizedExistingRole = normalizeRole(existingProfile?.role);
+    const needsInsert = !existingProfile;
+    const shouldPromoteRole =
+      (fallbackRole === 'staff' || fallbackRole === 'admin') &&
+      normalizedExistingRole !== fallbackRole;
+    const needsNameRepair = !existingProfile?.full_name?.trim();
+
+    if (!needsInsert && !shouldPromoteRole && !needsNameRepair) {
+      return existingProfile as ProfileRow;
+    }
+
+    const { error: upsertError } = await supabase.from('profiles').upsert({
+      id: authUser.id,
+      full_name: existingProfile?.full_name?.trim() || fallbackName,
+      role: shouldPromoteRole ? fallbackRole : normalizedExistingRole || fallbackRole,
+      phone: existingProfile?.phone || null
+    });
+
+    if (upsertError) {
+      console.error('Profile upsert failed:', upsertError);
+      return (existingProfile as ProfileRow | null) || null;
+    }
+
+    const { data: repairedProfile, error: repairedProfileError } = await supabase
+      .from('profiles')
+      .select('id, full_name, role, phone')
+      .eq('id', authUser.id)
+      .maybeSingle();
+
+    if (repairedProfileError) {
+      console.error('Profile reload failed:', repairedProfileError);
+      return (existingProfile as ProfileRow | null) || null;
+    }
+
+    return (repairedProfile as ProfileRow | null) || null;
   };
 
   const loadProfileAndUpdateUser = async (
@@ -156,12 +226,7 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
   }) =>
   {
     try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id, full_name, role, phone')
-        .eq('id', authUser.id)
-        .maybeSingle();
-
+      const profile = await ensureProfileRecord(authUser);
       const fallbackRole = normalizeRole(authUser.user_metadata?.role);
       setUser(buildUserFromProfile(authUser, profile as ProfileRow | null, fallbackRole));
     } catch (error) {

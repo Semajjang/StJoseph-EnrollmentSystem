@@ -78,6 +78,30 @@ alter table public.site_content enable row level security;
 alter table public.contact_messages enable row level security;
 alter table public.activity_logs enable row level security;
 
+create or replace function public.current_app_role()
+returns text
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  with role_sources as (
+    select
+      nullif(auth.jwt() -> 'user_metadata' ->> 'role', '') as jwt_role,
+      (select nullif(p.role, '') from public.profiles p where p.id = auth.uid() limit 1) as profile_role
+  )
+  select case
+    when jwt_role in ('staff', 'admin') then jwt_role
+    when profile_role in ('staff', 'admin') then profile_role
+    when profile_role is not null then profile_role
+    when jwt_role is not null then jwt_role
+    else 'guardian'
+  end
+  from role_sources;
+$$;
+
+grant execute on function public.current_app_role() to authenticated;
+
 -- Profiles policies
 drop policy if exists "Users can read own profile" on public.profiles;
 create policy "Users can read own profile"
@@ -108,7 +132,7 @@ create policy "Staff or Admin can read all profiles"
   on public.profiles
   for select
   to authenticated
-  using ((auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin'));
+  using (public.current_app_role() in ('staff', 'admin'));
 
 -- Enrollments policies
 drop policy if exists "Parents can read own enrollments" on public.enrollments;
@@ -146,22 +170,22 @@ create policy "Staff or Admin can read all enrollments"
   on public.enrollments
   for select
   to authenticated
-  using ((auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin'));
+  using (public.current_app_role() in ('staff', 'admin'));
 
 drop policy if exists "Staff or Admin can update enrollments" on public.enrollments;
 create policy "Staff or Admin can update enrollments"
   on public.enrollments
   for update
   to authenticated
-  using ((auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin'))
-  with check ((auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin'));
+  using (public.current_app_role() in ('staff', 'admin'))
+  with check (public.current_app_role() in ('staff', 'admin'));
 
 drop policy if exists "Staff or Admin can delete enrollments" on public.enrollments;
 create policy "Staff or Admin can delete enrollments"
   on public.enrollments
   for delete
   to authenticated
-  using ((auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin'));
+  using (public.current_app_role() in ('staff', 'admin'));
 
 -- Site content policies
 drop policy if exists "Anyone can read site content" on public.site_content;
@@ -176,15 +200,15 @@ create policy "Staff or Admin can insert site content"
   on public.site_content
   for insert
   to authenticated
-  with check ((auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin'));
+  with check (public.current_app_role() in ('staff', 'admin'));
 
 drop policy if exists "Staff or Admin can update site content" on public.site_content;
 create policy "Staff or Admin can update site content"
   on public.site_content
   for update
   to authenticated
-  using ((auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin'))
-  with check ((auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin'));
+  using (public.current_app_role() in ('staff', 'admin'))
+  with check (public.current_app_role() in ('staff', 'admin'));
 
 drop policy if exists "Users can create own contact messages" on public.contact_messages;
 create policy "Users can create own contact messages"
@@ -213,22 +237,22 @@ create policy "Staff or Admin can read all contact messages"
   on public.contact_messages
   for select
   to authenticated
-  using ((auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin'));
+  using (public.current_app_role() in ('staff', 'admin'));
 
 drop policy if exists "Staff or Admin can update contact messages" on public.contact_messages;
 create policy "Staff or Admin can update contact messages"
   on public.contact_messages
   for update
   to authenticated
-  using ((auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin'))
-  with check ((auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin'));
+  using (public.current_app_role() in ('staff', 'admin'))
+  with check (public.current_app_role() in ('staff', 'admin'));
 
 drop policy if exists "Staff or Admin can read activity logs" on public.activity_logs;
 create policy "Staff or Admin can read activity logs"
   on public.activity_logs
   for select
   to authenticated
-  using ((auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin'));
+  using (public.current_app_role() in ('staff', 'admin'));
 
 drop policy if exists "Staff or Admin can insert activity logs" on public.activity_logs;
 create policy "Staff or Admin can insert activity logs"
@@ -236,9 +260,9 @@ create policy "Staff or Admin can insert activity logs"
   for insert
   to authenticated
   with check (
-    (auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin')
+    public.current_app_role() in ('staff', 'admin')
     and (actor_id is null or actor_id = auth.uid())
-    and coalesce(actor_role, auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin')
+    and coalesce(actor_role, public.current_app_role()) in ('staff', 'admin')
   );
 
 create or replace function public.app_encryption_key()
@@ -250,10 +274,6 @@ as $$
 declare
   encryption_key text := nullif(current_setting('app.settings.encryption_key', true), '');
 begin
-  if encryption_key is null then
-    raise exception 'app.settings.encryption_key is not configured';
-  end if;
-
   return encryption_key;
 end;
 $$;
@@ -276,6 +296,10 @@ declare
   ];
   current_value jsonb;
 begin
+  if encryption_key is null then
+    return result;
+  end if;
+
   foreach sensitive_key in array sensitive_keys loop
     if result ? sensitive_key then
       current_value := result -> sensitive_key;
@@ -322,6 +346,10 @@ declare
   current_value jsonb;
   decrypted_value text;
 begin
+  if encryption_key is null then
+    return result;
+  end if;
+
   foreach sensitive_key in array sensitive_keys loop
     if result ? sensitive_key then
       current_value := result -> sensitive_key;
@@ -380,7 +408,7 @@ set search_path = public
 as $$
 declare
   current_user_id uuid := auth.uid();
-  current_role text := coalesce(auth.jwt() -> 'user_metadata' ->> 'role', 'guardian');
+  current_role text := public.current_app_role();
 begin
   if current_user_id is null then
     raise exception 'Authentication required';
@@ -414,7 +442,7 @@ set search_path = public
 as $$
 declare
   current_user_id uuid := auth.uid();
-  current_role text := coalesce(auth.jwt() -> 'user_metadata' ->> 'role', 'guardian');
+  current_role text := public.current_app_role();
   actor_name text := coalesce(
     (select p.full_name from public.profiles p where p.id = current_user_id limit 1),
     auth.jwt() -> 'user_metadata' ->> 'full_name',
@@ -660,11 +688,7 @@ as $$
 declare
   actor_uid uuid := auth.uid();
   actor_profile_id uuid := (select p.id from public.profiles p where p.id = auth.uid() limit 1);
-  actor_role text := coalesce(
-    auth.jwt() -> 'user_metadata' ->> 'role',
-    (select p.role from public.profiles p where p.id = actor_uid limit 1),
-    'unknown'
-  );
+  actor_role text := coalesce(public.current_app_role(), 'unknown');
   actor_name text := coalesce(
     (select p.full_name from public.profiles p where p.id = actor_uid limit 1),
     auth.jwt() -> 'user_metadata' ->> 'full_name',
@@ -1025,7 +1049,35 @@ create policy "Staff or Admin can read requirement files"
 on storage.objects for select to authenticated
 using (
   bucket_id = 'requirements'
-  and (auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin')
+  and public.current_app_role() in ('staff', 'admin')
+);
+
+drop policy if exists "Admin can upload requirement files" on storage.objects;
+create policy "Admin can upload requirement files"
+on storage.objects for insert to authenticated
+with check (
+  bucket_id = 'requirements'
+  and public.current_app_role() = 'admin'
+);
+
+drop policy if exists "Admin can update requirement files" on storage.objects;
+create policy "Admin can update requirement files"
+on storage.objects for update to authenticated
+using (
+  bucket_id = 'requirements'
+  and public.current_app_role() = 'admin'
+)
+with check (
+  bucket_id = 'requirements'
+  and public.current_app_role() = 'admin'
+);
+
+drop policy if exists "Admin can delete requirement files" on storage.objects;
+create policy "Admin can delete requirement files"
+on storage.objects for delete to authenticated
+using (
+  bucket_id = 'requirements'
+  and public.current_app_role() = 'admin'
 );
 
 -- Storage: enrollment files (private bucket + signed URL access)
@@ -1054,6 +1106,34 @@ create policy "Staff or Admin can read enrollment files"
 on storage.objects for select to authenticated
 using (
   bucket_id = 'enrollment-files'
-  and (auth.jwt() -> 'user_metadata' ->> 'role') in ('staff', 'admin')
+  and public.current_app_role() in ('staff', 'admin')
+);
+
+drop policy if exists "Admin can upload enrollment files" on storage.objects;
+create policy "Admin can upload enrollment files"
+on storage.objects for insert to authenticated
+with check (
+  bucket_id = 'enrollment-files'
+  and public.current_app_role() = 'admin'
+);
+
+drop policy if exists "Admin can update enrollment files" on storage.objects;
+create policy "Admin can update enrollment files"
+on storage.objects for update to authenticated
+using (
+  bucket_id = 'enrollment-files'
+  and public.current_app_role() = 'admin'
+)
+with check (
+  bucket_id = 'enrollment-files'
+  and public.current_app_role() = 'admin'
+);
+
+drop policy if exists "Admin can delete enrollment files" on storage.objects;
+create policy "Admin can delete enrollment files"
+on storage.objects for delete to authenticated
+using (
+  bucket_id = 'enrollment-files'
+  and public.current_app_role() = 'admin'
 );
 

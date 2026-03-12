@@ -172,10 +172,10 @@ export function Sidebar({ activePage, onNavigate, isOpen, onClose }: SidebarProp
               <li key={item.id}>
                 <button
                   onClick={() => handleNavigate(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${isActive ? 'bg-[#BAE6FD] text-gray-800 shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>
+                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${isActive ? 'bg-[#BAE6FD] text-gray-800 shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>
 
                   <Icon className="w-5 h-5" />
-                  <span>{item.label}</span>
+                  <span className="min-w-0 flex-1 truncate whitespace-nowrap text-left">{item.label}</span>
                 </button>
               </li>);
 

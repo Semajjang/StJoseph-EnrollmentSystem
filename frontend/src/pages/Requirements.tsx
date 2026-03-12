@@ -81,6 +81,18 @@ const mapUploadErrorMessage = (message: string) => {
   return message;
 };
 
+const deleteRequirementFile = async (storagePath: string) => {
+  const { error } = await supabase.storage
+    .from('requirements')
+    .remove([storagePath]);
+
+  if (error) {
+    return mapUploadErrorMessage(error.message);
+  }
+
+  return null;
+};
+
 interface RequirementsProps {
   onContinueToYourChild?: () => void;
 }
@@ -245,6 +257,14 @@ export function Requirements({ onContinueToYourChild }: RequirementsProps) {
       return;
     }
 
+    if (selectedRequirement.storagePath) {
+      const deleteError = await deleteRequirementFile(selectedRequirement.storagePath);
+
+      if (deleteError) {
+        setUploadError(deleteError);
+      }
+    }
+
     setRequirements((prev) =>
       prev.map((req) =>
         req.id === id ?
@@ -260,6 +280,50 @@ export function Requirements({ onContinueToYourChild }: RequirementsProps) {
     );
 
     setUploadError(null);
+    setUploadingId(null);
+  };
+
+  const handleDeleteUpload = async (id: string) => {
+    const selectedRequirement = requirements.find((req) => req.id === id);
+
+    if (!selectedRequirement?.uploaded) {
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete the uploaded file for ${selectedRequirement.label}?`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    setUploadingId(id);
+    setUploadError(null);
+
+    if (selectedRequirement.storagePath) {
+      const deleteError = await deleteRequirementFile(selectedRequirement.storagePath);
+
+      if (deleteError) {
+        setUploadError(deleteError);
+        setUploadingId(null);
+        return;
+      }
+    }
+
+    setRequirements((prev) =>
+      prev.map((req) =>
+        req.id === id ?
+          {
+            ...req,
+            uploaded: false,
+            fileName: null,
+            selectedFile: null,
+            storagePath: null,
+            publicUrl: null
+          } :
+          req
+      )
+    );
+
     setUploadingId(null);
   };
 
@@ -422,6 +486,24 @@ export function Requirements({ onContinueToYourChild }: RequirementsProps) {
                           {req.fileName}
                         </p> :
                     null}
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleFileSelect(req.id)}
+                          disabled={uploadingId === req.id}
+                          className="flex-1 rounded-lg bg-green-100 px-3 py-2 text-sm font-bold text-green-800 transition-colors hover:bg-green-200 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Replace
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteUpload(req.id)}
+                          disabled={uploadingId === req.id}
+                          className="flex-1 rounded-lg bg-red-100 px-3 py-2 text-sm font-bold text-red-700 transition-colors hover:bg-red-200 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {uploadingId === req.id ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </div>
                     </motion.div>
                   ) : req.fileName ? (
                     <motion.div

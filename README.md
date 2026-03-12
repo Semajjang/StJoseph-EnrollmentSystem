@@ -38,7 +38,7 @@ Use these test accounts for local/demo access:
 - Administrative accounts are now gated by TOTP MFA in the frontend. Enable Supabase Auth MFA in your project before testing admin access.
 - Passwords are already hashed and stored by Supabase Auth. This app does not keep plaintext passwords in application tables.
 - Apply `backend/supabase/schema.sql` in Supabase to enable sensitive-field encryption and the `get_enrollments_secure()` RPC.
-- Configure a Postgres setting named `app.settings.encryption_key` in Supabase before inserting or reading encrypted enrollment records.
+- Optionally configure a Postgres setting named `app.settings.encryption_key` in Supabase to enable encryption for sensitive enrollment fields. If it is not configured, enrollment records will still work, but those fields will be stored unencrypted.
 - Serve the production frontend over HTTPS. The app now redirects non-local `http` traffic to `https`, but the deployed host still needs a valid TLS setup.
 
 ## Load Testing

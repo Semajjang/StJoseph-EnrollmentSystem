@@ -12,6 +12,40 @@ import { AgeRule, fetchAgeRules, loadAgeRules, saveAgeRules } from '../lib/ageRu
 import { supabase } from '../lib/supabase';
 
 type BackupTable = 'profiles' | 'enrollments' | 'site_content' | 'contact_messages' | 'activity_logs';
+type BackupBucket = 'requirements' | 'enrollment-files';
+
+interface BackupStorageFile {
+  path: string;
+  fileName: string;
+  size: number;
+  contentType: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+  lastAccessedAt: string | null;
+  dataBase64?: string;
+}
+
+interface RestorePackage {
+  tables: Record<BackupTable, Record<string, unknown>[]>;
+  storage: Record<BackupBucket, BackupStorageFile[]>;
+}
+
+interface StorageListEntry {
+  name?: string;
+  id?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  last_accessed_at?: string | null;
+  metadata?: {
+    size?: number;
+    mimetype?: string;
+    contentType?: string;
+  } | null;
+}
+
+interface BackupBuildOptions {
+  includeStorageContents: boolean;
+}
 
 interface ActivityLog {
   id: string;
@@ -44,6 +78,7 @@ interface BackupBundle {
   };
   backupTime: string;
   tables: Record<BackupTable, Record<string, unknown>[]>;
+  storage: Record<BackupBucket, BackupStorageFile[]>;
 }
 
 interface RestoreExecutionResult {
@@ -63,8 +98,11 @@ const backupTables: BackupTable[] = [
   'activity_logs'
 ];
 
+const backupStorageBuckets: BackupBucket[] = ['requirements', 'enrollment-files'];
+
 const backupScheduleStorageKey = 'admin-dashboard-backup-time';
 const lastBackupStorageKey = 'admin-dashboard-last-backup';
+const storageListPageSize = 100;
 
 const mapActivityLog = (row: ActivityLogRow): ActivityLog => ({
   id: row.id,
@@ -237,6 +275,186 @@ const emptyRestoreTables = (): Record<BackupTable, Record<string, unknown>[]> =>
   activity_logs: []
 });
 
+const emptyRestoreStorage = (): Record<BackupBucket, BackupStorageFile[]> => ({
+  requirements: [],
+  'enrollment-files': []
+});
+
+const fileBlobToBase64 = (blob: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      if (typeof reader.result !== 'string') {
+        reject(new Error('Unable to serialize backup file content.'));
+        return;
+      }
+
+      const separatorIndex = reader.result.indexOf(',');
+      resolve(separatorIndex >= 0 ? reader.result.slice(separatorIndex + 1) : reader.result);
+    };
+
+    reader.onerror = () => {
+      reject(reader.error || new Error('Unable to read backup file content.'));
+    };
+
+    reader.readAsDataURL(blob);
+  });
+
+const base64ToBlob = (value: string, contentType: string) => {
+  const binaryValue = window.atob(value);
+  const bytes = Uint8Array.from(binaryValue, (character) => character.charCodeAt(0));
+
+  return new Blob([bytes], {
+    type: contentType || 'application/octet-stream'
+  });
+};
+
+const listStorageFiles = async (bucketName: BackupBucket, prefix = ''): Promise<BackupStorageFile[]> => {
+  let offset = 0;
+  const files: BackupStorageFile[] = [];
+
+  while (true) {
+    const { data, error } = await supabase.storage.from(bucketName).list(prefix, {
+      limit: storageListPageSize,
+      offset,
+      sortBy: {
+        column: 'name',
+        order: 'asc'
+      }
+    });
+
+    if (error) {
+      throw new Error(`${bucketName}: ${error.message}`);
+    }
+
+    const entries = (data || []) as StorageListEntry[];
+
+    for (const entry of entries) {
+      const entryName = typeof entry.name === 'string' ? entry.name : '';
+
+      if (!entryName) {
+        continue;
+      }
+
+      const objectPath = prefix ? `${prefix}/${entryName}` : entryName;
+
+      if (entry.id) {
+        files.push({
+          path: objectPath,
+          fileName: entryName,
+          size: typeof entry.metadata?.size === 'number' ? entry.metadata.size : 0,
+          contentType:
+            entry.metadata?.mimetype ||
+            entry.metadata?.contentType ||
+            'application/octet-stream',
+          createdAt: entry.created_at || null,
+          updatedAt: entry.updated_at || null,
+          lastAccessedAt: entry.last_accessed_at || null
+        });
+        continue;
+      }
+
+      files.push(...(await listStorageFiles(bucketName, objectPath)));
+    }
+
+    if (entries.length < storageListPageSize) {
+      break;
+    }
+
+    offset += storageListPageSize;
+  }
+
+  return files;
+};
+
+const captureStorageBackup = async (
+  bucketName: BackupBucket,
+  includeStorageContents: boolean
+) => {
+  const storageFiles = await listStorageFiles(bucketName);
+
+  if (!includeStorageContents) {
+    return [] as BackupStorageFile[];
+  }
+
+  return Promise.all(
+    storageFiles.map(async (file) => {
+      const { data, error } = await supabase.storage.from(bucketName).download(file.path);
+
+      if (error || !data) {
+        throw new Error(`${bucketName}/${file.path}: ${error?.message || 'Unable to download file.'}`);
+      }
+
+      return {
+        ...file,
+        contentType: file.contentType || data.type || 'application/octet-stream',
+        dataBase64: await fileBlobToBase64(data)
+      };
+    })
+  );
+};
+
+const normalizeBackupStorageFile = (value: unknown): BackupStorageFile | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const row = value as Record<string, unknown>;
+  const path = typeof row.path === 'string' ? row.path : '';
+
+  if (!path) {
+    return null;
+  }
+
+  return {
+    path,
+    fileName: typeof row.fileName === 'string' && row.fileName ? row.fileName : path.split('/').pop() || path,
+    size: typeof row.size === 'number' ? row.size : 0,
+    contentType: typeof row.contentType === 'string' && row.contentType ? row.contentType : 'application/octet-stream',
+    createdAt: typeof row.createdAt === 'string' ? row.createdAt : null,
+    updatedAt: typeof row.updatedAt === 'string' ? row.updatedAt : null,
+    lastAccessedAt: typeof row.lastAccessedAt === 'string' ? row.lastAccessedAt : null,
+    dataBase64: typeof row.dataBase64 === 'string' ? row.dataBase64 : undefined
+  };
+};
+
+const normalizeRestorePackage = (value: unknown): RestorePackage => {
+  const tables = normalizeRestoreTables(value);
+  const storage = emptyRestoreStorage();
+
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return { tables, storage };
+  }
+
+  const objectValue = value as Record<string, unknown>;
+  const candidateStorage =
+    'storage' in objectValue && objectValue.storage && typeof objectValue.storage === 'object' ?
+      objectValue.storage as Record<string, unknown> :
+      null;
+
+  if (!candidateStorage) {
+    return { tables, storage };
+  }
+
+  backupStorageBuckets.forEach((bucket) => {
+    const rows = candidateStorage[bucket];
+
+    if (!Array.isArray(rows)) {
+      return;
+    }
+
+    storage[bucket] = rows
+      .map((row) => normalizeBackupStorageFile(row))
+      .filter((row): row is BackupStorageFile => !!row);
+  });
+
+  return {
+    tables,
+    storage
+  };
+};
+
 const normalizeRestoreTables = (value: unknown) => {
   const nextTables = emptyRestoreTables();
 
@@ -280,9 +498,10 @@ const normalizeRestoreTables = (value: unknown) => {
   return nextTables;
 };
 
-const buildRestoreDownloadBundle = (tables: Record<BackupTable, Record<string, unknown>[]>) => ({
+const buildRestoreDownloadBundle = (restorePackage: RestorePackage) => ({
   exportedAt: new Date().toISOString(),
-  tables
+  tables: restorePackage.tables,
+  storage: restorePackage.storage
 });
 
 const ChartPanel = ({
@@ -353,7 +572,7 @@ export function AdminDashboard() {
   const [restoreStatus, setRestoreStatus] = useState<string | null>(null);
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const [isApplyingRestore, setIsApplyingRestore] = useState(false);
-  const [restoreTables, setRestoreTables] = useState<Record<BackupTable, Record<string, unknown>[]> | null>(null);
+  const [restorePackage, setRestorePackage] = useState<RestorePackage | null>(null);
 
   const loadActivityLogs = useCallback(async () => {
     const finishMeasurement = createPerformanceTimer('fetch_activity_logs', 'data-read');
@@ -640,7 +859,7 @@ export function AdminDashboard() {
     };
   }, [recentPerformanceMetrics]);
 
-  const buildBackupBundle = useCallback(async (): Promise<BackupBundle> => {
+  const buildBackupBundle = useCallback(async ({ includeStorageContents }: BackupBuildOptions): Promise<BackupBundle> => {
     const queries = await Promise.all(
       backupTables.map(async (table) => {
         const { data, error } = await supabase.from(table).select('*');
@@ -653,6 +872,13 @@ export function AdminDashboard() {
       })
     );
 
+    const storageQueries = await Promise.all(
+      backupStorageBuckets.map(async (bucket) => {
+        const files = await captureStorageBackup(bucket, includeStorageContents);
+        return [bucket, files] as const;
+      })
+    );
+
     return {
       generatedAt: new Date().toISOString(),
       generatedBy: {
@@ -661,7 +887,8 @@ export function AdminDashboard() {
         email: user?.email || ''
       },
       backupTime,
-      tables: Object.fromEntries(queries) as Record<BackupTable, Record<string, unknown>[]>
+      tables: Object.fromEntries(queries) as Record<BackupTable, Record<string, unknown>[]>,
+      storage: Object.fromEntries(storageQueries) as Record<BackupBucket, BackupStorageFile[]>
     };
   }, [backupTime, user?.email, user?.id, user?.name]);
 
@@ -671,8 +898,11 @@ export function AdminDashboard() {
     setBackupStatus(null);
 
     try {
-      const bundle = await buildBackupBundle();
+      const bundle = await buildBackupBundle({
+        includeStorageContents: format === 'json'
+      });
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const storageFileCount = backupStorageBuckets.reduce((sum, bucket) => sum + bundle.storage[bucket].length, 0);
 
       if (format === 'json') {
         downloadTextFile(
@@ -693,7 +923,11 @@ export function AdminDashboard() {
       }
 
       setLastBackupAt(bundle.generatedAt);
-      setBackupStatus(`Backup package generated successfully as ${format.toUpperCase()}.`);
+      setBackupStatus(
+        format === 'json' ?
+          `Full recovery backup generated successfully. ${storageFileCount} private upload files were included.` :
+          'Table backup CSV generated successfully.'
+      );
     } catch (error) {
       setBackupError(error instanceof Error ? error.message : 'Unable to generate backup package.');
     } finally {
@@ -767,10 +1001,10 @@ export function AdminDashboard() {
 
       if (file.name.toLowerCase().endsWith('.json')) {
         const parsedValue = JSON.parse(fileContents) as unknown;
-        const normalizedTables = normalizeRestoreTables(parsedValue);
+        const normalizedRestorePackage = normalizeRestorePackage(parsedValue);
 
-        setRestoreTables(normalizedTables);
-        setRestoreStatus('Restore package loaded. Review the table counts below, then apply the admin restore workflow or export a normalized restore file.');
+        setRestorePackage(normalizedRestorePackage);
+        setRestoreStatus('Restore package loaded. Review the managed table counts and private upload totals, then apply the admin restore workflow or export a normalized restore file.');
       } else if (file.name.toLowerCase().endsWith('.csv')) {
         const [headerLine, ...dataLines] = fileContents.split(/\r?\n/).filter(Boolean);
         const headers = parseCsvLine(headerLine || '');
@@ -787,14 +1021,14 @@ export function AdminDashboard() {
           };
         });
 
-        const normalizedTables = normalizeRestoreTables(normalizedRows);
-        setRestoreTables(normalizedTables);
-        setRestoreStatus('Restore CSV loaded. Review the package summary and apply the admin restore workflow when ready.');
+        const normalizedRestorePackage = normalizeRestorePackage(normalizedRows);
+        setRestorePackage(normalizedRestorePackage);
+        setRestoreStatus('Restore CSV loaded. Review the package summary and apply the managed-table restore workflow when ready.');
       } else {
         throw new Error('Upload a .json or .csv backup file.');
       }
     } catch (error) {
-      setRestoreTables(null);
+      setRestorePackage(null);
       setRestoreError(error instanceof Error ? error.message : 'Unable to read restore package.');
     } finally {
       event.target.value = '';
@@ -802,12 +1036,12 @@ export function AdminDashboard() {
   };
 
   const downloadRestoreBundle = (format: 'json' | 'csv') => {
-    if (!restoreTables) {
+    if (!restorePackage) {
       return;
     }
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const bundle = buildRestoreDownloadBundle(restoreTables);
+    const bundle = buildRestoreDownloadBundle(restorePackage);
 
     if (format === 'json') {
       downloadTextFile(
@@ -826,7 +1060,8 @@ export function AdminDashboard() {
         email: user?.email || ''
       },
       backupTime,
-      tables: restoreTables
+      tables: restorePackage.tables,
+      storage: emptyRestoreStorage()
     };
 
     downloadTextFile(
@@ -836,17 +1071,44 @@ export function AdminDashboard() {
     );
   };
 
+  const restoreStorageFiles = useCallback(async (storageFiles: Record<BackupBucket, BackupStorageFile[]>) => {
+    let restoredFileCount = 0;
+
+    for (const bucket of backupStorageBuckets) {
+      for (const file of storageFiles[bucket]) {
+        if (!file.dataBase64) {
+          continue;
+        }
+
+        const fileBlob = base64ToBlob(file.dataBase64, file.contentType);
+        const { error } = await supabase.storage.from(bucket).upload(file.path, fileBlob, {
+          upsert: true,
+          contentType: file.contentType
+        });
+
+        if (error) {
+          throw new Error(`${bucket}/${file.path}: ${error.message}`);
+        }
+
+        restoredFileCount += 1;
+      }
+    }
+
+    return restoredFileCount;
+  }, []);
+
   const applyRestoreBundle = async () => {
-    if (!restoreTables) {
+    if (!restorePackage) {
       return;
     }
 
     setIsApplyingRestore(true);
     setRestoreError(null);
     setRestoreStatus(null);
+    let restoreStage: 'tables' | 'storage' = 'tables';
 
     try {
-      const restoreBundle = buildRestoreDownloadBundle(restoreTables);
+      const restoreBundle = buildRestoreDownloadBundle(restorePackage);
       const { data, error } = await supabase.rpc('restore_backup_bundle', {
         restore_bundle: restoreBundle
       });
@@ -855,24 +1117,39 @@ export function AdminDashboard() {
         throw error;
       }
 
+      restoreStage = 'storage';
+      const restoredFileCount = await restoreStorageFiles(restorePackage.storage);
       const result = (data || {}) as Partial<RestoreExecutionResult>;
       const totalRows = typeof result.total === 'number' ? result.total : 0;
-      setRestoreStatus(`Restore applied successfully. ${totalRows} records were merged into the managed tables.`);
+      setRestoreStatus(
+        `Restore applied successfully. ${totalRows} records were merged into the managed tables and ${restoredFileCount} private upload files were restored.`
+      );
       void loadActivityLogs();
     } catch (error) {
-      setRestoreError(error instanceof Error ? error.message : 'Unable to apply restore package.');
+      const message = error instanceof Error ? error.message : 'Unable to apply restore package.';
+      setRestoreError(
+        restoreStage === 'storage' ?
+          `Managed tables were restored, but private file restore failed: ${message}` :
+          message
+      );
     } finally {
       setIsApplyingRestore(false);
     }
   };
 
   const restoreTableCounts = useMemo(() => {
-    if (!restoreTables) {
+    if (!restorePackage) {
       return [] as Array<{ label: string; value: number }>;
     }
 
-    return backupTables.map((table) => ({ label: formatLabel(table), value: restoreTables[table].length }));
-  }, [restoreTables]);
+    return [
+      ...backupTables.map((table) => ({ label: formatLabel(table), value: restorePackage.tables[table].length })),
+      ...backupStorageBuckets.map((bucket) => ({
+        label: `${formatLabel(bucket)} Files`,
+        value: restorePackage.storage[bucket].length
+      }))
+    ];
+  }, [restorePackage]);
 
   return (
     <div className="min-h-screen bg-[#EEF5FF] p-8">
@@ -1244,7 +1521,7 @@ export function AdminDashboard() {
           <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-bold text-gray-800">System Maintenance</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Prepare backup packages, set the preferred backup time, and keep a record of the most recent export prepared for the web developer.
+              Prepare recovery packages, set the preferred backup time, and keep a record of the most recent export prepared for the web developer.
             </p>
 
             <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -1261,7 +1538,7 @@ export function AdminDashboard() {
               <div className="rounded-2xl border border-gray-100 bg-[#F8FAFC] p-4">
                 <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Last Backup Export</p>
                 <p className="mt-2 text-sm font-semibold text-gray-800">{lastBackupAt ? formatDateTime(lastBackupAt) : 'No backup exported yet.'}</p>
-                <p className="mt-3 text-xs text-gray-500">Use the buttons below to download JSON or CSV backup packages for restore workflows.</p>
+                <p className="mt-3 text-xs text-gray-500">Use JSON for the full recovery backup with private uploads. CSV remains a lighter managed-table export.</p>
               </div>
             </div>
 
@@ -1275,7 +1552,7 @@ export function AdminDashboard() {
                 disabled={isGeneratingBackup}
                 className="rounded-xl bg-[#1D4ED8] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:bg-blue-300"
               >
-                {isGeneratingBackup ? 'Preparing Backup...' : 'Download Backup JSON'}
+                {isGeneratingBackup ? 'Preparing Backup...' : 'Download Full Backup JSON'}
               </button>
               <button
                 type="button"
@@ -1283,7 +1560,7 @@ export function AdminDashboard() {
                 disabled={isGeneratingBackup}
                 className="rounded-xl border border-[#1D4ED8] bg-white px-5 py-3 text-sm font-bold text-[#1D4ED8] transition-colors hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-blue-200 disabled:text-blue-300"
               >
-                Download Backup CSV
+                Download Table Backup CSV
               </button>
             </div>
           </div>
@@ -1303,14 +1580,14 @@ export function AdminDashboard() {
                 className="mt-3 block w-full text-sm text-gray-600 file:mr-4 file:rounded-xl file:border-0 file:bg-[#1D4ED8] file:px-4 file:py-2 file:font-bold file:text-white hover:file:bg-[#1E40AF]"
               />
               <p className="mt-3 text-xs text-gray-500">
-                The restore action performs an authenticated admin-only merge across profiles, enrollments, site content, contact messages, and activity logs.
+                JSON restore packages can also re-upload private files from the requirements and enrollment-files buckets. CSV restore packages only contain managed tables.
               </p>
             </div>
 
             {restoreError ? <p className="mt-4 text-sm font-medium text-red-600">{restoreError}</p> : null}
             {restoreStatus ? <p className="mt-4 text-sm font-medium text-emerald-700">{restoreStatus}</p> : null}
 
-            {restoreTables ?
+            {restorePackage ?
               <div className="mt-5 space-y-4">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {restoreTableCounts.map((item) => (
