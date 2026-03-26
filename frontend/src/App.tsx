@@ -59,7 +59,15 @@ function AppContent() {
       return;
     }
 
-    const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    // Allow HTTP for localhost, 127.0.0.1, and private LAN IPs (e.g., 192.168.x.x, 10.x.x.x, 172.16.x.x - 172.31.x.x)
+    const hostname = window.location.hostname;
+    const isLocalHost = (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      /^192\.168\./.test(hostname) ||
+      /^10\./.test(hostname) ||
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname)
+    );
 
     if (!isLocalHost && window.location.protocol === 'http:') {
       window.location.replace(`https://${window.location.host}${window.location.pathname}${window.location.search}${window.location.hash}`);
