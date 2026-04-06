@@ -1072,13 +1072,13 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
     <div className="p-8 pb-24">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-extrabold text-gray-800">
+        <h1 className="text-3xl font-bold text-slate-900">
           New Enrollment
         </h1>
-        <p className="text-gray-500 mt-1">
+        <p className="text-slate-500 mt-1">
           Complete the form below to enroll your child.
         </p>
-        <p className="text-xs text-gray-500 mt-2">
+        <p className="text-xs text-slate-500 mt-2">
           <span className="text-red-500 font-bold">*</span> Required fields
         </p>
       </div>
@@ -1103,7 +1103,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                 {currentStep > step.number ? 'Done' : step.number}
               </motion.div>
               <span
-              className={`mt-2 text-sm font-bold ${currentStep === step.number ? 'text-gray-800' : 'text-gray-400'}`}>
+              className={`mt-2 text-sm font-bold ${currentStep === step.number ? 'text-slate-900' : 'text-slate-400'}`}>
 
                 {step.label}
               </span>
@@ -1159,11 +1159,11 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
               }}
               className="space-y-6">
 
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
                   <span className="text-3xl bg-[#BAE6FD] w-12 h-12 rounded-full flex items-center justify-center">
                     1
                   </span>
-                  <h2 className="text-xl font-bold text-gray-800">
+                  <h2 className="text-xl font-bold text-slate-900">
                     Learner Information
                   </h2>
                 </div>
@@ -1171,7 +1171,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                 {/* ID Picture Upload */}
                 <div className="flex justify-center mb-8">
                   <div className="relative group">
-                    <div className="w-32 h-32 rounded-2xl border-4 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
+                    <div className="w-32 h-32 rounded-2xl border-4 border-dashed border-slate-200 flex items-center justify-center overflow-hidden bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer">
                       {previewUrl ?
                     <img
                       src={previewUrl}
@@ -1181,7 +1181,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     effectiveIdPicture?.type === 'application/pdf' ?
                     <div className="text-center p-2">
                           <span className="text-xl block mb-1 font-bold">PDF</span>
-                          <span className="text-xs text-gray-400 font-medium break-words">
+                          <span className="text-xs text-slate-400 font-medium break-words">
                             {effectiveIdPicture.name}
                           </span>
                         </div> :
@@ -1189,7 +1189,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
 
                     <div className="text-center p-2">
                           <span className="text-xl block mb-1 font-bold">ID</span>
-                          <span className="text-xs text-gray-400 font-medium">
+                          <span className="text-xs text-slate-400 font-medium">
                             2x2 ID Picture
                           </span>
                         </div>
@@ -1204,7 +1204,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     <div className="absolute -bottom-2 -right-2 bg-[#BAE6FD] w-8 h-8 rounded-full flex items-center justify-center shadow-sm pointer-events-none">
                       <span className="text-xs font-bold">Edit</span>
                     </div>
-                    <p className="text-xs text-center text-gray-500 mt-3">
+                    <p className="text-xs text-center text-slate-500 mt-3">
                       ID Picture {requiredMark}
                     </p>
                   </div>
@@ -1212,7 +1212,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       First Name {requiredMark}
                     </label>
                     <input
@@ -1221,12 +1221,12 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     onChange={(e) =>
                     updateFormData('childFirstName', e.target.value)
                     }
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                     placeholder="Juan" />
 
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Middle Name
                     </label>
                     <input
@@ -1235,12 +1235,12 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     onChange={(e) =>
                     updateFormData('childMiddleName', e.target.value)
                     }
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                     placeholder="Santos" />
 
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Last Name {requiredMark}
                     </label>
                     <input
@@ -1249,7 +1249,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     onChange={(e) =>
                     updateFormData('childLastName', e.target.value)
                     }
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                     placeholder="Dela Cruz" />
 
                   </div>
@@ -1257,28 +1257,28 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Sex {requiredMark}
                     </label>
-                    <div className="flex bg-gray-100 p-1 rounded-xl">
+                    <div className="flex bg-slate-100 p-1 rounded-xl">
                       <button
                       type="button"
                       onClick={() => updateFormData('sex', 'Male')}
-                      className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${formData.sex === 'Male' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>
+                      className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${formData.sex === 'Male' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'}`}>
 
                         Male
                       </button>
                       <button
                       type="button"
                       onClick={() => updateFormData('sex', 'Female')}
-                      className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${formData.sex === 'Female' ? 'bg-white shadow-sm text-pink-500' : 'text-gray-500'}`}>
+                      className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${formData.sex === 'Female' ? 'bg-white shadow-sm text-pink-500' : 'text-slate-500'}`}>
 
                         Female
                       </button>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Birthday {requiredMark}
                     </label>
                     <input
@@ -1292,24 +1292,24 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                       normalizeDateOfBirthInput(e.target.value)
                     )
                     }
-                    className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors" />
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors" />
 
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Age
                     </label>
                     <input
                     type="number"
                     readOnly
                     value={formData.age}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 bg-gray-50 text-gray-500 font-bold" />
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 font-bold" />
 
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                  <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                     Child's PhilSys Number
                   </label>
                   <input
@@ -1318,33 +1318,33 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                   onChange={(e) =>
                   updateFormData('childPhilSysNumber', e.target.value)
                   }
-                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                   placeholder="Enter the child's PhilSys Number" />
 
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Street Address {requiredMark}
                     </label>
                     <input
                     type="text"
                     value={formData.streetAddress}
                     onChange={(e) => updateFormData('streetAddress', e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                     placeholder="House No., Street, Subdivision" />
 
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Region {requiredMark}
                     </label>
                     <select
                     value={formData.regionCode}
                     onChange={(e) => handleRegionChange(e.target.value)}
                     disabled={isLoadingRegions}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white disabled:bg-gray-50 disabled:text-gray-400">
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors bg-white disabled:bg-slate-50 disabled:text-slate-400">
 
                       <option value="">{isLoadingRegions ? 'Loading regions...' : 'Select Region'}</option>
                       {regionOptions.map((region) =>
@@ -1355,7 +1355,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Province {requiredMark}
                     </label>
                     {isProvinceAutoFilled ?
@@ -1363,14 +1363,14 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                       type="text"
                       value={formData.province}
                       readOnly
-                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 bg-gray-50 text-gray-500 font-medium focus:outline-none"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 font-medium focus:outline-none"
                       placeholder="Province"
                     /> :
                     <select
                       value={formData.provinceCode}
                       onChange={(e) => handleProvinceChange(e.target.value)}
                       disabled={!isRegionSelected || isLoadingProvinces}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white disabled:bg-gray-50 disabled:text-gray-400">
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors bg-white disabled:bg-slate-50 disabled:text-slate-400">
 
                         <option value="">
                           {!isRegionSelected ?
@@ -1387,14 +1387,14 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                       </select>}
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       City / Municipality {requiredMark}
                     </label>
                     <select
                       value={formData.municipalityCode}
                       onChange={(e) => handleMunicipalityChange(e.target.value)}
                       disabled={!isProvinceSelected || isLoadingMunicipalities}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white disabled:bg-gray-50 disabled:text-gray-400">
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors bg-white disabled:bg-slate-50 disabled:text-slate-400">
 
                         <option value="">
                           {!isRegionSelected ?
@@ -1414,14 +1414,14 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
 
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Barangay {requiredMark}
                     </label>
                     <select
                       value={formData.barangay}
                       onChange={(e) => handleBarangayChange(e.target.value)}
                       disabled={!isMunicipalitySelected || isLoadingBarangays}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white disabled:bg-gray-50 disabled:text-gray-400">
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors bg-white disabled:bg-slate-50 disabled:text-slate-400">
 
                         <option value="">
                           {!isMunicipalitySelected ?
@@ -1439,14 +1439,14 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
 
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Full Address
                     </label>
                     <textarea
                     value={formData.address}
                     readOnly
                     rows={3}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 bg-gray-50 text-gray-500 font-medium focus:outline-none resize-none"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 font-medium focus:outline-none resize-none"
                     placeholder="Address preview" />
 
                   </div>
@@ -1465,7 +1465,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                 null}
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                  <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                     Health Concerns / Allergies
                   </label>
                   <textarea
@@ -1474,14 +1474,14 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                   updateFormData('healthConcerns', e.target.value)
                   }
                   rows={2}
-                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors resize-none"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors resize-none"
                   placeholder="Please list any allergies or medical conditions..." />
 
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Beneficiary Program {requiredMark}
                     </label>
                     <select
@@ -1493,7 +1493,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                       updateFormData('financialProgramOther', '');
                     }
                     }}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white">
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors bg-white">
 
                       <option value="">Select Beneficiary Program</option>
                       {beneficiaryProgramOptions.map((programOption) =>
@@ -1509,13 +1509,13 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                       onChange={(e) =>
                       updateFormData('financialProgramOther', e.target.value)
                       }
-                      className="mt-2 w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                      className="mt-2 w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                       placeholder="Please specify" /> :
 
                     null}
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Enrolled Siblings
                     </label>
                     <input
@@ -1528,18 +1528,18 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                       parseInt(e.target.value) || 0
                     )
                     }
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors" />
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors" />
 
                   </div>
                 </div>
 
                 {formData.enrolledSiblingDetails.length > 0 ?
-                  <div className="space-y-4 rounded-3xl border border-blue-100 bg-[#F8FBFF] p-5">
+                  <div className="space-y-4 rounded-xl border border-blue-100 bg-[#F8FBFF] p-5">
                     <div>
-                      <h3 className="text-sm font-extrabold uppercase tracking-[0.18em] text-sky-700">
+                      <h3 className="text-sm font-bold uppercase tracking-[0.18em] text-sky-700">
                         Enrolled Sibling Details
                       </h3>
-                      <p className="mt-1 text-sm text-gray-500">
+                      <p className="mt-1 text-sm text-slate-500">
                         Add each enrolled sibling&apos;s name, birthday, and sex. Age and program are calculated automatically.
                       </p>
                     </div>
@@ -1550,20 +1550,20 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                         className="grid grid-cols-1 gap-4 rounded-2xl border border-blue-100 bg-white p-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1.15fr)_minmax(0,0.8fr)]"
                       >
                         <div className="lg:col-[1] lg:row-[1]">
-                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                          <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                             Sibling Name {requiredMark}
                           </label>
                           <input
                             type="text"
                             value={sibling.name}
                             onChange={(event) => updateSiblingFormData(siblingIndex, 'name', event.target.value)}
-                            className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                             placeholder={`Sibling ${siblingIndex + 1} full name`}
                           />
                         </div>
 
                         <div className="lg:col-[2] lg:row-[1]">
-                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                          <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                             Birthday {requiredMark}
                           </label>
                           <input
@@ -1578,30 +1578,30 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                                 normalizeDateOfBirthInput(event.target.value)
                               )
                             }
-                            className="w-full min-w-0 px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                            className="w-full min-w-0 px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                           />
                         </div>
 
                         <div className="lg:col-[3] lg:row-[1]">
-                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                          <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                             Age
                           </label>
                           <input
                             type="text"
                             value={sibling.dateOfBirth ? `${sibling.age} years old` : ''}
                             readOnly
-                            className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 bg-gray-50 text-gray-500 focus:outline-none"
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 focus:outline-none"
                           />
                         </div>
 
                         <div className="lg:col-[1] lg:row-[2]">
-                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                          <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                             Sex {requiredMark}
                           </label>
                           <select
                             value={sibling.sex}
                             onChange={(event) => updateSiblingFormData(siblingIndex, 'sex', event.target.value)}
-                            className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                           >
                             <option value="">Select Sex</option>
                             <option value="Male">Male</option>
@@ -1610,14 +1610,14 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                         </div>
 
                         <div className="lg:col-[2/4] lg:row-[2]">
-                          <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                          <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                             Program Placement
                           </label>
                           <input
                             type="text"
                             value={sibling.program || (sibling.dateOfBirth ? 'No matching program' : '')}
                             readOnly
-                            className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 bg-gray-50 text-gray-500 focus:outline-none"
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 focus:outline-none"
                           />
                         </div>
                       </div>
@@ -1645,22 +1645,22 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
               }}
               className="space-y-6">
 
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
                   <span className="text-3xl bg-[#FBCFE8] w-12 h-12 rounded-full flex items-center justify-center">
                     2
                   </span>
-                  <h2 className="text-xl font-bold text-gray-800">
+                  <h2 className="text-xl font-bold text-slate-900">
                     Guardian Information
                   </h2>
                 </div>
 
-                <p className="text-xs text-gray-500 -mt-3">
+                <p className="text-xs text-slate-500 -mt-3">
                   Provide at least one complete caregiver profile: Mother, Father, or Guardian.
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Mother's Name
                     </label>
                     <input
@@ -1669,12 +1669,12 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     onChange={(e) =>
                     updateFormData('motherName', e.target.value)
                     }
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                     placeholder="Full Name" />
 
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Mother's Occupation
                     </label>
                     <input
@@ -1683,7 +1683,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     onChange={(e) =>
                     updateFormData('motherOccupation', e.target.value)
                     }
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                     placeholder="Occupation" />
 
                   </div>
@@ -1691,7 +1691,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Father's Name
                     </label>
                     <input
@@ -1700,12 +1700,12 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     onChange={(e) =>
                     updateFormData('fatherName', e.target.value)
                     }
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                     placeholder="Full Name" />
 
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Father's Occupation
                     </label>
                     <input
@@ -1714,7 +1714,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     onChange={(e) =>
                     updateFormData('fatherOccupation', e.target.value)
                     }
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                     placeholder="Occupation" />
 
                   </div>
@@ -1722,7 +1722,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Guardian's Name
                     </label>
                     <input
@@ -1731,12 +1731,12 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     onChange={(e) =>
                     updateFormData('guardianName', e.target.value)
                     }
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                     placeholder="If different from parents" />
 
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Relationship
                     </label>
                     <select
@@ -1748,7 +1748,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                       updateFormData('relationshipOther', '');
                     }
                     }}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white">
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors bg-white">
 
                       <option value="">Select Relationship</option>
                       <option value="Grandparent">Grandparent</option>
@@ -1763,7 +1763,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                       onChange={(e) =>
                       updateFormData('relationshipOther', e.target.value)
                       }
-                      className="w-full mt-2 px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                      className="w-full mt-2 px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                       placeholder="Please specify relationship" /> :
 
                     null}
@@ -1772,7 +1772,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Guardian's Occupation
                     </label>
                     <input
@@ -1781,12 +1781,12 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     onChange={(e) =>
                     updateFormData('guardianOccupation', e.target.value)
                     }
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                     placeholder="Occupation" />
 
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Guardian's Contact No.
                     </label>
                     <input
@@ -1807,7 +1807,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                       formatGuardianContact(e.target.value)
                     )
                     }
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                     placeholder="09XXXXXXXXX" />
 
                   </div>
@@ -1815,7 +1815,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Mother's Contact No.
                     </label>
                     <input
@@ -1836,12 +1836,12 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                       formatGuardianContact(e.target.value)
                     )
                     }
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                     placeholder="09XXXXXXXXX" />
 
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Father's Contact No.
                     </label>
                     <input
@@ -1862,7 +1862,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                       formatGuardianContact(e.target.value)
                     )
                     }
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                     placeholder="09XXXXXXXXX" />
 
                   </div>
@@ -1870,7 +1870,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Solo Parent Status
                     </label>
                     <select
@@ -1878,7 +1878,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     onChange={(e) =>
                     updateFormData('soloParentStatus', e.target.value)
                     }
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white">
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors bg-white">
 
                       <option value="">Select Status</option>
                       <option value="Yes">Yes</option>
@@ -1886,7 +1886,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Parent/Guardian PhilSys Number
                     </label>
                     <input
@@ -1895,7 +1895,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     onChange={(e) =>
                     updateFormData('parentGuardianPhilSysNumber', e.target.value)
                     }
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                     placeholder="Enter the parent or guardian's PhilSys Number" />
 
                   </div>
@@ -1903,7 +1903,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Source of Income {requiredMark}
                     </label>
                     <select
@@ -1915,7 +1915,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                       updateFormData('incomeSourceCategoryOther', '');
                     }
                     }}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white">
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors bg-white">
 
                       <option value="">Select Income Source</option>
                       <option value="Salary/Wages">Salary/Wages</option>
@@ -1930,13 +1930,13 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                       onChange={(e) =>
                       updateFormData('incomeSourceCategoryOther', e.target.value)
                       }
-                      className="mt-2 w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                      className="mt-2 w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors"
                       placeholder="Please specify" /> :
 
                     null}
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">
                       Monthly Family Income {requiredMark}
                     </label>
                     <select
@@ -1944,7 +1944,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     onChange={(e) =>
                     updateFormData('monthlyIncome', e.target.value)
                     }
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white">
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors bg-white">
 
                       <option value="">Select Income Range</option>
                       <option value="Below 10k">Below ₱10,000</option>
@@ -1957,7 +1957,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:items-end">
                   <div>
-                    <label className="mb-1 block min-h-[2.5rem] text-xs font-bold uppercase text-gray-500">
+                    <label className="mb-1 block min-h-[2.5rem] text-xs font-bold uppercase text-slate-500">
                       Parent/Guardian Disability or Senior Citizen Status
                     </label>
                     <select
@@ -1965,7 +1965,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     onChange={(e) =>
                     updateFormData('parentGuardianSpecialStatus', e.target.value)
                     }
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white">
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none transition-colors bg-white">
 
                       <option value="">Select Status</option>
                       <option value="None">None</option>
@@ -1975,10 +1975,10 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                     </select>
                   </div>
                   <div>
-                    <label className="mb-1 block min-h-[2.5rem] text-xs font-bold uppercase text-gray-500">
+                    <label className="mb-1 block min-h-[2.5rem] text-xs font-bold uppercase text-slate-500">
                       Proof of Income (ITR) {requiredMark}
                     </label>
-                    <label className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus-within:border-[#BAE6FD] transition-colors bg-white cursor-pointer block text-sm text-gray-600 truncate">
+                    <label className="w-full px-4 py-3 rounded-xl border border-slate-200 focus-within:border-[#BAE6FD] transition-colors bg-white cursor-pointer block text-sm text-slate-600 truncate">
                       {formData.incomeProof ? formData.incomeProof.name : 'Upload file'}
                       <input
                       type="file"
@@ -2010,11 +2010,11 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
               }}
               className="space-y-6">
 
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200">
                   <span className="text-3xl bg-[#BBF7D0] w-12 h-12 rounded-full flex items-center justify-center">
                     3
                   </span>
-                  <h2 className="text-xl font-bold text-gray-800">
+                  <h2 className="text-xl font-bold text-slate-900">
                     Program Selection
                   </h2>
                 </div>
@@ -2028,32 +2028,32 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
                       {assignedProgram ? assignedProgram.iconLabel : '!'}
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-gray-800">
+                      <h3 className="text-xl font-bold text-slate-900">
                         {assignedProgram ? assignedProgram.name : 'No matching program'}
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-slate-600">
                         {assignedProgram ? assignedProgram.ageLabel : 'The learner age does not match the available enrollment bands.'}
                       </p>
                     </div>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium text-gray-500">Exact Age</span>
-                      <span className="font-bold text-gray-800">{exactAgeLabel}</span>
+                      <span className="font-medium text-slate-500">Exact Age</span>
+                      <span className="font-bold text-slate-900">{exactAgeLabel}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium text-gray-500">School Year</span>
-                      <span className="font-bold text-gray-800">2024-2025</span>
+                      <span className="font-medium text-slate-500">School Year</span>
+                      <span className="font-bold text-slate-900">2024-2025</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium text-gray-500">Schedule</span>
-                      <span className="font-bold text-gray-800">
+                      <span className="font-medium text-slate-500">Schedule</span>
+                      <span className="font-bold text-slate-900">
                         {assignedProgram ? assignedProgram.scheduleLabel : 'Unavailable'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium text-gray-500">Time</span>
-                      <span className="font-bold text-gray-800">
+                      <span className="font-medium text-slate-500">Time</span>
+                      <span className="font-bold text-slate-900">
                         {assignedProgram ? assignedProgram.timeLabel : 'Unavailable'}
                       </span>
                     </div>
@@ -2076,18 +2076,18 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
             }
           </AnimatePresence>
           {/* Navigation Buttons */}
-          <div className="flex justify-between mt-8 pt-6 border-t border-gray-100">
+          <div className="flex justify-between mt-8 pt-6 border-t border-slate-200">
             <button
               onClick={handleBack}
               disabled={currentStep === 1}
-              className={`px-6 py-3 rounded-full font-bold transition-all ${currentStep === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'}`}>
+              className={`px-6 py-3 rounded-full font-bold transition-all ${currentStep === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-100'}`}>
 
               ← Back
             </button>
             {currentStep < 3 ?
             <button
               onClick={handleNext}
-              className="bg-[#BAE6FD] hover:bg-[#7DD3FC] px-8 py-3 rounded-full font-bold text-gray-700 transition-colors shadow-sm hover:shadow-md">
+              className="bg-[#BAE6FD] hover:bg-[#7DD3FC] px-8 py-3 rounded-full font-bold text-slate-700 transition-colors shadow-sm hover:shadow-md">
 
                 Next Step →
               </button> :
@@ -2095,7 +2095,7 @@ export function EnrollmentForm({ onSuccess }: EnrollmentFormProps) {
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="bg-[#BBF7D0] hover:bg-[#86EFAC] px-8 py-3 rounded-full font-bold text-gray-700 transition-colors shadow-sm hover:shadow-md flex items-center gap-2">
+              className="bg-[#BBF7D0] hover:bg-[#86EFAC] px-8 py-3 rounded-full font-bold text-slate-700 transition-colors shadow-sm hover:shadow-md flex items-center gap-2">
 
                 {isSubmitting ? 'Submitting...' : 'Submit Enrollment'}
               </button>

@@ -519,20 +519,20 @@ const ChartPanel = ({
   const barClassName = tone === 'blue' ? 'bg-[#2563EB]' : 'bg-emerald-500';
 
   return (
-    <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
-      <h2 className="text-xl font-bold text-gray-800">{title}</h2>
-      <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
+    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-xl font-bold text-slate-900">{title}</h2>
+      <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
       <div className="mt-5 space-y-4">
         {items.length === 0 ?
-          <p className="text-sm font-medium text-gray-500">No data available yet.</p> :
+          <p className="text-sm font-medium text-slate-500">No data available yet.</p> :
           items.map((item) => (
             <div key={item.label}>
               <div className="mb-1 flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-gray-700">{item.label}</p>
-                  {item.helper ? <p className="text-xs text-gray-400">{item.helper}</p> : null}
+                  <p className="text-sm font-semibold text-slate-700">{item.label}</p>
+                  {item.helper ? <p className="text-xs text-slate-400">{item.helper}</p> : null}
                 </div>
-                <span className="text-sm font-bold text-gray-800">{item.value}</span>
+                <span className="text-sm font-bold text-slate-900">{item.value}</span>
               </div>
               <div className="h-3 rounded-full bg-gray-100">
                 <div
@@ -1152,7 +1152,7 @@ export function AdminDashboard() {
   }, [restorePackage]);
 
   return (
-    <div className="min-h-screen bg-[#EEF5FF] p-8">
+    <div className="p-6 pb-24 md:p-8">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
         <section className="rounded-[32px] bg-[linear-gradient(135deg,#0F3BA8_0%,#2563EB_56%,#93C5FD_100%)] p-8 text-white shadow-[0_18px_45px_rgba(29,78,216,0.22)]">
           <div className="max-w-4xl">
@@ -1188,32 +1188,32 @@ export function AdminDashboard() {
         </section>
 
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm xl:col-span-1">
-            <h2 className="text-xl font-bold text-gray-800">Operational Readiness</h2>
-            <p className="mt-1 text-sm text-gray-500">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-1">
+            <h2 className="text-xl font-bold text-slate-900">Operational Readiness</h2>
+            <p className="mt-1 text-sm text-slate-500">
               Maintain uninterrupted uptime during peak enrollment periods without compromising data processing or record retrieval speeds.
             </p>
             <div className="mt-5 space-y-4">
-              <div className="rounded-2xl bg-[#F8FAFC] p-4">
+              <div className="rounded-xl bg-slate-50 p-4">
                 <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Readiness Note</p>
-                <p className="mt-2 text-sm font-semibold text-gray-700">{operationalSummary.readiness}</p>
+                <p className="mt-2 text-sm font-semibold text-slate-700">{operationalSummary.readiness}</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
                   <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Approved</p>
-                  <p className="mt-2 text-2xl font-extrabold text-gray-800">{statusSummary.approved}</p>
+                  <p className="mt-2 text-2xl font-bold text-slate-900">{statusSummary.approved}</p>
                 </div>
-                <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+                <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
                   <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Waitlisted</p>
-                  <p className="mt-2 text-2xl font-extrabold text-gray-800">{statusSummary.waitlisted}</p>
+                  <p className="mt-2 text-2xl font-bold text-slate-900">{statusSummary.waitlisted}</p>
                 </div>
-                <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
                   <p className="text-xs font-bold uppercase tracking-wide text-blue-700">Indexed Records</p>
-                  <p className="mt-2 text-2xl font-extrabold text-gray-800">{operationalSummary.indexedRecords}</p>
+                  <p className="mt-2 text-2xl font-bold text-slate-900">{operationalSummary.indexedRecords}</p>
                 </div>
-                <div className="rounded-2xl border border-violet-100 bg-violet-50 p-4">
+                <div className="rounded-xl border border-violet-100 bg-violet-50 p-4">
                   <p className="text-xs font-bold uppercase tracking-wide text-violet-700">Avg/Section</p>
-                  <p className="mt-2 text-2xl font-extrabold text-gray-800">{operationalSummary.averageStudentsPerSection}</p>
+                  <p className="mt-2 text-2xl font-bold text-slate-900">{operationalSummary.averageStudentsPerSection}</p>
                 </div>
               </div>
             </div>
@@ -1236,48 +1236,48 @@ export function AdminDashboard() {
         </section>
 
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-4">
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Avg Read Time</p>
-            <p className="mt-2 text-3xl font-extrabold text-gray-800">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Avg Read Time</p>
+            <p className="mt-2 text-2xl font-bold text-slate-900">
               {performanceSummary.readAverageMs > 0 ? `${performanceSummary.readAverageMs} ms` : 'No data'}
             </p>
             <p className="mt-2 text-sm font-semibold text-blue-700">{performanceSummary.readTargetStatus}</p>
-            <p className="mt-1 text-xs text-gray-500">Targets standard page and record retrieval under 2-3 seconds.</p>
+            <p className="mt-1 text-xs text-slate-500">Targets standard page and record retrieval under 2-3 seconds.</p>
           </div>
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Avg Submit Time</p>
-            <p className="mt-2 text-3xl font-extrabold text-gray-800">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Avg Submit Time</p>
+            <p className="mt-2 text-2xl font-bold text-slate-900">
               {performanceSummary.writeAverageMs > 0 ? `${performanceSummary.writeAverageMs} ms` : 'No data'}
             </p>
             <p className="mt-2 text-sm font-semibold text-emerald-700">{performanceSummary.writeTargetStatus}</p>
-            <p className="mt-1 text-xs text-gray-500">Tracks enrollment submissions and record updates during peak usage.</p>
+            <p className="mt-1 text-xs text-slate-500">Tracks enrollment submissions and record updates during peak usage.</p>
           </div>
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Recent Health Checks</p>
-            <p className="mt-2 text-3xl font-extrabold text-gray-800">{performanceSummary.healthSuccessRate}%</p>
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Recent Health Checks</p>
+            <p className="mt-2 text-2xl font-bold text-slate-900">{performanceSummary.healthSuccessRate}%</p>
             <p className="mt-2 text-sm font-semibold text-violet-700">{performanceSummary.uptimeStatus}</p>
-            <p className="mt-1 text-xs text-gray-500">Availability trend from recurring Supabase health probes.</p>
+            <p className="mt-1 text-xs text-slate-500">Availability trend from recurring Supabase health probes.</p>
           </div>
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Last Health Probe</p>
-            <p className="mt-2 text-lg font-extrabold text-gray-800">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Last Health Probe</p>
+            <p className="mt-2 text-lg font-bold text-slate-900">
               {performanceSummary.lastHealthCheck ? `${Math.round(performanceSummary.lastHealthCheck.durationMs)} ms` : 'Not available'}
             </p>
             <p className="mt-2 text-sm font-semibold text-amber-700">
               {performanceSummary.lastHealthCheck?.status === 'error' ? 'Last check failed' : 'Last check passed'}
             </p>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-slate-500">
               {performanceSummary.lastHealthCheck ? formatDateTime(performanceSummary.lastHealthCheck.recordedAt) : 'No recent health check recorded.'}
             </p>
           </div>
         </section>
 
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.6fr_1fr]">
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-gray-800">Audit Log Viewer</h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <h2 className="text-2xl font-bold text-slate-900">Audit Log Viewer</h2>
+                <p className="mt-1 text-sm text-slate-500">
                   Filter administrator audit logs, search entries, and inspect detailed event payloads.
                 </p>
               </div>
@@ -1287,12 +1287,12 @@ export function AdminDashboard() {
                   value={auditSearch}
                   onChange={(event) => setAuditSearch(event.target.value)}
                   placeholder="Search actor, action, entity, or details"
-                  className="w-[280px] rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 outline-none focus:border-[#60A5FA]"
+                  className="w-[280px] rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 outline-none focus:border-[#60A5FA]"
                 />
                 <select
                   value={auditFilter}
                   onChange={(event) => setAuditFilter(event.target.value as 'all' | 'enrollment' | 'site_content' | 'contact_message' | 'staff_access')}
-                  className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 outline-none focus:border-[#60A5FA]"
+                  className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 outline-none focus:border-[#60A5FA]"
                 >
                   <option value="all">All Logs</option>
                   <option value="enrollment">Enrollment</option>
@@ -1304,33 +1304,33 @@ export function AdminDashboard() {
             </div>
 
             {activityError ?
-              <div className="mt-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              <div className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
                 {activityError}
               </div> :
               null}
 
-            <div className="mt-5 overflow-hidden rounded-2xl border border-gray-100">
+            <div className="mt-5 overflow-hidden rounded-xl border border-slate-200">
               <div className="max-h-[520px] overflow-auto">
                 <table className="w-full min-w-[760px]">
-                  <thead className="sticky top-0 bg-[#F8FAFC]">
+                  <thead className="sticky top-0 bg-slate-50">
                     <tr>
-                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Time</th>
-                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Actor</th>
-                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Action</th>
-                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Entity</th>
-                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Summary</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Time</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Actor</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Action</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Entity</th>
+                      <th className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide text-slate-500">Summary</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-slate-100">
                     {isLoadingLogs ?
                       <tr>
-                        <td colSpan={5} className="px-5 py-10 text-center text-sm font-medium text-gray-500">
+                        <td colSpan={5} className="px-5 py-10 text-center text-sm font-medium text-slate-500">
                           Loading audit logs...
                         </td>
                       </tr> :
                       auditLogs.length === 0 ?
                         <tr>
-                          <td colSpan={5} className="px-5 py-10 text-center text-sm font-medium text-gray-500">
+                          <td colSpan={5} className="px-5 py-10 text-center text-sm font-medium text-slate-500">
                             No audit log entries matched the current filters.
                           </td>
                         </tr> :
@@ -1338,18 +1338,18 @@ export function AdminDashboard() {
                           <tr
                             key={log.id}
                             onClick={() => setSelectedLog(log)}
-                            className={`cursor-pointer transition-colors ${selectedLog?.id === log.id ? 'bg-blue-50' : index % 2 === 0 ? 'bg-white' : 'bg-[#FFFBEB]'} hover:bg-blue-50/70`}
+                            className={`cursor-pointer transition-colors ${selectedLog?.id === log.id ? 'bg-blue-50' : index % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-blue-50/70`}
                           >
-                            <td className="px-5 py-3 text-sm text-gray-600 whitespace-nowrap">{formatDateTime(log.createdAt)}</td>
-                            <td className="px-5 py-3 text-sm text-gray-700 whitespace-nowrap">
-                              <span className="font-bold text-gray-800">{log.actorName}</span>
+                            <td className="px-5 py-3 text-sm text-slate-600 whitespace-nowrap">{formatDateTime(log.createdAt)}</td>
+                            <td className="px-5 py-3 text-sm text-slate-700 whitespace-nowrap">
+                              <span className="font-bold text-slate-900">{log.actorName}</span>
                               <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">
                                 {log.actorRole}
                               </span>
                             </td>
-                            <td className="px-5 py-3 text-sm font-semibold text-gray-700">{formatLabel(log.action)}</td>
-                            <td className="px-5 py-3 text-sm text-gray-700">{formatLabel(log.entityType)}</td>
-                            <td className="px-5 py-3 text-xs text-gray-600">{getLogDetailSummary(log)}</td>
+                            <td className="px-5 py-3 text-sm font-semibold text-slate-700">{formatLabel(log.action)}</td>
+                            <td className="px-5 py-3 text-sm text-slate-700">{formatLabel(log.entityType)}</td>
+                            <td className="px-5 py-3 text-xs text-slate-600">{getLogDetailSummary(log)}</td>
                           </tr>
                         ))}
                   </tbody>
@@ -1358,56 +1358,56 @@ export function AdminDashboard() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-bold text-gray-800">Detailed Log View</h2>
-            <p className="mt-1 text-sm text-gray-500">Select a log entry to inspect the actor, event payload, and restore context.</p>
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-2xl font-bold text-slate-900">Detailed Log View</h2>
+            <p className="mt-1 text-sm text-slate-500">Select a log entry to inspect the actor, event payload, and restore context.</p>
 
             {selectedLog ?
               <div className="mt-5 space-y-4">
-                <div className="rounded-2xl bg-[#F8FAFC] p-4">
+                <div className="rounded-xl bg-slate-50 p-4">
                   <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Selected Event</p>
-                  <p className="mt-2 text-lg font-bold text-gray-800">{formatLabel(selectedLog.action)}</p>
-                  <p className="mt-1 text-sm font-medium text-gray-600">{formatDateTime(selectedLog.createdAt)}</p>
+                  <p className="mt-2 text-lg font-bold text-slate-900">{formatLabel(selectedLog.action)}</p>
+                  <p className="mt-1 text-sm font-medium text-slate-600">{formatDateTime(selectedLog.createdAt)}</p>
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-gray-100 p-4">
-                    <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Actor</p>
-                    <p className="mt-2 text-sm font-semibold text-gray-800">{selectedLog.actorName}</p>
-                    <p className="text-xs text-gray-500">{selectedLog.actorRole}</p>
+                  <div className="rounded-xl border border-slate-200 p-4">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Actor</p>
+                    <p className="mt-2 text-sm font-semibold text-slate-900">{selectedLog.actorName}</p>
+                    <p className="text-xs text-slate-500">{selectedLog.actorRole}</p>
                   </div>
-                  <div className="rounded-2xl border border-gray-100 p-4">
-                    <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Entity</p>
-                    <p className="mt-2 text-sm font-semibold text-gray-800">{formatLabel(selectedLog.entityType)}</p>
-                    <p className="text-xs text-gray-500">{selectedLog.entityId}</p>
+                  <div className="rounded-xl border border-slate-200 p-4">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Entity</p>
+                    <p className="mt-2 text-sm font-semibold text-slate-900">{formatLabel(selectedLog.entityType)}</p>
+                    <p className="text-xs text-slate-500">{selectedLog.entityId}</p>
                   </div>
                 </div>
-                <div className="rounded-2xl border border-gray-100 p-4">
-                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Human Summary</p>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-gray-700">{getLogDetailSummary(selectedLog)}</p>
+                <div className="rounded-xl border border-slate-200 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Human Summary</p>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">{getLogDetailSummary(selectedLog)}</p>
                 </div>
-                <div className="rounded-2xl border border-gray-100 bg-slate-950 p-4 text-slate-100">
+                <div className="rounded-xl border border-slate-200 bg-slate-950 p-4 text-slate-100">
                   <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Raw Details</p>
                   <pre className="mt-3 overflow-auto whitespace-pre-wrap break-words text-xs leading-6">
                     {JSON.stringify(selectedLog.details, null, 2)}
                   </pre>
                 </div>
               </div> :
-              <div className="mt-5 rounded-2xl border border-dashed border-gray-200 bg-[#F8FAFC] p-6 text-sm font-medium text-gray-500">
+              <div className="mt-5 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm font-medium text-slate-500">
                 Select an audit entry from the table to open its detailed view.
               </div>}
           </div>
         </section>
 
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.5fr_1fr]">
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-gray-800">Program Age Rules</h2>
-                <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                <h2 className="text-2xl font-bold text-slate-900">Program Age Rules</h2>
+                <p className="mt-1 max-w-2xl text-sm text-slate-500">
                   Update the enrollment age bands used to auto-assign learners into programs. These rules are stored in site content so the guardian enrollment form and admin maintenance view stay aligned.
                 </p>
               </div>
-              <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-800">
+              <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-medium text-blue-800">
                 Requirement document review is available from the sidebar under Requirements Manager.
               </div>
             </div>
@@ -1417,65 +1417,65 @@ export function AdminDashboard() {
 
             <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
               {ageRules.map((rule) => (
-                <div key={rule.id} className="rounded-3xl border border-gray-100 bg-[#F8FAFC] p-5">
-                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500">{rule.id}</p>
+                <div key={rule.id} className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{rule.id}</p>
                   <div className="mt-3 space-y-4">
                     <label className="block">
-                      <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Program Name</span>
+                      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Program Name</span>
                       <input
                         type="text"
                         value={rule.name}
                         onChange={(event) => updateAgeRule(rule.id, 'name', event.target.value)}
-                        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none focus:border-[#60A5FA]"
+                        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-[#60A5FA]"
                       />
                     </label>
                     <label className="block">
-                      <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Display Age Label</span>
+                      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Display Age Label</span>
                       <input
                         type="text"
                         value={rule.ageLabel}
                         onChange={(event) => updateAgeRule(rule.id, 'ageLabel', event.target.value)}
-                        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none focus:border-[#60A5FA]"
+                        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-[#60A5FA]"
                       />
                     </label>
                     <div className="grid grid-cols-2 gap-3">
                       <label className="block">
-                        <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Min Months</span>
+                        <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Min Months</span>
                         <input
                           type="number"
                           min={0}
                           value={rule.minMonths}
                           onChange={(event) => updateAgeRule(rule.id, 'minMonths', event.target.value)}
-                          className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none focus:border-[#60A5FA]"
+                          className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-[#60A5FA]"
                         />
                       </label>
                       <label className="block">
-                        <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Max Months</span>
+                        <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Max Months</span>
                         <input
                           type="number"
                           min={0}
                           value={rule.maxMonths}
                           onChange={(event) => updateAgeRule(rule.id, 'maxMonths', event.target.value)}
-                          className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none focus:border-[#60A5FA]"
+                          className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-[#60A5FA]"
                         />
                       </label>
                     </div>
                     <label className="block">
-                      <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Schedule Label</span>
+                      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Schedule Label</span>
                       <input
                         type="text"
                         value={rule.scheduleLabel}
                         onChange={(event) => updateAgeRule(rule.id, 'scheduleLabel', event.target.value)}
-                        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none focus:border-[#60A5FA]"
+                        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-[#60A5FA]"
                       />
                     </label>
                     <label className="block">
-                      <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Time Label</span>
+                      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Time Label</span>
                       <input
                         type="text"
                         value={rule.timeLabel}
                         onChange={(event) => updateAgeRule(rule.id, 'timeLabel', event.target.value)}
-                        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none focus:border-[#60A5FA]"
+                        className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-[#60A5FA]"
                       />
                     </label>
                   </div>
@@ -1495,50 +1495,50 @@ export function AdminDashboard() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-bold text-gray-800">Admin Maintenance Access</h2>
-            <p className="mt-1 text-sm text-gray-500">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-2xl font-bold text-slate-900">Admin Maintenance Access</h2>
+            <p className="mt-1 text-sm text-slate-500">
               Admin accounts can now use this dashboard for backup and restore work, update program age rules here, and open the sidebar Requirements Manager to review enrollment documents.
             </p>
             <div className="mt-5 space-y-3">
-              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+              <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
                 <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Requirements</p>
-                <p className="mt-2 text-sm font-semibold text-gray-800">Use Requirements Manager in the sidebar to open the same requirement-review surface used by staff.</p>
+                <p className="mt-2 text-sm font-semibold text-slate-900">Use Requirements Manager in the sidebar to open the same requirement-review surface used by staff.</p>
               </div>
-              <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+              <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
                 <p className="text-xs font-bold uppercase tracking-wide text-blue-700">Age Rules</p>
-                <p className="mt-2 text-sm font-semibold text-gray-800">Changes saved here immediately affect guardian eligibility messaging and auto-assigned programs.</p>
+                <p className="mt-2 text-sm font-semibold text-slate-900">Changes saved here immediately affect guardian eligibility messaging and auto-assigned programs.</p>
               </div>
-              <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+              <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
                 <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Restore</p>
-                <p className="mt-2 text-sm font-semibold text-gray-800">Uploaded restore bundles can now be merged directly into the managed tables through an admin-only database function.</p>
+                <p className="mt-2 text-sm font-semibold text-slate-900">Uploaded restore bundles can now be merged directly into the managed tables through an admin-only database function.</p>
               </div>
             </div>
           </div>
         </section>
 
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-bold text-gray-800">System Maintenance</h2>
-            <p className="mt-1 text-sm text-gray-500">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-2xl font-bold text-slate-900">System Maintenance</h2>
+            <p className="mt-1 text-sm text-slate-500">
               Prepare recovery packages, set the preferred backup time, and keep a record of the most recent export prepared for the web developer.
             </p>
 
             <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="rounded-2xl border border-gray-100 bg-[#F8FAFC] p-4">
-                <label className="text-xs font-bold uppercase tracking-wide text-gray-500">Backup Time</label>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Backup Time</label>
                 <input
                   type="time"
                   value={backupTime}
                   onChange={(event) => setBackupTime(event.target.value)}
-                  className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 outline-none focus:border-[#60A5FA]"
+                  className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[#60A5FA]"
                 />
-                <p className="mt-3 text-xs text-gray-500">Next scheduled backup window: {getNextBackupTime(backupTime)}</p>
+                <p className="mt-3 text-xs text-slate-500">Next scheduled backup window: {getNextBackupTime(backupTime)}</p>
               </div>
-              <div className="rounded-2xl border border-gray-100 bg-[#F8FAFC] p-4">
-                <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Last Backup Export</p>
-                <p className="mt-2 text-sm font-semibold text-gray-800">{lastBackupAt ? formatDateTime(lastBackupAt) : 'No backup exported yet.'}</p>
-                <p className="mt-3 text-xs text-gray-500">Use JSON for the full recovery backup with private uploads. CSV remains a lighter managed-table export.</p>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Last Backup Export</p>
+                <p className="mt-2 text-sm font-semibold text-slate-900">{lastBackupAt ? formatDateTime(lastBackupAt) : 'No backup exported yet.'}</p>
+                <p className="mt-3 text-xs text-slate-500">Use JSON for the full recovery backup with private uploads. CSV remains a lighter managed-table export.</p>
               </div>
             </div>
 
@@ -1565,21 +1565,21 @@ export function AdminDashboard() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-bold text-gray-800">Restore Package Builder</h2>
-            <p className="mt-1 text-sm text-gray-500">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-2xl font-bold text-slate-900">Restore Package Builder</h2>
+            <p className="mt-1 text-sm text-slate-500">
               Upload a backup JSON or CSV package, review the table counts, then either execute the admin restore workflow or download a normalized restore file.
             </p>
 
-            <div className="mt-5 rounded-2xl border border-dashed border-gray-300 bg-[#F8FAFC] p-5">
-              <label className="text-sm font-bold text-gray-700">Upload restore source</label>
+            <div className="mt-5 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-5">
+              <label className="text-sm font-bold text-slate-700">Upload restore source</label>
               <input
                 type="file"
                 accept=".json,.csv"
                 onChange={(event) => void handleRestoreFileChange(event)}
-                className="mt-3 block w-full text-sm text-gray-600 file:mr-4 file:rounded-xl file:border-0 file:bg-[#1D4ED8] file:px-4 file:py-2 file:font-bold file:text-white hover:file:bg-[#1E40AF]"
+                className="mt-3 block w-full text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:font-bold file:text-white hover:file:bg-blue-700"
               />
-              <p className="mt-3 text-xs text-gray-500">
+              <p className="mt-3 text-xs text-slate-500">
                 JSON restore packages can also re-upload private files from the requirements and enrollment-files buckets. CSV restore packages only contain managed tables.
               </p>
             </div>
@@ -1591,9 +1591,9 @@ export function AdminDashboard() {
               <div className="mt-5 space-y-4">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {restoreTableCounts.map((item) => (
-                    <div key={item.label} className="rounded-2xl border border-gray-100 bg-[#F8FAFC] p-4">
-                      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">{item.label}</p>
-                      <p className="mt-2 text-2xl font-extrabold text-gray-800">{item.value}</p>
+                    <div key={item.label} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{item.label}</p>
+                      <p className="mt-2 text-2xl font-bold text-slate-900">{item.value}</p>
                     </div>
                   ))}
                 </div>

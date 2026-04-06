@@ -155,37 +155,40 @@ export function AdminMfaGatePage({ onSkip }: AdminMfaGatePageProps) {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#EEF5FF] p-4">
+    <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-2xl overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-xl"
+        transition={{ duration: 0.3 }}
+        className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200/60 bg-white shadow-2xl"
       >
-        <div className="bg-gradient-to-r from-[#1D4ED8] to-[#60A5FA] p-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-blue-100 bg-white/90 text-blue-700">
-            <ShieldCheckIcon className="h-8 w-8" />
+        <div className="bg-[#0F172A] p-8">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600/20 text-blue-400">
+              <ShieldCheckIcon className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-white">{roleContent.heading}</h1>
+              <p className="text-sm text-slate-400 mt-0.5">{roleContent.description}</p>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">{roleContent.heading}</h1>
-          <p className="mt-2 font-medium text-blue-900">
-            {roleContent.description}
-          </p>
         </div>
 
         <div className="p-8">
-          <div className="mb-6 rounded-2xl border border-blue-100 bg-[#EFF6FF] px-4 py-3 text-sm text-gray-700">
-            <p className="font-bold text-gray-800">{roleContent.accountLabel}</p>
-            <p className="mt-1">{user?.name || roleContent.defaultName}</p>
-            <p className="text-xs text-gray-500">{user?.email}</p>
+          <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{roleContent.accountLabel}</p>
+            <p className="mt-1 text-sm font-semibold text-slate-800">{user?.name || roleContent.defaultName}</p>
+            <p className="text-xs text-slate-500">{user?.email}</p>
           </div>
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#BAE6FD] border-t-transparent" />
+            <div className="flex items-center justify-center py-10">
+              <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
             </div>
           ) : (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {infoMessage ? (
-                <div className="rounded-2xl border border-blue-100 bg-[#EFF6FF] px-4 py-3 text-sm font-medium text-gray-700">
+                <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
                   {infoMessage}
                 </div>
               ) : null}
@@ -194,26 +197,28 @@ export function AdminMfaGatePage({ onSkip }: AdminMfaGatePageProps) {
                 type="button"
                 onClick={() => void handleSendCode()}
                 disabled={isSubmitting}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1D4ED8] py-3 font-bold text-white transition-colors hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:bg-blue-300"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
               >
-                <MailIcon className="h-5 w-5" />
-                {isSubmitting ? 'Sending Email...' : hasSentCode ? 'Resend Verification Email' : 'Send Verification Email'}
+                <MailIcon className="h-4 w-4" />
+                {isSubmitting ? 'Sending...' : hasSentCode ? 'Resend Verification Email' : 'Send Verification Email'}
               </button>
 
-              <div className="rounded-2xl border border-blue-100 bg-[#EFF6FF] px-4 py-3 text-sm text-gray-700">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
                 Click the verification link in your email. After Supabase sends you back to the portal, this screen will close automatically.
               </div>
 
               <button
                 type="button"
                 onClick={handleSkip}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 py-3 font-bold text-amber-800 transition-colors hover:bg-amber-100"
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 py-2.5 text-sm font-semibold text-amber-800 transition-colors hover:bg-amber-100"
               >
-                <SkipForwardIcon className="h-5 w-5" />
+                <SkipForwardIcon className="h-4 w-4" />
                 Skip MFA For Now
               </button>
 
-              {errorMessage ? <p className="text-sm font-medium text-red-600">{errorMessage}</p> : null}
+              {errorMessage ? (
+                <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</div>
+              ) : null}
             </div>
           )}
 
@@ -221,9 +226,9 @@ export function AdminMfaGatePage({ onSkip }: AdminMfaGatePageProps) {
             <button
               type="button"
               onClick={() => void logout()}
-              className="inline-flex items-center gap-2 text-sm font-bold text-red-500 hover:underline"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-400 hover:text-red-500 transition-colors"
             >
-              <LogOutIcon className="h-4 w-4" />
+              <LogOutIcon className="h-3.5 w-3.5" />
               Sign out
             </button>
           </div>

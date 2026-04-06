@@ -351,15 +351,15 @@ export function Requirements({ onContinueToYourChild }: RequirementsProps) {
     <div className="p-8 pb-24">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-extrabold text-gray-800">
+        <h1 className="text-3xl font-bold text-slate-900">
           Requirements Portal
         </h1>
-        <p className="text-gray-500 mt-1 text-base">
+        <p className="text-slate-500 mt-1 text-base">
           Please upload the following documents to complete your enrollment.
         </p>
         {enrollments.length > 0 ?
         <div className="mt-4 max-w-lg">
-            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">
+            <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wide">
               Enrollment Record
             </label>
             <select
@@ -368,7 +368,7 @@ export function Requirements({ onContinueToYourChild }: RequirementsProps) {
               setSelectedEnrollmentId(e.target.value);
               setUploadError(null);
             }}
-            className="w-full px-4 py-3 rounded-xl border-2 border-blue-100 focus:border-[#60A5FA] focus:outline-none transition-colors bg-white text-gray-700">
+            className="w-full px-4 py-3 rounded-xl border-2 border-blue-100 focus:border-blue-500 focus:outline-none transition-colors bg-white text-slate-700">
 
               {enrollments.map((enrollment) =>
             <option key={enrollment.id} value={enrollment.id}>
@@ -377,7 +377,7 @@ export function Requirements({ onContinueToYourChild }: RequirementsProps) {
             )}
             </select>
           </div> :
-        <p className="text-sm text-gray-500 mt-2">
+        <p className="text-sm text-slate-500 mt-2">
             Submit an enrollment form first before uploading requirements.
           </p>}
         {uploadError ?
@@ -395,17 +395,17 @@ export function Requirements({ onContinueToYourChild }: RequirementsProps) {
           opacity: 1,
           y: 0
         }}
-        className="bg-white rounded-2xl shadow-md p-6 mb-8 border border-blue-100">
+        className="bg-white rounded-xl shadow-md p-6 mb-8 border border-blue-100">
 
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="font-bold text-gray-800 text-lg">Upload Progress</h2>
-            <p className="text-gray-500 text-sm">
+            <h2 className="font-bold text-slate-900 text-lg">Upload Progress</h2>
+            <p className="text-slate-500 text-sm">
               {uploadedCount} of {totalCount} documents uploaded
             </p>
           </div>
           <div className="text-right">
-            <span className="text-3xl font-extrabold text-gray-800">
+            <span className="text-3xl font-bold text-slate-900">
               {Math.round(progress)}%
             </span>
           </div>
@@ -455,17 +455,17 @@ export function Requirements({ onContinueToYourChild }: RequirementsProps) {
           transition={{
             delay: index * 0.1
           }}
-          className="bg-white rounded-2xl shadow-md p-6 border border-blue-100">
+          className="bg-white rounded-xl shadow-md p-6 border border-blue-100">
 
             <div className="flex items-start gap-4">
               <div
-              className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition-colors font-bold ${req.uploaded ? 'bg-[#A7F3D0] text-green-800' : 'bg-[#DBEAFE] text-blue-700'}`}>
+              className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl transition-colors font-bold ${req.uploaded ? 'bg-[#A7F3D0] text-green-800' : 'bg-[#DBEAFE] text-blue-700'}`}>
 
                 {req.uploaded ? 'Done' : req.iconLabel}
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-gray-800 mb-1">{req.label}</h3>
-                <p className="text-sm text-gray-500 mb-4">{req.description}</p>
+                <h3 className="font-bold text-slate-900 mb-1">{req.label}</h3>
+                <p className="text-sm text-slate-500 mb-4">{req.description}</p>
 
                 <AnimatePresence mode="wait">
                   {req.uploaded ? (
@@ -510,9 +510,9 @@ export function Requirements({ onContinueToYourChild }: RequirementsProps) {
                       key="confirm"
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="p-3 bg-gray-100 rounded-xl"
+                      className="p-3 bg-slate-100 rounded-xl"
                     >
-                      <p className="text-sm text-gray-700 mb-2 truncate">
+                      <p className="text-sm text-slate-700 mb-2 truncate">
                         {req.fileName}
                       </p>
                       <div className="flex gap-2">
@@ -525,7 +525,7 @@ export function Requirements({ onContinueToYourChild }: RequirementsProps) {
                         </button>
                         <button
                           onClick={() => handleCancelUpload(req.id)}
-                          className="flex-1 py-2 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-bold transition-colors"
+                          className="flex-1 py-2 px-4 bg-gray-200 hover:bg-gray-300 text-slate-700 rounded-lg text-sm font-bold transition-colors"
                         >
                           Cancel
                         </button>

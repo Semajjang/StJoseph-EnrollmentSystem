@@ -6,29 +6,37 @@ export function Dashboard() {
     label: 'Infant Room',
     count: 8,
     capacity: 10,
-    emoji: 'IN',
-    color: '#FBCFE8'
+    tag: 'IN',
+    color: 'bg-pink-50 border-pink-100',
+    barColor: 'bg-pink-400',
+    tagColor: 'bg-pink-100 text-pink-700'
   },
   {
     label: 'Toddler Room',
     count: 12,
     capacity: 15,
-    emoji: 'TD',
-    color: '#BAE6FD'
+    tag: 'TD',
+    color: 'bg-blue-50 border-blue-100',
+    barColor: 'bg-blue-400',
+    tagColor: 'bg-blue-100 text-blue-700'
   },
   {
     label: 'Pre-K Room',
     count: 18,
     capacity: 20,
-    emoji: 'PK',
-    color: '#E9D5FF'
+    tag: 'PK',
+    color: 'bg-violet-50 border-violet-100',
+    barColor: 'bg-violet-400',
+    tagColor: 'bg-violet-100 text-violet-700'
   },
   {
     label: 'After School',
     count: 14,
     capacity: 25,
-    emoji: 'AS',
-    color: '#BBF7D0'
+    tag: 'AS',
+    color: 'bg-emerald-50 border-emerald-100',
+    barColor: 'bg-emerald-400',
+    tagColor: 'bg-emerald-100 text-emerald-700'
   }];
 
   const recentEnrollments = [
@@ -49,41 +57,27 @@ export function Dashboard() {
   }];
 
   const containerVariants = {
-    hidden: {
-      opacity: 0
-    },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.08 } }
   };
   const itemVariants = {
-    hidden: {
-      opacity: 0,
-      y: 20
-    },
-    visible: {
-      opacity: 1,
-      y: 0
-    }
+    hidden: { opacity: 0, y: 12 },
+    visible: { opacity: 1, y: 0 }
   };
+
   return (
-    <div className="p-8">
+    <div className="p-6 md:p-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-extrabold text-gray-800">
-          Welcome Back
-        </h1>
-        <p className="text-gray-500 mt-1">
-          Here's what's happening at St. Joseph Daycare today.
+        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+        <p className="text-sm text-slate-500 mt-1">
+          Overview of St. Joseph Daycare enrollment status.
         </p>
       </div>
 
       {/* Stats Cards */}
       <motion.div
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
         variants={containerVariants}
         initial="hidden"
         animate="visible">
@@ -92,46 +86,25 @@ export function Dashboard() {
         <motion.div
           key={stat.label}
           variants={itemVariants}
-          className="bg-white rounded-2xl shadow-md p-6 relative overflow-hidden">
+          className={`bg-white rounded-xl border p-5 ${stat.color}`}>
 
-            <div
-            className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-30 -mr-8 -mt-8"
-            style={{
-              backgroundColor: stat.color
-            }} />
-
-            <div className="relative">
-              <span className="text-4xl mb-4 block">{stat.emoji}</span>
-              <h3 className="font-bold text-gray-700 text-sm mb-2">
-                {stat.label}
-              </h3>
-              <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-extrabold text-gray-800">
-                  {stat.count}
-                </span>
-                <span className="text-gray-400 font-medium">
-                  / {stat.capacity}
-                </span>
-              </div>
-              {/* Progress bar */}
-              <div className="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
-                <motion.div
-                className="h-full rounded-full"
-                style={{
-                  backgroundColor: stat.color
-                }}
-                initial={{
-                  width: 0
-                }}
-                animate={{
-                  width: `${stat.count / stat.capacity * 100}%`
-                }}
-                transition={{
-                  duration: 0.8,
-                  delay: 0.3
-                }} />
-
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${stat.tagColor}`}>
+                {stat.tag}
+              </span>
+              <span className="text-xs text-slate-400">{stat.count}/{stat.capacity}</span>
+            </div>
+            <h3 className="text-sm font-medium text-slate-600 mb-1">{stat.label}</h3>
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-bold text-slate-900">{stat.count}</span>
+              <span className="text-sm text-slate-400">enrolled</span>
+            </div>
+            <div className="mt-3 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <motion.div
+                className={`h-full rounded-full ${stat.barColor}`}
+                initial={{ width: 0 }}
+                animate={{ width: `${(stat.count / stat.capacity) * 100}%` }}
+                transition={{ duration: 0.7, delay: 0.2 }} />
             </div>
           </motion.div>
         )}
@@ -141,125 +114,75 @@ export function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Quick Actions */}
         <motion.div
-          initial={{
-            opacity: 0,
-            y: 20
-          }}
-          animate={{
-            opacity: 1,
-            y: 0
-          }}
-          transition={{
-            delay: 0.4
-          }}
-          className="bg-white rounded-2xl shadow-md p-6">
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="bg-white rounded-xl border border-slate-200 p-6">
 
-          <h2 className="font-bold text-gray-800 text-lg mb-4">
-            Quick Actions
-          </h2>
-          <div className="grid grid-cols-2 gap-4">
-            <button className="flex flex-col items-center gap-2 p-4 rounded-xl bg-[#BAE6FD] hover:bg-[#7DD3FC] transition-colors">
-              <span className="text-2xl">New</span>
-              <span className="font-semibold text-gray-700 text-sm">
-                New Enrollment
-              </span>
+          <h2 className="font-semibold text-slate-800 text-base mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <button className="flex flex-col items-start gap-1 p-4 rounded-lg bg-slate-50 border border-slate-200 hover:bg-blue-50 hover:border-blue-200 transition-colors group">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-400 group-hover:text-blue-500">Enroll</span>
+              <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900">New Enrollment</span>
             </button>
-            <button className="flex flex-col items-center gap-2 p-4 rounded-xl bg-[#FBCFE8] hover:bg-[#F9A8D4] transition-colors">
-              <span className="text-2xl">List</span>
-              <span className="font-semibold text-gray-700 text-sm">
-                View Waitlist
-              </span>
+            <button className="flex flex-col items-start gap-1 p-4 rounded-lg bg-slate-50 border border-slate-200 hover:bg-pink-50 hover:border-pink-200 transition-colors group">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-400 group-hover:text-pink-500">Wait</span>
+              <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900">View Waitlist</span>
             </button>
-            <button className="flex flex-col items-center gap-2 p-4 rounded-xl bg-[#E9D5FF] hover:bg-[#D8B4FE] transition-colors">
-              <span className="text-2xl">Rpt</span>
-              <span className="font-semibold text-gray-700 text-sm">
-                Reports
-              </span>
+            <button className="flex flex-col items-start gap-1 p-4 rounded-lg bg-slate-50 border border-slate-200 hover:bg-violet-50 hover:border-violet-200 transition-colors group">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-400 group-hover:text-violet-500">Rpt</span>
+              <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900">Reports</span>
             </button>
-            <button className="flex flex-col items-center gap-2 p-4 rounded-xl bg-[#BBF7D0] hover:bg-[#86EFAC] transition-colors">
-              <span className="text-2xl">Call</span>
-              <span className="font-semibold text-gray-700 text-sm">
-                Contact Parents
-              </span>
+            <button className="flex flex-col items-start gap-1 p-4 rounded-lg bg-slate-50 border border-slate-200 hover:bg-emerald-50 hover:border-emerald-200 transition-colors group">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-400 group-hover:text-emerald-500">Call</span>
+              <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900">Contact Parents</span>
             </button>
           </div>
         </motion.div>
 
         {/* Recent Enrollments */}
         <motion.div
-          initial={{
-            opacity: 0,
-            y: 20
-          }}
-          animate={{
-            opacity: 1,
-            y: 0
-          }}
-          transition={{
-            delay: 0.5
-          }}
-          className="bg-white rounded-2xl shadow-md p-6">
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+          className="bg-white rounded-xl border border-slate-200 p-6">
 
-          <h2 className="font-bold text-gray-800 text-lg mb-4">
-            Recent Enrollments
-          </h2>
-          <div className="space-y-4">
+          <h2 className="font-semibold text-slate-800 text-base mb-4">Recent Enrollments</h2>
+          <div className="space-y-3">
             {recentEnrollments.map((enrollment, index) =>
             <div
               key={index}
-              className="flex items-center justify-between p-3 rounded-xl bg-[#FFFBEB]">
+              className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
 
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#FBCFE8] flex items-center justify-center">
-                    <span>ST</span>
+                  <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0">
+                    {enrollment.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-800">
-                      {enrollment.name}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {enrollment.program}
-                    </p>
+                    <p className="text-sm font-semibold text-slate-800">{enrollment.name}</p>
+                    <p className="text-xs text-slate-500">{enrollment.program}</p>
                   </div>
                 </div>
-                <span className="text-xs font-medium text-gray-400 bg-white px-3 py-1 rounded-full">
-                  {enrollment.date}
-                </span>
+                <span className="text-xs text-slate-400 shrink-0">{enrollment.date}</span>
               </div>
             )}
           </div>
         </motion.div>
       </div>
 
-      {/* Announcement Banner */}
+      {/* Notice Banner */}
       <motion.div
-        initial={{
-          opacity: 0,
-          y: 20
-        }}
-        animate={{
-          opacity: 1,
-          y: 0
-        }}
-        transition={{
-          delay: 0.6
-        }}
-        className="mt-6 bg-gradient-to-r from-[#BAE6FD] to-[#FBCFE8] rounded-2xl p-6 flex items-center justify-between">
-
-        <div className="flex items-center gap-4">
-          <div>
-            <h3 className="font-bold text-gray-800">
-              Spring Registration Open!
-            </h3>
-            <p className="text-gray-600 text-sm">
-              Early bird discount ends March 15th
-            </p>
-          </div>
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.55 }}
+        className="mt-6 rounded-xl border border-blue-100 bg-blue-50 p-5 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-blue-900">Spring Registration Open</p>
+          <p className="text-xs text-blue-600 mt-0.5">Early bird discount ends March 15th</p>
         </div>
-        <button className="bg-white px-6 py-2 rounded-full font-bold text-gray-700 shadow-sm hover:shadow-md transition-shadow">
+        <button className="shrink-0 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-xs font-semibold text-white transition-colors">
           Learn More
         </button>
       </motion.div>
     </div>);
-
 }

@@ -197,11 +197,11 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
     <div className="flex h-screen flex-col overflow-hidden p-8">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-sky-600">
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-blue-600">
             Contact Management
           </p>
-          <h1 className="text-3xl font-extrabold text-gray-800">Manage Contact Page and Inbox</h1>
-          <p className="mt-1 text-gray-500">
+          <h1 className="text-3xl font-bold text-slate-900">Manage Contact Page and Inbox</h1>
+          <p className="mt-1 text-slate-500">
             Edit the public contact information, review incoming messages, and reply from staff.
           </p>
         </div>
@@ -209,14 +209,14 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
           <button
             type="button"
             onClick={onPreviewContact}
-            className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-gray-700 shadow-sm hover:bg-gray-50"
+            className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
           >
             Preview Contact Page
           </button>
           <button
             type="button"
             onClick={() => void handleReset()}
-            className="rounded-xl bg-gray-100 px-5 py-3 text-sm font-bold text-gray-700 hover:bg-gray-200"
+            className="rounded-xl bg-slate-100 px-5 py-3 text-sm font-bold text-slate-700 hover:bg-gray-200"
           >
             Reset Defaults
           </button>
@@ -232,109 +232,109 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
       </div>
 
       {saveMessage ?
-        <div className="mb-6 rounded-2xl border border-sky-200 bg-[#EFF6FF] px-5 py-4 text-sm font-semibold text-sky-700">
+        <div className="mb-6 rounded-xl border border-sky-200 bg-[#EFF6FF] px-5 py-4 text-sm font-semibold text-blue-700">
           {saveMessage}
         </div> :
         null}
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 xl:grid-cols-[0.78fr,1.22fr]">
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-xl font-extrabold text-gray-800">Public Contact Details</h2>
+        <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-xl font-bold text-slate-900">Public Contact Details</h2>
           <div className="space-y-4 overflow-auto pr-1">
             <label className="block">
-              <span className="text-sm font-bold text-gray-700">Page Title</span>
+              <span className="text-sm font-bold text-slate-700">Page Title</span>
               <input
                 value={content.pageTitle}
                 onChange={(event) => setContent((prev) => ({ ...prev, pageTitle: event.target.value }))}
-                className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-sky-300"
+                className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500"
               />
             </label>
             <label className="block">
-              <span className="text-sm font-bold text-gray-700">Page Description</span>
+              <span className="text-sm font-bold text-slate-700">Page Description</span>
               <textarea
                 rows={3}
                 value={content.pageDescription}
                 onChange={(event) => setContent((prev) => ({ ...prev, pageDescription: event.target.value }))}
-                className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-sky-300"
+                className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500"
               />
             </label>
             <label className="block">
-              <span className="text-sm font-bold text-gray-700">Form Title</span>
+              <span className="text-sm font-bold text-slate-700">Form Title</span>
               <input
                 value={content.formTitle}
                 onChange={(event) => setContent((prev) => ({ ...prev, formTitle: event.target.value }))}
-                className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-sky-300"
+                className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500"
               />
             </label>
             <label className="block">
-              <span className="text-sm font-bold text-gray-700">Form Description</span>
+              <span className="text-sm font-bold text-slate-700">Form Description</span>
               <textarea
                 rows={3}
                 value={content.formDescription}
                 onChange={(event) => setContent((prev) => ({ ...prev, formDescription: event.target.value }))}
-                className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-sky-300"
+                className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500"
               />
             </label>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <label className="block">
-                <span className="text-sm font-bold text-gray-700">Administrator Label</span>
+                <span className="text-sm font-bold text-slate-700">Administrator Label</span>
                 <input
                   value={content.administratorLabel}
                   onChange={(event) => setContent((prev) => ({ ...prev, administratorLabel: event.target.value }))}
-                  className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-sky-300"
+                  className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500"
                 />
               </label>
               <label className="block">
-                <span className="text-sm font-bold text-gray-700">Administrator Name</span>
+                <span className="text-sm font-bold text-slate-700">Administrator Name</span>
                 <input
                   value={content.administratorName}
                   onChange={(event) => setContent((prev) => ({ ...prev, administratorName: event.target.value }))}
-                  className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-sky-300"
+                  className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500"
                 />
               </label>
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <label className="block">
-                <span className="text-sm font-bold text-gray-700">Phone</span>
+                <span className="text-sm font-bold text-slate-700">Phone</span>
                 <input
                   value={content.phone}
                   onChange={(event) => setContent((prev) => ({ ...prev, phone: event.target.value }))}
-                  className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-sky-300"
+                  className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500"
                 />
               </label>
               <label className="block">
-                <span className="text-sm font-bold text-gray-700">Email</span>
+                <span className="text-sm font-bold text-slate-700">Email</span>
                 <input
                   value={content.email}
                   onChange={(event) => setContent((prev) => ({ ...prev, email: event.target.value }))}
-                  className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-sky-300"
+                  className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500"
                 />
               </label>
             </div>
             <label className="block">
-              <span className="text-sm font-bold text-gray-700">Address</span>
+              <span className="text-sm font-bold text-slate-700">Address</span>
               <input
                 value={content.address}
                 onChange={(event) => setContent((prev) => ({ ...prev, address: event.target.value }))}
-                className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-sky-300"
+                className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500"
               />
             </label>
             <label className="block">
-              <span className="text-sm font-bold text-gray-700">Office Hours</span>
+              <span className="text-sm font-bold text-slate-700">Office Hours</span>
               <input
                 value={content.officeHours}
                 onChange={(event) => setContent((prev) => ({ ...prev, officeHours: event.target.value }))}
-                className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-sky-300"
+                className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500"
               />
             </label>
           </div>
         </section>
 
-        <section className="flex min-h-0 flex-col rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+        <section className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-xl font-extrabold text-gray-800">Inbox</h2>
-              <p className="mt-1 text-sm text-gray-500">
+              <h2 className="text-xl font-bold text-slate-900">Inbox</h2>
+              <p className="mt-1 text-sm text-slate-500">
                 Incoming messages from the contact page are listed here.
               </p>
             </div>
@@ -343,7 +343,7 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
               onClick={() => void fetchContactMessages().then((nextMessages) => {
                 setMessages(nextMessages);
               })}
-              className="rounded-xl bg-[#EFF6FF] px-4 py-2 text-sm font-bold text-sky-700 hover:bg-[#DBEAFE]"
+              className="rounded-xl bg-[#EFF6FF] px-4 py-2 text-sm font-bold text-blue-700 hover:bg-[#DBEAFE]"
             >
               Refresh Inbox
             </button>
@@ -383,7 +383,7 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
           <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-[250px,minmax(0,1fr)]">
             <div className="min-h-0 space-y-3 overflow-auto pr-1">
               {filteredMessages.length === 0 ?
-                <div className="rounded-2xl bg-[#F8FBFF] px-4 py-5 text-sm text-gray-500">
+                <div className="rounded-xl bg-slate-50 px-4 py-5 text-sm text-slate-500">
                   {inboxFilter === 'all' ? 'No messages yet.' : `No ${inboxFilter.toLowerCase()} messages.`}
                 </div> :
                 filteredMessages.map((message) =>
@@ -391,36 +391,36 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
                     key={message.id}
                     type="button"
                     onClick={() => setSelectedMessageId(message.id)}
-                    className={`w-full rounded-2xl border px-4 py-4 text-left transition ${selectedMessageId === message.id ? 'border-sky-300 bg-[#EFF6FF]' : 'border-gray-100 bg-gray-50 hover:bg-gray-100'}`}>
+                    className={`w-full rounded-xl border px-4 py-4 text-left transition ${selectedMessageId === message.id ? 'border-sky-300 bg-[#EFF6FF]' : 'border-slate-200 bg-slate-50 hover:bg-slate-100'}`}>
 
-                    <p className="text-sm font-extrabold text-gray-800">{message.subject}</p>
-                    <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-sky-600">
+                    <p className="text-sm font-bold text-slate-900">{message.subject}</p>
+                    <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-blue-600">
                       {message.status}
                     </p>
-                    <p className="mt-2 text-xs text-gray-500">{message.senderName}</p>
-                    <p className="mt-1 text-xs text-gray-400">{formatDateTime(message.updatedAt)}</p>
+                    <p className="mt-2 text-xs text-slate-500">{message.senderName}</p>
+                    <p className="mt-1 text-xs text-slate-400">{formatDateTime(message.updatedAt)}</p>
                   </button>
                 )}
             </div>
 
-            <div className="flex min-h-0 h-full flex-col overflow-hidden rounded-2xl border border-gray-100 bg-[#F8FBFF] p-5">
+            <div className="flex min-h-0 h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-5">
               {selectedMessage ?
                 <div className="flex min-h-0 flex-1 flex-col">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <h3 className="text-xl font-extrabold text-gray-800">{selectedMessage.subject}</h3>
-                      <p className="mt-1 text-sm text-gray-500">
+                      <h3 className="text-xl font-bold text-slate-900">{selectedMessage.subject}</h3>
+                      <p className="mt-1 text-sm text-slate-500">
                         From {selectedMessage.senderName} · {selectedMessage.senderEmail}
                         {selectedMessage.senderPhone ? ` · ${selectedMessage.senderPhone}` : ''}
                       </p>
-                      <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-sky-600">
+                      <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-blue-600">
                         Created {formatDateTime(selectedMessage.createdAt)}
                       </p>
                     </div>
                     <select
                       value={selectedMessage.status}
                       onChange={(event) => void handleStatusChange(event.target.value as 'New' | 'Replied' | 'Closed')}
-                      className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-700 outline-none focus:border-sky-300">
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-blue-500">
 
                       <option value="New">New</option>
                       <option value="Replied">Replied</option>
@@ -429,26 +429,26 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
                   </div>
 
                   <div className="mt-5 flex min-h-0 flex-1 flex-col">
-                    <p className="text-sm font-bold uppercase tracking-wide text-gray-500">Thread</p>
+                    <p className="text-sm font-bold uppercase tracking-wide text-slate-500">Thread</p>
                     <div className="mt-3 min-h-0 flex-1 overflow-auto pr-1">
-                      <div className="space-y-3 rounded-2xl bg-white p-3 shadow-sm">
+                      <div className="space-y-3 rounded-xl bg-white p-3 shadow-sm">
                         <div className="flex justify-start">
-                          <div className="max-w-[88%] rounded-2xl rounded-tl-md border border-gray-100 bg-[#F8FAFC] px-4 py-3">
+                          <div className="max-w-[88%] rounded-xl rounded-tl-md border border-slate-200 bg-slate-50 px-4 py-3">
                             <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-sm font-extrabold text-gray-800">{selectedMessage.senderName}</p>
-                              <span className="text-xs font-semibold uppercase tracking-wide text-sky-600">
+                              <p className="text-sm font-bold text-slate-900">{selectedMessage.senderName}</p>
+                              <span className="text-xs font-semibold uppercase tracking-wide text-blue-600">
                                 guardian
                               </span>
-                              <p className="text-xs text-gray-400">{formatDateTime(selectedMessage.createdAt)}</p>
+                              <p className="text-xs text-slate-400">{formatDateTime(selectedMessage.createdAt)}</p>
                             </div>
-                            <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-gray-700">
+                            <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">
                               {selectedMessage.body}
                             </p>
                           </div>
                         </div>
 
                         {selectedMessage.replies.length === 0 ?
-                          <div className="rounded-2xl bg-[#F8FBFF] px-4 py-4 text-sm text-gray-500">
+                          <div className="rounded-xl bg-slate-50 px-4 py-4 text-sm text-slate-500">
                             No replies yet.
                           </div> :
                           selectedMessage.replies.map((reply) => {
@@ -457,24 +457,24 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
                             return (
                               <div key={reply.id} className={`flex ${isOwnReply ? 'justify-end' : 'justify-start'}`}>
                                 <div
-                                  className={`max-w-[88%] rounded-2xl px-4 py-3 shadow-sm ${
+                                  className={`max-w-[88%] rounded-xl px-4 py-3 shadow-sm ${
                                     isOwnReply
                                       ? 'rounded-tr-md bg-[#DBEAFE] text-[#1E3A8A]'
-                                      : 'rounded-tl-md border border-gray-100 bg-[#F8FAFC] text-gray-800'
+                                      : 'rounded-tl-md border border-slate-200 bg-slate-50 text-slate-900'
                                   }`}
                                 >
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <p className={`text-sm font-extrabold ${isOwnReply ? 'text-[#1E40AF]' : 'text-gray-800'}`}>
+                                    <p className={`text-sm font-bold ${isOwnReply ? 'text-[#1E40AF]' : 'text-slate-900'}`}>
                                       {reply.authorName}
                                     </p>
-                                    <span className={`text-xs font-semibold uppercase tracking-wide ${isOwnReply ? 'text-[#1D4ED8]' : 'text-sky-600'}`}>
+                                    <span className={`text-xs font-semibold uppercase tracking-wide ${isOwnReply ? 'text-[#1D4ED8]' : 'text-blue-600'}`}>
                                       {reply.authorRole}
                                     </span>
-                                    <p className={`text-xs ${isOwnReply ? 'text-blue-600' : 'text-gray-400'}`}>
+                                    <p className={`text-xs ${isOwnReply ? 'text-blue-600' : 'text-slate-400'}`}>
                                       {formatDateTime(reply.createdAt)}
                                     </p>
                                   </div>
-                                  <p className={`mt-2 whitespace-pre-wrap break-words text-sm leading-6 ${isOwnReply ? 'text-[#1E3A8A]' : 'text-gray-700'}`}>
+                                  <p className={`mt-2 whitespace-pre-wrap break-words text-sm leading-6 ${isOwnReply ? 'text-[#1E3A8A]' : 'text-slate-700'}`}>
                                     {reply.body}
                                   </p>
                                 </div>
@@ -487,13 +487,13 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
 
                   <div className="mt-5">
                     <label className="block">
-                      <span className="text-sm font-bold text-gray-700">Reply</span>
+                      <span className="text-sm font-bold text-slate-700">Reply</span>
                       <textarea
                         rows={4}
                         value={replyBody}
                         onChange={(event) => setReplyBody(event.target.value)}
                         onKeyDown={handleReplyInputKeyDown}
-                        className="mt-2 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-sky-300"
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
                         placeholder="Write your reply to this contact message. Press Enter to send, Shift+Enter for a new line." />
 
                     </label>
@@ -509,7 +509,7 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
                     </div>
                   </div>
                 </div> :
-                <div className="rounded-2xl bg-white px-4 py-5 text-sm text-gray-500 shadow-sm">
+                <div className="rounded-xl bg-white px-4 py-5 text-sm text-slate-500 shadow-sm">
                   Select a message to review and reply.
                 </div>}
             </div>

@@ -51,59 +51,59 @@ export function StaffAccessGatePage({ onVerify }: StaffAccessGatePageProps) {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#EEF5FF] p-4">
+    <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-lg overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-xl"
+        className="w-full max-w-lg overflow-hidden rounded-xl border border-blue-100 bg-white shadow-xl"
       >
         <div className="bg-gradient-to-r from-[#1D4ED8] to-[#60A5FA] p-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-blue-100 bg-white/90 text-blue-700">
             <BadgeIcon className="h-8 w-8" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">Staff Access Verification</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Staff Access Verification</h1>
           <p className="mt-2 font-medium text-blue-900">
             Confirm who is opening this staff account before entering the dashboard.
           </p>
         </div>
 
         <div className="p-8">
-          <div className="mb-6 rounded-2xl border border-blue-100 bg-[#EFF6FF] px-4 py-3 text-sm text-gray-700">
-            <p className="font-bold text-gray-800">Signed in account</p>
+          <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            <p className="font-bold text-slate-900">Signed in account</p>
             <p className="mt-1">{user?.name || 'Staff Account'}</p>
-            <p className="text-xs text-gray-500">{user?.email}</p>
+            <p className="text-xs text-slate-500">{user?.email}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="mb-1 block text-sm font-bold text-gray-700">
+              <label className="mb-1 block text-sm font-bold text-slate-700">
                 Staff Member Name <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <UserIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <UserIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   required
                   value={openerName}
                   onChange={(event) => setOpenerName(event.target.value)}
-                  className="w-full rounded-xl border-2 border-blue-100 bg-[#EFF6FF] py-3 pl-10 pr-4 focus:border-[#60A5FA] focus:outline-none transition-colors"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 focus:border-blue-500 focus:outline-none transition-colors"
                   placeholder="Enter the name of the person opening this account"
                 />
               </div>
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-bold text-gray-700">
+              <label className="mb-1 block text-sm font-bold text-slate-700">
                 Teacher ID <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <BadgeIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                <BadgeIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   required
                   value={teacherId}
                   onChange={(event) => setTeacherId(event.target.value)}
-                  className="w-full rounded-xl border-2 border-blue-100 bg-[#EFF6FF] py-3 pl-10 pr-4 focus:border-[#60A5FA] focus:outline-none transition-colors"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 focus:border-blue-500 focus:outline-none transition-colors"
                   placeholder="Enter teacher ID"
                 />
               </div>

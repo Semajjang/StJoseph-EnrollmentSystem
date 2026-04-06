@@ -81,22 +81,17 @@ export function SignupPage({ onSwitchToLogin }: SignupPageProps) {
     }
   };
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#EEF5FF] p-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 py-8">
       <motion.div
-        initial={{
-          opacity: 0,
-          scale: 0.95
-        }}
-        animate={{
-          opacity: 1,
-          scale: 1
-        }}
-        className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-blue-100">
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200/60 overflow-hidden">
 
-        <div className="bg-gradient-to-r from-[#1D4ED8] to-[#60A5FA] p-6 text-center">
-          <h1 className="text-2xl font-bold text-gray-800">Create Account</h1>
-          <p className="text-blue-900 font-medium">
-            Guardian registration for St. Joseph Daycare Center
+        <div className="bg-[#0F172A] px-8 py-6">
+          <h1 className="text-xl font-bold text-white">Create Guardian Account</h1>
+          <p className="text-sm text-slate-400 mt-0.5">
+            St. Joseph Daycare Center — Online Enrollment System
           </p>
         </div>
 
@@ -104,67 +99,64 @@ export function SignupPage({ onSwitchToLogin }: SignupPageProps) {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                <label className="block text-xs font-medium text-slate-600 mb-1.5 uppercase tracking-wide">
                   First Name <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
                   <input
                     name="firstName"
                     type="text"
                     required
                     value={formData.firstName}
                     onChange={handleChange}
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors"
                     placeholder="Juan" />
-
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                <label className="block text-xs font-medium text-slate-600 mb-1.5 uppercase tracking-wide">
                   Middle Name
                 </label>
                 <div className="relative">
-                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
                   <input
                     name="middleName"
                     type="text"
                     value={formData.middleName}
                     onChange={handleChange}
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors"
                     placeholder="Santos" />
-
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                <label className="block text-xs font-medium text-slate-600 mb-1.5 uppercase tracking-wide">
                   Last Name <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
                   <input
                     name="lastName"
                     type="text"
                     required
                     value={formData.lastName}
                     onChange={handleChange}
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors"
                     placeholder="Dela Cruz" />
-
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                <label className="block text-xs font-medium text-slate-600 mb-1.5 uppercase tracking-wide">
                   Suffix
                 </label>
                 <select
                   name="suffix"
                   value={formData.suffix}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors"
                 >
                   <option value="">None</option>
                   <option value="Jr.">Jr.</option>
@@ -183,18 +175,18 @@ export function SignupPage({ onSwitchToLogin }: SignupPageProps) {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+              <label className="block text-xs font-medium text-slate-600 mb-1.5 uppercase tracking-wide">
                 Email <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
                 <input
                   name="email"
                   type="email"
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors"
                   placeholder="juan@example.com" />
 
               </div>
@@ -202,97 +194,87 @@ export function SignupPage({ onSwitchToLogin }: SignupPageProps) {
 
             <div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                <label className="block text-xs font-medium text-slate-600 mb-1.5 uppercase tracking-wide">
                   Phone (+63) <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <PhoneIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <PhoneIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
                   <input
                     name="phone"
                     type="tel"
                     required
                     value={formData.phone}
                     onChange={handleChange}
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors"
                     placeholder="912 345 6789" />
-
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                <label className="block text-xs font-medium text-slate-600 mb-1.5 uppercase tracking-wide">
                   Password <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
                   <input
                     name="password"
                     type="password"
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors"
                     placeholder="••••••" />
-
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
+                <label className="block text-xs font-medium text-slate-600 mb-1.5 uppercase tracking-wide">
                   Confirm <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
                   <input
                     name="confirmPassword"
                     type="password"
                     required
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
+                    className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors"
                     placeholder="••••••" />
-
                 </div>
               </div>
             </div>
 
             {errorMessage ?
-            <p className="text-sm font-medium text-red-600">{errorMessage}</p> :
-            null}
+              <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</div> :
+              null}
 
             {successMessage ?
-            <p className="text-sm font-medium text-green-700">{successMessage}</p> :
-            null}
+              <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{successMessage}</div> :
+              null}
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full mt-6 bg-[#1D4ED8] hover:bg-[#1E40AF] text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
-
+              className="w-full mt-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm">
               {isLoading ?
-              <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> :
-
-              <>
-                  Create Account <ArrowRightIcon className="w-5 h-5" />
-                </>
-              }
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> :
+                <>Create Account <ArrowRightIcon className="w-4 h-4" /></>}
             </button>
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-gray-500 text-sm">
+            <p className="text-sm text-slate-500">
               Already have an account?{' '}
               <button
                 onClick={onSwitchToLogin}
-                className="text-[#3B82F6] font-bold hover:underline">
-
-                Sign in here
+                className="font-semibold text-blue-600 hover:text-blue-700 transition">
+                Sign in
               </button>
             </p>
           </div>
         </div>
       </motion.div>
     </div>);
-
 }

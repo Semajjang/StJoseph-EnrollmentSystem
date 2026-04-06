@@ -949,7 +949,7 @@ export function StaffDashboard() {
       );
 
       if (siblingDetails.length === 0) {
-        return <p className="text-sm text-gray-800 break-words">N/A</p>;
+        return <p className="text-sm text-slate-900 break-words">N/A</p>;
       }
 
       return (
@@ -957,21 +957,21 @@ export function StaffDashboard() {
           {siblingDetails.map((sibling, index) => (
             <div
               key={`sibling-detail-${index}`}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-2"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2"
             >
-              <p className="text-sm font-semibold text-gray-800">
+              <p className="text-sm font-semibold text-slate-900">
                 {typeof sibling.name === 'string' && sibling.name.trim() ? sibling.name : `Sibling ${index + 1}`}
               </p>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-slate-600">
                 Birthday: {formatValue(sibling.dateOfBirth)}
               </p>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-slate-600">
                 Sex: {formatValue(sibling.sex)}
               </p>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-slate-600">
                 Age: {formatValue(sibling.age)}
               </p>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-slate-600">
                 Program: {formatValue(sibling.program)}
               </p>
             </div>
@@ -980,7 +980,7 @@ export function StaffDashboard() {
       );
     }
 
-    return <p className="text-sm text-gray-800 break-words">{formatValue(value)}</p>;
+    return <p className="text-sm text-slate-900 break-words">{formatValue(value)}</p>;
   };
 
   const openRequirementFile = async (
@@ -1371,17 +1371,17 @@ export function StaffDashboard() {
     <div className="p-8 pb-24">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-800">
+          <h1 className="text-3xl font-bold text-slate-900">
             Staff Dashboard
           </h1>
-          <p className="text-gray-500 mt-1">Manage students and enrollments.</p>
+          <p className="text-slate-500 mt-1">Manage students and enrollments.</p>
         </div>
         {selectedSection === null ?
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={handleDownloadCSV}
-              className="bg-[#BAE6FD] hover:bg-[#7DD3FC] px-6 py-3 rounded-xl font-bold text-gray-800 flex items-center gap-2 transition-colors shadow-sm"
+              className="bg-[#BAE6FD] hover:bg-[#7DD3FC] px-6 py-3 rounded-xl font-bold text-slate-900 flex items-center gap-2 transition-colors shadow-sm"
             >
               <DownloadIcon className="w-5 h-5" />
               Download Masterlist
@@ -1393,56 +1393,56 @@ export function StaffDashboard() {
       <div className="mb-8">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-600">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600">
               Aggregate Summary Reports
             </p>
-            <h2 className="mt-1 text-2xl font-extrabold text-gray-800">
+            <h2 className="mt-1 text-2xl font-bold text-slate-900">
               Enrollment Snapshot
             </h2>
           </div>
-          <p className="text-sm font-medium text-gray-500">
+          <p className="text-sm font-medium text-slate-500">
             {selectedSection ? `${selectedSection} · ${selectedProgramLabel}` : selectedProgramLabel}
           </p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          <div className="rounded-3xl border border-blue-100 bg-white p-6 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
+          <div className="rounded-xl border border-blue-100 bg-white p-6 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
               Total Enrolled
             </p>
-            <p className="mt-3 text-4xl font-extrabold text-gray-800">
+            <p className="mt-3 text-4xl font-bold text-slate-900">
               {isLoading ? '...' : aggregateSummary.totalEnrolled}
             </p>
           </div>
-          <div className="rounded-3xl border border-yellow-100 bg-[#FFFBEA] p-6 shadow-sm">
+          <div className="rounded-xl border border-yellow-100 bg-[#FFFBEA] p-6 shadow-sm">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-yellow-700/80">
               Pending
             </p>
-            <p className="mt-3 text-4xl font-extrabold text-yellow-800">
+            <p className="mt-3 text-4xl font-bold text-yellow-800">
               {isLoading ? '...' : aggregateSummary.pending}
             </p>
           </div>
-          <div className="rounded-3xl border border-green-100 bg-[#F0FDF4] p-6 shadow-sm">
+          <div className="rounded-xl border border-green-100 bg-[#F0FDF4] p-6 shadow-sm">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-green-700/80">
               Approved
             </p>
-            <p className="mt-3 text-4xl font-extrabold text-green-800">
+            <p className="mt-3 text-4xl font-bold text-green-800">
               {isLoading ? '...' : aggregateSummary.approved}
             </p>
           </div>
-          <div className="rounded-3xl border border-orange-100 bg-[#FFF7ED] p-6 shadow-sm">
+          <div className="rounded-xl border border-orange-100 bg-[#FFF7ED] p-6 shadow-sm">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-700/80">
               Waitlisted
             </p>
-            <p className="mt-3 text-4xl font-extrabold text-orange-800">
+            <p className="mt-3 text-4xl font-bold text-orange-800">
               {isLoading ? '...' : aggregateSummary.waitlisted}
             </p>
           </div>
-          <div className="rounded-3xl border border-red-100 bg-[#FEF2F2] p-6 shadow-sm">
+          <div className="rounded-xl border border-red-100 bg-[#FEF2F2] p-6 shadow-sm">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-700/80">
               Rejected
             </p>
-            <p className="mt-3 text-4xl font-extrabold text-red-800">
+            <p className="mt-3 text-4xl font-bold text-red-800">
               {isLoading ? '...' : aggregateSummary.rejected}
             </p>
           </div>
@@ -1459,7 +1459,7 @@ export function StaffDashboard() {
           opacity: 1,
           y: 0
         }}
-        className="bg-gradient-to-r from-[#93C5FD] via-[#3B82F6] to-[#1D4ED8] rounded-3xl p-8 mb-10 text-white shadow-lg relative overflow-hidden">
+        className="bg-gradient-to-r from-[#93C5FD] via-[#3B82F6] to-[#1D4ED8] rounded-xl p-8 mb-10 text-white shadow-lg relative overflow-hidden">
 
         <div className="pointer-events-none absolute right-0 top-0 w-64 h-64 bg-white opacity-10 rounded-full -mr-16 -mt-16" />
         <div className="relative z-10">
@@ -1472,7 +1472,7 @@ export function StaffDashboard() {
                   key={program}
                   type="button"
                   onClick={() => setSelectedProgram(program)}
-                  className={`rounded-full px-4 py-2 text-sm font-bold transition-all ${isActive ? 'bg-white text-gray-800 shadow-md' : 'bg-white/25 text-gray-800 hover:bg-white/40'}`}
+                  className={`rounded-full px-4 py-2 text-sm font-bold transition-all ${isActive ? 'bg-white text-slate-900 shadow-md' : 'bg-white/25 text-slate-900 hover:bg-white/40'}`}
                 >
                   {program}
                 </button>
@@ -1480,7 +1480,7 @@ export function StaffDashboard() {
             })}
           </div>
           <div className="mb-2 flex flex-wrap items-center gap-3">
-            <h2 className="text-4xl font-extrabold text-gray-800">
+            <h2 className="text-4xl font-bold text-slate-900">
               {heroTitle}
             </h2>
             {activeManagedProgram && selectedSection ?
@@ -1488,7 +1488,7 @@ export function StaffDashboard() {
                 <button
                   type="button"
                   onClick={() => setIsSectionInfoOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-gray-800 shadow-sm transition hover:bg-gray-100"
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-900 shadow-sm transition hover:bg-slate-100"
                 >
                   <InfoIcon className="h-4 w-4" />
                   Section Info
@@ -1496,7 +1496,7 @@ export function StaffDashboard() {
                 <button
                   type="button"
                   onClick={handleDownloadSectionCSV}
-                  className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-gray-800 shadow-sm transition hover:bg-gray-100"
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-900 shadow-sm transition hover:bg-slate-100"
                 >
                   <DownloadIcon className="h-4 w-4" />
                   Download Section Masterlist
@@ -1504,22 +1504,22 @@ export function StaffDashboard() {
               </> :
               null}
           </div>
-          <p className="text-gray-800 font-medium opacity-80 text-lg mb-8">
+          <p className="text-slate-900 font-medium opacity-80 text-lg mb-8">
             {selectedSection ? `${selectedProgramLabel} Section` : selectedProgramLabel}
           </p>
 
-          <div className="mb-8 rounded-2xl bg-white/20 p-4 backdrop-blur-sm">
+          <div className="mb-8 rounded-xl bg-white/20 p-4 backdrop-blur-sm">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-700/70">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-700/70">
                   Section Management
                 </p>
-                <h3 className="mt-1 text-xl font-bold text-gray-800">
+                <h3 className="mt-1 text-xl font-bold text-slate-900">
                   {activeManagedProgram ? `${activeManagedProgram} Sections` : 'Select a program first'}
                 </h3>
                 {activeManagedProgram ?
                   <div className="mt-3 flex items-center gap-3">
-                    <span className="text-sm font-semibold text-gray-700">
+                    <span className="text-sm font-semibold text-slate-700">
                       Automatic assignment
                     </span>
                     <button
@@ -1529,7 +1529,7 @@ export function StaffDashboard() {
                     >
                       {activeAutoAssign ? 'ON' : 'OFF'}
                     </button>
-                    <span className="text-xs font-medium text-gray-500">
+                    <span className="text-xs font-medium text-slate-500">
                       Max {sectionCapacity} students per section
                     </span>
                   </div> :
@@ -1550,7 +1550,7 @@ export function StaffDashboard() {
                   placeholder={
                     activeManagedProgram ? 'Add a section name' : 'Choose a program to add sections'
                   }
-                  className="w-full rounded-full border border-white/40 bg-white/90 px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-white lg:w-[240px]"
+                  className="w-full rounded-full border border-white/40 bg-white/90 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-white lg:w-[240px]"
                 />
                 <input
                   type="time"
@@ -1564,7 +1564,7 @@ export function StaffDashboard() {
                   }}
                   disabled={!activeManagedProgram}
                   aria-label="Section start time"
-                  className="w-full rounded-full border border-white/40 bg-white/90 px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-white lg:w-[180px]"
+                  className="w-full rounded-full border border-white/40 bg-white/90 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-white lg:w-[180px]"
                 />
                 <input
                   type="time"
@@ -1578,7 +1578,7 @@ export function StaffDashboard() {
                   }}
                   disabled={!activeManagedProgram}
                   aria-label="Section end time"
-                  className="w-full rounded-full border border-white/40 bg-white/90 px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-white lg:w-[180px]"
+                  className="w-full rounded-full border border-white/40 bg-white/90 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-white lg:w-[180px]"
                 />
                 <button
                   type="button"
@@ -1596,7 +1596,7 @@ export function StaffDashboard() {
             </div>
 
             {activeManagedProgram ?
-              <p className="mt-3 text-sm font-medium text-gray-700">
+              <p className="mt-3 text-sm font-medium text-slate-700">
                 New sections will be saved with a time range, for example Section A (10:00 AM - 11:00 AM).
               </p> :
               null}
@@ -1614,7 +1614,7 @@ export function StaffDashboard() {
                     <button
                       type="button"
                       onClick={() => setSelectedSection(null)}
-                      className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${selectedSection === null ? 'bg-gray-800 text-white shadow-sm' : 'bg-white text-gray-800 shadow-sm hover:bg-gray-100'}`}
+                      className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${selectedSection === null ? 'bg-gray-800 text-white shadow-sm' : 'bg-white text-slate-900 shadow-sm hover:bg-slate-100'}`}
                     >
                       All Sections
                     </button>
@@ -1623,16 +1623,16 @@ export function StaffDashboard() {
                         key={section}
                         type="button"
                         onClick={() => setSelectedSection(section)}
-                        className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${selectedSection === section ? 'bg-gray-800 text-white shadow-sm' : 'bg-white text-gray-800 shadow-sm hover:bg-gray-100'}`}
+                        className={`rounded-full px-3 py-1.5 text-sm font-semibold transition ${selectedSection === section ? 'bg-gray-800 text-white shadow-sm' : 'bg-white text-slate-900 shadow-sm hover:bg-slate-100'}`}
                       >
                         {section}
                       </button>
                     ))}
                   </> :
-                  <p className="text-sm font-medium text-gray-700">
+                  <p className="text-sm font-medium text-slate-700">
                     No sections added yet for this program.
                   </p> :
-                <p className="text-sm font-medium text-gray-700">
+                <p className="text-sm font-medium text-slate-700">
                   Pick one of the three programs above to add and manage its sections.
                 </p>}
             </div>
@@ -1654,11 +1654,11 @@ export function StaffDashboard() {
                 stiffness: 100,
                 delay: 0.2
               }}
-              className="text-7xl font-extrabold text-gray-800">
+              className="text-7xl font-bold text-slate-900">
 
               {selectedSection ? `${selectedSectionApprovedCount}/${sectionCapacity}` : approvedStudentsCount}
             </motion.span>
-            <span className="text-xl font-bold text-gray-800 mb-2 opacity-70">
+            <span className="text-xl font-bold text-slate-900 mb-2 opacity-70">
               {selectedSection ? 'Section Capacity Used' : 'Total Approved Students'}
             </span>
           </div>
@@ -1666,15 +1666,15 @@ export function StaffDashboard() {
       </motion.div>
 
       {/* Masterlist Table */}
-      <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-100">
-        <div className="p-6 border-b border-gray-100">
+      <div className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-200">
+        <div className="p-6 border-b border-slate-200">
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="font-bold text-gray-800 text-lg">Masterlist</h3>
+              <h3 className="font-bold text-slate-900 text-lg">Masterlist</h3>
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="rounded-full bg-gray-100 px-4 py-2 text-xs font-bold text-gray-700 transition hover:bg-gray-200"
+                className="rounded-full bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700 transition hover:bg-gray-200"
               >
                 Reset Filters
               </button>
@@ -1683,7 +1683,7 @@ export function StaffDashboard() {
               <select
                 value={lastNameSortOrder}
                 onChange={(event) => setLastNameSortOrder(event.target.value as 'a-z' | 'z-a')}
-                className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-sky-300"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-500"
               >
                 <option value="a-z">Last Name: A-Z</option>
                 <option value="z-a">Last Name: Z-A</option>
@@ -1693,7 +1693,7 @@ export function StaffDashboard() {
                   <select
                     value={programFilter}
                     onChange={(event) => setProgramFilter(event.target.value)}
-                    className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-sky-300"
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-500"
                   >
                     <option value="all">All Programs</option>
                     {managedPrograms.map((program) => (
@@ -1705,7 +1705,7 @@ export function StaffDashboard() {
                   <select
                     value={assignmentFilter}
                     onChange={(event) => setAssignmentFilter(event.target.value)}
-                    className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-sky-300"
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-500"
                   >
                     <option value="all">All Assignments</option>
                     <option value="assigned">Assigned</option>
@@ -1714,7 +1714,7 @@ export function StaffDashboard() {
                   <select
                     value={statusFilter}
                     onChange={(event) => setStatusFilter(event.target.value)}
-                    className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-sky-300"
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-500"
                   >
                     <option value="all">All Statuses</option>
                     <option value="Pending">Pending</option>
@@ -1728,7 +1728,7 @@ export function StaffDashboard() {
                 <select
                   value={sectionFilter}
                   onChange={(event) => setSectionFilter(event.target.value)}
-                  className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-sky-300"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-500"
                 >
                   <option value="all">All Sections</option>
                   <option value="__unassigned__">Unassigned</option>
@@ -1744,37 +1744,37 @@ export function StaffDashboard() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-slate-50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
                   #
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
                   Last Name
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
                   First Name
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
                   Program
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
                   Section
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
                   Date
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-slate-100">
               {filteredMasterlist.length === 0 ?
               <tr>
                   <td
                   colSpan={7}
-                  className="px-6 py-12 text-center text-gray-500">
+                  className="px-6 py-12 text-center text-slate-500">
 
                     {isLoading ?
                       'Loading enrollments...' :
@@ -1807,21 +1807,21 @@ export function StaffDashboard() {
                 }}
                 tabIndex={0}
                 role="button"
-                className={`${index % 2 === 0 ? 'bg-white' : 'bg-[#FFFBEB]'} cursor-pointer hover:bg-[#F0F9FF] focus:outline-none focus:ring-2 focus:ring-sky-200`}>
+                className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50'} cursor-pointer hover:bg-[#F0F9FF] focus:outline-none focus:ring-2 focus:ring-sky-200`}>
 
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-medium">
                       {index + 1}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-900">
                       {student.childLastName}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                       {student.childFirstName}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                       {student.program}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                       <div className="relative w-fit min-w-[170px]">
                         <select
                           value={student.section || ''}
@@ -1831,7 +1831,7 @@ export function StaffDashboard() {
                             const nextValue = event.target.value || null;
                             void handleUpdateStudentSection(student, nextValue);
                           }}
-                          className={`w-full appearance-none rounded-full border-none px-3 py-2 pr-7 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-sky-200 ${student.status === 'Approved' ? 'bg-slate-100 text-gray-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                          className={`w-full appearance-none rounded-full border-none px-3 py-2 pr-7 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-sky-200 ${student.status === 'Approved' ? 'bg-slate-100 text-slate-700' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
                         >
                           <option value="">Unassigned</option>
                           {(() => {
@@ -1866,7 +1866,7 @@ export function StaffDashboard() {
                         </span>
                       </div>
                       {student.status !== 'Approved' ?
-                        <p className="mt-1 text-[11px] font-medium text-gray-400">
+                        <p className="mt-1 text-[11px] font-medium text-slate-400">
                           Approve first to assign a section.
                         </p> :
                         null}
@@ -1907,7 +1907,7 @@ export function StaffDashboard() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                       {new Date(student.submittedAt).toLocaleDateString()}
                     </td>
                   </motion.tr>
@@ -1924,27 +1924,27 @@ export function StaffDashboard() {
           onClick={() => setIsSectionInfoOpen(false)}
         >
           <div
-            className="w-full max-w-5xl rounded-3xl bg-white p-6 shadow-2xl"
+            className="w-full max-w-5xl rounded-xl bg-white p-6 shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="border-b border-gray-100 pb-4">
+            <div className="border-b border-slate-200 pb-4">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
                   Section Info
                 </p>
-                <h3 className="mt-1 text-3xl font-extrabold text-gray-800">{selectedSection}</h3>
-                <p className="mt-1 text-sm font-medium text-gray-500">
+                <h3 className="mt-1 text-3xl font-bold text-slate-900">{selectedSection}</h3>
+                <p className="mt-1 text-sm font-medium text-slate-500">
                   {activeManagedProgram}
                 </p>
               </div>
             </div>
 
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-gray-50 p-5">
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-xl bg-slate-50 p-5">
               <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-gray-400">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
                   Number Of Students
                 </p>
-                <p className="mt-2 text-4xl font-extrabold text-gray-800">
+                <p className="mt-2 text-4xl font-bold text-slate-900">
                   {selectedSectionStudents.length}
                 </p>
               </div>
@@ -1973,9 +1973,9 @@ export function StaffDashboard() {
               </div>
             </div>
 
-            <div className="mt-5 grid grid-cols-1 gap-4 rounded-2xl border border-gray-100 p-5 md:grid-cols-3">
+            <div className="mt-5 grid grid-cols-1 gap-4 rounded-xl border border-slate-200 p-5 md:grid-cols-3">
               <label className="flex flex-col gap-2">
-                <span className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
                   Section Name
                 </span>
                 <input
@@ -1989,11 +1989,11 @@ export function StaffDashboard() {
                     }
                   }}
                   disabled={isSavingSectionInfo || isDeletingSection}
-                  className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-sky-300"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-500"
                 />
               </label>
               <label className="flex flex-col gap-2">
-                <span className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
                   Start Time
                 </span>
                 <input
@@ -2007,11 +2007,11 @@ export function StaffDashboard() {
                     }
                   }}
                   disabled={isSavingSectionInfo || isDeletingSection}
-                  className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-sky-300"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-500"
                 />
               </label>
               <label className="flex flex-col gap-2">
-                <span className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
                   End Time
                 </span>
                 <input
@@ -2025,16 +2025,16 @@ export function StaffDashboard() {
                     }
                   }}
                   disabled={isSavingSectionInfo || isDeletingSection}
-                  className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-sky-300"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-500"
                 />
               </label>
             </div>
 
-            <div className="mt-4 rounded-2xl bg-sky-50 p-4">
-              <p className="text-xs font-bold uppercase tracking-wide text-sky-700">
+            <div className="mt-4 rounded-xl bg-sky-50 p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-blue-700">
                 Updated Label Preview
               </p>
-              <p className="mt-2 text-lg font-bold text-gray-800">
+              <p className="mt-2 text-lg font-bold text-slate-900">
                 {buildSectionLabel(sectionEditName || selectedSection, sectionEditStartTime, sectionEditEndTime)}
               </p>
               {sectionEditStartTime && sectionEditEndTime && !isValidSectionTimeRange(sectionEditStartTime, sectionEditEndTime) ?
@@ -2053,13 +2053,13 @@ export function StaffDashboard() {
           onClick={() => setIsDeleteSectionConfirmOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"
+            className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <h3 className="text-xl font-extrabold text-gray-800">
+            <h3 className="text-xl font-bold text-slate-900">
               Delete Section
             </h3>
-            <p className="mt-3 text-sm leading-6 text-gray-600">
+            <p className="mt-3 text-sm leading-6 text-slate-600">
               Delete section {selectedSection}? Assigned students will become unassigned.
             </p>
             <div className="mt-6 flex justify-end gap-3">
@@ -2067,7 +2067,7 @@ export function StaffDashboard() {
                 type="button"
                 onClick={() => setIsDeleteSectionConfirmOpen(false)}
                 disabled={isDeletingSection}
-                className="rounded-full px-4 py-2 text-sm font-bold text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed"
+                className="rounded-full px-4 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
@@ -2091,11 +2091,11 @@ export function StaffDashboard() {
         onClick={() => setSelectedStudent(null)}
       >
           <div
-            className="bg-white w-full max-w-2xl rounded-2xl shadow-xl border border-gray-100 max-h-[85vh] overflow-y-auto"
+            className="bg-white w-full max-w-2xl rounded-xl shadow-xl border border-slate-200 max-h-[85vh] overflow-y-auto"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="text-lg font-bold text-gray-800">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <h3 className="text-lg font-bold text-slate-900">
                 Student Information Card
               </h3>
               <div className="flex items-center gap-2">
@@ -2112,74 +2112,74 @@ export function StaffDashboard() {
             <div className="p-6 space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold">
+                  <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">
                     Last Name
                   </p>
-                  <p className="text-sm font-bold text-gray-800">
+                  <p className="text-sm font-bold text-slate-900">
                     {selectedStudent.childLastName}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold">
+                  <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">
                     First Name
                   </p>
-                  <p className="text-sm font-bold text-gray-800">
+                  <p className="text-sm font-bold text-slate-900">
                     {selectedStudent.childFirstName}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold">
+                  <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">
                     Program
                   </p>
-                  <p className="text-sm text-gray-800">{selectedStudent.program}</p>
+                  <p className="text-sm text-slate-900">{selectedStudent.program}</p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold">
+                  <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">
                     Section
                   </p>
-                  <p className="text-sm text-gray-800">{selectedStudent.section || 'Unassigned'}</p>
+                  <p className="text-sm text-slate-900">{selectedStudent.section || 'Unassigned'}</p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold">
+                  <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">
                     Role
                   </p>
-                  <p className="text-sm text-gray-800">{selectedStudent.role}</p>
+                  <p className="text-sm text-slate-900">{selectedStudent.role}</p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold">
+                  <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">
                     Status
                   </p>
-                  <p className="text-sm text-gray-800">{selectedStudent.status}</p>
+                  <p className="text-sm text-slate-900">{selectedStudent.status}</p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold">
+                  <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">
                     Submitted At
                   </p>
-                  <p className="text-sm text-gray-800">
+                  <p className="text-sm text-slate-900">
                     {new Date(selectedStudent.submittedAt).toLocaleString()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold">
+                  <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold">
                     ID
                   </p>
-                  <p className="text-sm text-gray-800 break-all">{selectedStudent.id}</p>
+                  <p className="text-sm text-slate-900 break-all">{selectedStudent.id}</p>
                 </div>
               </div>
 
               <div>
-                <h4 className="text-sm font-bold text-gray-800 mb-3">Submitted Form Data</h4>
+                <h4 className="text-sm font-bold text-slate-900 mb-3">Submitted Form Data</h4>
                 {selectedStudentEntries.length === 0 ?
-                <p className="text-sm text-gray-500">No additional form fields submitted.</p> :
+                <p className="text-sm text-slate-500">No additional form fields submitted.</p> :
                 <div className="space-y-3">
                     {selectedStudentEntries.map(([key, value]) =>
                   key === 'idPicture' || key === 'id_picture' || key === 'learnerIdPicture' ?
                   null :
                   <div
                     key={key}
-                    className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
+                    className="bg-slate-50 rounded-xl px-4 py-3 border border-slate-200">
 
-                        <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">
+                        <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold mb-1">
                           {formatSubmittedFieldLabel(key)}
                         </p>
                         {renderSubmittedFieldValue(key, value)}
@@ -2190,10 +2190,10 @@ export function StaffDashboard() {
               </div>
 
               <div>
-                <h4 className="text-sm font-bold text-gray-800 mb-3">Learner ID Picture</h4>
+                <h4 className="text-sm font-bold text-slate-900 mb-3">Learner ID Picture</h4>
                 {selectedStudentIdPicture ?
-                <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
-                    <p className="text-sm text-gray-800 break-words">
+                <div className="bg-slate-50 rounded-xl px-4 py-3 border border-slate-200">
+                    <p className="text-sm text-slate-900 break-words">
                       {selectedStudentIdPicture.fileName}
                     </p>
                     {selectedStudentIdPicture.storagePath ?
@@ -2227,25 +2227,25 @@ export function StaffDashboard() {
                       </button> :
                   null}
                   </div> :
-                <p className="text-sm text-gray-500">No ID picture uploaded for this enrollment.</p>}
+                <p className="text-sm text-slate-500">No ID picture uploaded for this enrollment.</p>}
               </div>
 
               <div>
-                <h4 className="text-sm font-bold text-gray-800 mb-3">
+                <h4 className="text-sm font-bold text-slate-900 mb-3">
                   Requirements / Uploaded PDFs
                 </h4>
                 {selectedStudentRequirements.length === 0 ?
-                <p className="text-sm text-gray-500">No uploaded requirement files yet.</p> :
+                <p className="text-sm text-slate-500">No uploaded requirement files yet.</p> :
                 <div className="space-y-3">
                     {selectedStudentRequirements.map((requirement) =>
                   <div
                     key={requirement.id}
-                    className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
+                    className="bg-slate-50 rounded-xl px-4 py-3 border border-slate-200">
 
-                        <p className="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-1">
+                        <p className="text-xs uppercase tracking-wide text-slate-500 font-semibold mb-1">
                           {requirement.label}
                         </p>
-                        <p className="text-sm text-gray-800 break-words">
+                        <p className="text-sm text-slate-900 break-words">
                           {requirement.fileName}
                         </p>
                         {requirement.storagePath || requirement.publicUrl ?

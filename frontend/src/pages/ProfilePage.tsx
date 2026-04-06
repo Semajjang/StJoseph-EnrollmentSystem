@@ -68,45 +68,47 @@ export function ProfilePage() {
   };
 
   return (
-    <div className="p-8 pb-24">
+    <div className="p-6 pb-24 md:p-8">
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mx-auto max-w-3xl rounded-3xl border border-blue-100 bg-white p-8 shadow-sm"
+        className="mx-auto max-w-2xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm md:p-8"
       >
-        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div className="mb-6 flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-blue-700">Profile</p>
-            <h1 className="text-3xl font-extrabold text-gray-800">Edit Profile</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Update your account name, email, and phone number used in the portal.
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">Account Settings</p>
+            <h1 className="text-2xl font-bold text-slate-900">Edit Profile</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Update your name, email, and phone number.
             </p>
           </div>
-          <p className="text-sm font-medium text-gray-500">Role: {user?.role || 'N/A'}</p>
+          <span className="inline-flex h-7 items-center rounded-full border border-slate-200 bg-slate-50 px-3 text-xs font-semibold capitalize text-slate-500">
+            {user?.role || 'N/A'}
+          </span>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-500">
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-500">
               Full Name
             </label>
             <input
               type="text"
               value={profileForm.name}
               onChange={(event) => setProfileForm((prev) => ({ ...prev, name: event.target.value }))}
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-sky-300"
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors"
               placeholder="Enter your full name"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-500">
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-500">
               Email Address
             </label>
             <input
               type="email"
               value={profileForm.email}
               onChange={(event) => setProfileForm((prev) => ({ ...prev, email: event.target.value }))}
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-sky-300"
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors"
               placeholder="name@example.com"
             />
           </div>
@@ -114,7 +116,7 @@ export function ProfilePage() {
 
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-500">
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-slate-500">
               Phone Number
             </label>
             <input
@@ -128,19 +130,19 @@ export function ProfilePage() {
                   phone: event.target.value.replace(/\D/g, '').slice(0, 11)
                 }))
               }
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-sky-300"
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors"
               placeholder="09XXXXXXXXX"
             />
           </div>
         </div>
 
         {profileError ?
-          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          <div className="mt-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
             {profileError}
           </div> :
           null}
         {profileMessage ?
-          <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+          <div className="mt-4 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
             {profileMessage}
           </div> :
           null}
@@ -150,9 +152,9 @@ export function ProfilePage() {
             type="button"
             onClick={() => void handleSaveProfile()}
             disabled={isSavingProfile}
-            className="rounded-xl bg-[#1D4ED8] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:bg-blue-300"
+            className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
           >
-            {isSavingProfile ? 'Saving...' : 'Save Profile'}
+            {isSavingProfile ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </motion.div>

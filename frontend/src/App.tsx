@@ -34,8 +34,8 @@ const GUARDIAN_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
 
 function PageLoader() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#EEF5FF]">
-      <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#BAE6FD] border-t-transparent" />
+    <div className="flex min-h-screen items-center justify-center bg-slate-100">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
     </div>
   );
 }
@@ -161,8 +161,8 @@ function AppContent() {
 
   if (isLoading && user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#FFFBEB]">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#BAE6FD] border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-slate-100">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
       </div>
     );
   }
@@ -218,14 +218,14 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#EEF5FF]">
+    <div className="min-h-screen bg-slate-100">
       <button
         type="button"
         onClick={() => setIsSidebarOpen(true)}
-        className="fixed left-4 top-4 z-[60] inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-gray-800 shadow-lg ring-1 ring-black/5 transition hover:bg-gray-50 md:hidden"
+        className="fixed left-4 top-4 z-[60] inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#0F172A] text-slate-300 shadow-lg transition hover:bg-slate-800 md:hidden"
         aria-label="Open navigation menu"
       >
-        <MenuIcon className="h-5 w-5" />
+        <MenuIcon className="h-4 w-4" />
       </button>
       <Sidebar
         activePage={activePage}

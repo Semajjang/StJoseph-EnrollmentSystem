@@ -1,37 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&display=swap');
 
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
 :root {
-  --sky-blue: #60A5FA;
-  --warm-pink: #93C5FD;
-  --cream-white: #EEF5FF;
-  --soft-purple: #E9D5FF;
-  --soft-green: #BBF7D0;
+  --bg-app: #F1F5F9;
+  --bg-sidebar: #0F172A;
+  --color-primary: #2563EB;
+  --color-primary-hover: #1D4ED8;
+  --color-text: #0F172A;
+  --color-muted: #64748B;
   --card-white: #FFFFFF;
+  --border-color: #E2E8F0;
 }
 * {
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Inter', 'Poppins', sans-serif;
 }
 body {
-  background-color: var(--cream-white);
+  background-color: var(--bg-app);
   min-height: 100vh;
-  color: #1F2937;
+  color: var(--color-text);
 }
-/* Custom scrollbar for child-friendly feel */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--cream-white);
-  border-radius: 10px;
+  background: #F1F5F9;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--sky-blue);
-  border-radius: 10px;
+  background: #CBD5E1;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #7DD3FC;
+  background: #94A3B8;
 }

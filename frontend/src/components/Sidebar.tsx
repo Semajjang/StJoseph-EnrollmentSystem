@@ -118,27 +118,27 @@ export function Sidebar({ activePage, onNavigate, isOpen, onClose }: SidebarProp
   return (
     <>
       <div
-        className={`fixed inset-0 z-40 bg-slate-950/35 transition-opacity md:hidden ${isOpen ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+        className={`fixed inset-0 z-40 bg-slate-950/50 backdrop-blur-sm transition-opacity md:hidden ${isOpen ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
         onClick={onClose}
       />
-      <aside className={`fixed left-0 top-0 z-50 flex h-screen w-[260px] flex-col overflow-hidden bg-white shadow-lg transition-transform duration-300 md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed left-0 top-0 z-50 flex h-screen w-[260px] flex-col overflow-hidden bg-[#0F172A] shadow-2xl transition-transform duration-300 md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       {/* Logo Area */}
-      <div className="border-b border-blue-300/30 bg-gradient-to-br from-[#1D4ED8] via-[#3B82F6] to-[#93C5FD] p-6 text-white">
+      <div className="border-b border-white/5 p-5">
         <div className="mb-4 flex items-center justify-between md:hidden">
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-blue-100">
+          <span className="text-xs font-semibold uppercase tracking-widest text-slate-400">
             Menu
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white transition hover:bg-white/20"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-400 transition hover:bg-white/10 hover:text-white"
             aria-label="Close navigation menu"
           >
             <XIcon className="h-4 w-4" />
           </button>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-white/30 bg-white/95 shadow-sm">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white shadow-sm">
             {isLogoVisible ?
               <img
                 src={schoolLogo}
@@ -146,25 +146,23 @@ export function Sidebar({ activePage, onNavigate, isOpen, onClose }: SidebarProp
                 className="h-full w-full object-contain"
                 onError={() => setIsLogoVisible(false)}
               /> :
-              <span className="text-[10px] font-bold text-slate-400">LOGO</span>}
+              <span className="text-[9px] font-bold text-slate-400">LOGO</span>}
           </div>
-          <div>
-            <h1 className="text-lg font-extrabold leading-tight text-white">
+          <div className="overflow-hidden">
+            <h1 className="text-sm font-bold leading-tight text-white truncate">
               St. Joseph
             </h1>
-            <p className="text-xs font-medium text-blue-50">Daycare Center</p>
+            <p className="text-xs text-slate-400">Daycare Center</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <div className="mb-4 px-4">
-          <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
-            {isAdminRole ? 'Admin Portal' : isManagementRole ? 'Management Portal' : 'Guardian Portal'}
-          </span>
-        </div>
-        <ul className="space-y-2">
+      <nav className="flex-1 overflow-y-auto p-4">
+        <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+          {isAdminRole ? 'Admin Portal' : isManagementRole ? 'Management Portal' : 'Guardian Portal'}
+        </p>
+        <ul className="space-y-0.5">
           {navItems.map((item) => {
             const isActive = activePage === item.id;
             const Icon = item.icon;
@@ -172,45 +170,47 @@ export function Sidebar({ activePage, onNavigate, isOpen, onClose }: SidebarProp
               <li key={item.id}>
                 <button
                   onClick={() => handleNavigate(item.id)}
-                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${isActive ? 'bg-[#BAE6FD] text-gray-800 shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>
-
-                  <Icon className="w-5 h-5" />
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+                    isActive
+                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-900/40'
+                      : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                  }`}>
+                  <Icon className="h-4 w-4 shrink-0" />
                   <span className="min-w-0 flex-1 truncate whitespace-nowrap text-left">{item.label}</span>
                 </button>
               </li>);
-
           })}
         </ul>
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-100 bg-gray-50">
+      <div className="border-t border-white/5 p-4">
         <button
           type="button"
           onClick={() => handleNavigate('profile')}
-          className={`mb-2 flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition ${activePage === 'profile' ? 'bg-[#BAE6FD] text-gray-800 shadow-sm' : 'hover:bg-white text-gray-700'}`}
+          className={`mb-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all duration-150 ${
+            activePage === 'profile'
+              ? 'bg-blue-600 text-white'
+              : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+          }`}
         >
-          <div
-            className={`flex h-10 w-10 items-center justify-center rounded-full shadow-sm ${isManagementRole ? 'bg-[#DBEAFE]' : 'bg-[#BBF7D0]'}`}>
-
-            <UserCircleIcon className="w-5 h-5 text-gray-700" />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10">
+            <UserCircleIcon className="h-4 w-4" />
           </div>
           <div className="overflow-hidden">
-            <p className="font-bold text-gray-800 text-sm truncate">
+            <p className={`text-xs font-semibold truncate ${activePage === 'profile' ? 'text-white' : 'text-slate-300'}`}>
               {user?.name}
             </p>
-            <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+            <p className="text-[10px] capitalize text-slate-500">{user?.role}</p>
           </div>
         </button>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-red-500 hover:bg-red-50 font-semibold text-sm transition-colors">
-
-          <LogOutIcon className="w-4 h-4" />
+          className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-slate-500 transition-colors hover:bg-red-500/10 hover:text-red-400">
+          <LogOutIcon className="h-3.5 w-3.5" />
           Sign Out
         </button>
       </div>
     </aside>
     </>);
-
 }

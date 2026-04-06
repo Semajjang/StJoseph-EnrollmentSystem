@@ -298,11 +298,11 @@ export function ActivityLogsPage() {
     <div className="h-screen overflow-hidden p-8">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-sky-600">
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-blue-600">
             Audit Trail
           </p>
-          <h1 className="text-3xl font-extrabold text-gray-800">Activity Logs</h1>
-          <p className="mt-1 text-gray-500">
+          <h1 className="text-3xl font-bold text-slate-900">Activity Logs</h1>
+          <p className="mt-1 text-slate-500">
             Staff and admin changes for enrollment actions, homepage content, contact management, and staff access verification.
           </p>
         </div>
@@ -322,7 +322,7 @@ export function ActivityLogsPage() {
                 event.target.value as 'all' | 'enrollment' | 'site_content' | 'contact_message' | 'staff_access'
               )
             }
-            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 outline-none focus:border-sky-300"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-blue-500"
           >
             <option value="all">All Activity</option>
             <option value="enrollment">Enrollment</option>
@@ -333,27 +333,27 @@ export function ActivityLogsPage() {
         </div>
       </div>
 
-      <section className="flex h-[calc(100vh-190px)] min-h-0 flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-md">
-        <div className="grid grid-cols-1 gap-3 border-b border-gray-100 bg-[#F8FAFC] px-6 py-4 sm:grid-cols-2 xl:grid-cols-5">
+      <section className="flex h-[calc(100vh-190px)] min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-md">
+        <div className="grid grid-cols-1 gap-3 border-b border-slate-200 bg-slate-50 px-6 py-4 sm:grid-cols-2 xl:grid-cols-5">
           <div className="rounded-xl border border-blue-100 bg-white px-4 py-3">
             <p className="text-[11px] font-bold uppercase tracking-wide text-blue-600">Total Events</p>
-            <p className="mt-1 text-2xl font-extrabold text-gray-800">{activitySummary.total}</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{activitySummary.total}</p>
           </div>
           <div className="rounded-xl border border-yellow-100 bg-white px-4 py-3">
             <p className="text-[11px] font-bold uppercase tracking-wide text-yellow-700">Enrollment</p>
-            <p className="mt-1 text-2xl font-extrabold text-gray-800">{activitySummary.enrollment}</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{activitySummary.enrollment}</p>
           </div>
           <div className="rounded-xl border border-sky-100 bg-white px-4 py-3">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-sky-700">Site Content</p>
-            <p className="mt-1 text-2xl font-extrabold text-gray-800">{activitySummary.siteContent}</p>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-blue-700">Site Content</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{activitySummary.siteContent}</p>
           </div>
           <div className="rounded-xl border border-purple-100 bg-white px-4 py-3">
             <p className="text-[11px] font-bold uppercase tracking-wide text-purple-700">Contact Messages</p>
-            <p className="mt-1 text-2xl font-extrabold text-gray-800">{activitySummary.contact}</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{activitySummary.contact}</p>
           </div>
           <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3">
             <p className="text-[11px] font-bold uppercase tracking-wide text-emerald-700">Staff Access</p>
-            <p className="mt-1 text-2xl font-extrabold text-gray-800">{activitySummary.staffAccess}</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{activitySummary.staffAccess}</p>
           </div>
         </div>
 
@@ -365,48 +365,48 @@ export function ActivityLogsPage() {
 
         <div className="min-h-0 flex-1 overflow-auto">
           <table className="w-full min-w-[820px]">
-            <thead className="sticky top-0 z-10 bg-gray-50">
+            <thead className="sticky top-0 z-10 bg-slate-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">Time</th>
-                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">Staff/Admin</th>
-                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">Action</th>
-                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">Entity</th>
-                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">Details</th>
+                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">Time</th>
+                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">Staff/Admin</th>
+                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">Action</th>
+                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">Entity</th>
+                <th className="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500">Details</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-slate-100">
               {isLoadingActivities ?
                 <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-sm font-medium text-gray-500">
+                  <td colSpan={5} className="px-6 py-10 text-center text-sm font-medium text-slate-500">
                     Loading activity logs...
                   </td>
                 </tr> :
                 filteredActivityLogs.length === 0 ?
                   <tr>
-                    <td colSpan={5} className="px-6 py-10 text-center text-sm font-medium text-gray-500">
+                    <td colSpan={5} className="px-6 py-10 text-center text-sm font-medium text-slate-500">
                       No activity logs found for the selected filter.
                     </td>
                   </tr> :
                   filteredActivityLogs.map((log, index) => (
-                    <tr key={log.id} className={index % 2 === 0 ? 'bg-white' : 'bg-[#FFFBEB]'}>
-                      <td className="px-6 py-3 text-sm text-gray-600 whitespace-nowrap">
+                    <tr key={log.id} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                      <td className="px-6 py-3 text-sm text-slate-600 whitespace-nowrap">
                         {new Date(log.createdAt).toLocaleString()}
                       </td>
-                      <td className="px-6 py-3 text-sm text-gray-700 whitespace-nowrap">
-                        <span className="font-bold text-gray-800">{log.actorName}</span>
+                      <td className="px-6 py-3 text-sm text-slate-700 whitespace-nowrap">
+                        <span className="font-bold text-slate-900">{log.actorName}</span>
                         <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">
                           {log.actorRole}
                         </span>
                       </td>
-                      <td className="px-6 py-3 text-sm font-semibold text-gray-700 whitespace-nowrap">
+                      <td className="px-6 py-3 text-sm font-semibold text-slate-700 whitespace-nowrap">
                         {formatActivityAction(log.action)}
                       </td>
-                      <td className="px-6 py-3 text-sm text-gray-700 whitespace-nowrap">
+                      <td className="px-6 py-3 text-sm text-slate-700 whitespace-nowrap">
                         <span className="font-semibold">{formatActivityEntity(log.entityType)}</span>
-                        <span className="ml-2 text-xs text-gray-400">#{log.entityId.slice(0, 8)}</span>
+                        <span className="ml-2 text-xs text-slate-400">#{log.entityId.slice(0, 8)}</span>
                       </td>
-                      <td className="px-6 py-3 text-xs text-gray-600">
-                        <p className="whitespace-pre-wrap break-words text-[12px] leading-5 text-gray-700">
+                      <td className="px-6 py-3 text-xs text-slate-600">
+                        <p className="whitespace-pre-wrap break-words text-[12px] leading-5 text-slate-700">
                           {formatDetails(log)}
                         </p>
                       </td>
