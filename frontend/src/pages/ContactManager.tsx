@@ -212,7 +212,7 @@ export function ContactManager({ onPreviewContact }: ContactManagerProps) {
                           {selected.senderPhone ? ` · ${selected.senderPhone}` : ''}
                         </p>
                       </div>
-                      <div className="w-40">
+                      <div className="w-full sm:w-40">
                         <Select
                           value={selected.status}
                           onChange={(event) => void handleStatusChange(event.target.value as ContactMessageStatus)}

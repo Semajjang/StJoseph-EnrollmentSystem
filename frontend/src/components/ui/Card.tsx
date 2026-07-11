@@ -45,7 +45,12 @@ export function CardHeader({
   className?: string;
 }) {
   return (
-    <div className={cn('flex items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6', className)}>
+    <div
+      className={cn(
+        'flex flex-col gap-3 border-b border-line px-5 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-6',
+        className,
+      )}
+    >
       <div className="min-w-0">
         {eyebrow ? (
           <p className="mb-1 text-2xs font-bold uppercase tracking-[0.14em] text-brand">{eyebrow}</p>
@@ -53,7 +58,7 @@ export function CardHeader({
         <h3 className="truncate text-base font-bold text-ink">{title}</h3>
         {description ? <p className="mt-0.5 text-sm text-muted">{description}</p> : null}
       </div>
-      {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+      {actions ? <div className="flex flex-wrap items-center gap-2 sm:shrink-0">{actions}</div> : null}
     </div>
   );
 }

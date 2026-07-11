@@ -81,8 +81,8 @@ export function AuditViewer({ activityLogs, isLoading, error }: AuditViewerProps
           title="Activity log viewer"
           description="Filter, search, and inspect staff and admin changes."
           actions={
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="w-56">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              <div className="w-full sm:w-56">
                 <Input
                   leftIcon={<SearchIcon />}
                   value={search}
@@ -92,7 +92,7 @@ export function AuditViewer({ activityLogs, isLoading, error }: AuditViewerProps
                   className="h-9"
                 />
               </div>
-              <div className="w-40">
+              <div className="w-full sm:w-40">
                 <Select
                   value={filter}
                   onChange={(event) => setFilter(event.target.value as AuditEntityFilter)}
