@@ -1,5 +1,6 @@
 import { PlusIcon, Trash2Icon, UploadCloudIcon } from 'lucide-react';
 import { Button, Combobox, Field, Input, Select } from '../../../components/ui';
+import { cn } from '../../../lib/cn';
 import { StepHeading } from './StepHeading';
 import { normalizeDateOfBirthInput } from '../helpers';
 import { beneficiaryProgramOptions, incomeSourceOptions, monthlyIncomeOptions } from '../types';
@@ -8,6 +9,7 @@ import type { EnrollmentFormApi } from '../types';
 export function HouseholdStep({ form }: { form: EnrollmentFormApi }) {
   const {
     formData,
+    fieldErrors,
     updateFormData,
     updateSiblingFormData,
     addSibling,
@@ -24,11 +26,12 @@ export function HouseholdStep({ form }: { form: EnrollmentFormApi }) {
         description="These details help us assess financial assistance eligibility. Proof of income is required."
       />
 
-      <Field label="Beneficiary program" required>
-        {({ id }) => (
+      <Field label="Beneficiary program" required error={fieldErrors.financialProgram ?? fieldErrors.financialProgramOther}>
+        {({ id, describedBy }) => (
           <>
             <Combobox
               id={id}
+              invalid={Boolean(fieldErrors.financialProgram)}
               value={formData.financialProgram}
               placeholder="Search beneficiary program…"
               options={beneficiaryProgramOptions.map((programOption) => ({ value: programOption, label: programOption }))}
@@ -42,6 +45,8 @@ export function HouseholdStep({ form }: { form: EnrollmentFormApi }) {
             {formData.financialProgram === 'Other National or LGU Assistance Program' ? (
               <Input
                 className="mt-2"
+                aria-describedby={describedBy}
+                invalid={Boolean(fieldErrors.financialProgramOther)}
                 value={formData.financialProgramOther}
                 onChange={(event) => updateFormData('financialProgramOther', event.target.value)}
                 placeholder="Please specify"
@@ -73,6 +78,7 @@ export function HouseholdStep({ form }: { form: EnrollmentFormApi }) {
                 type="button"
                 variant="ghost"
                 size="sm"
+                className="min-h-11"
                 onClick={() => removeSibling(siblingIndex)}
                 leftIcon={<Trash2Icon className="h-4 w-4 text-danger" />}
                 aria-label={`Remove sibling ${siblingIndex + 1}`}
@@ -133,11 +139,13 @@ export function HouseholdStep({ form }: { form: EnrollmentFormApi }) {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Field label="Source of income" required>
-          {({ id }) => (
+        <Field label="Source of income" required error={fieldErrors.incomeSourceCategory ?? fieldErrors.incomeSourceCategoryOther}>
+          {({ id, describedBy }) => (
             <>
               <Select
                 id={id}
+                aria-describedby={fieldErrors.incomeSourceCategory ? describedBy : undefined}
+                invalid={Boolean(fieldErrors.incomeSourceCategory)}
                 value={formData.incomeSourceCategory}
                 onChange={(event) => {
                   const value = event.target.value;
@@ -157,6 +165,8 @@ export function HouseholdStep({ form }: { form: EnrollmentFormApi }) {
               {formData.incomeSourceCategory === 'Other' ? (
                 <Input
                   className="mt-2"
+                  aria-describedby={fieldErrors.incomeSourceCategoryOther ? describedBy : undefined}
+                  invalid={Boolean(fieldErrors.incomeSourceCategoryOther)}
                   value={formData.incomeSourceCategoryOther}
                   onChange={(event) => updateFormData('incomeSourceCategoryOther', event.target.value)}
                   placeholder="Please specify"
@@ -165,9 +175,9 @@ export function HouseholdStep({ form }: { form: EnrollmentFormApi }) {
             </>
           )}
         </Field>
-        <Field label="Monthly family income" required>
-          {({ id }) => (
-            <Select id={id} value={formData.monthlyIncome} onChange={(event) => updateFormData('monthlyIncome', event.target.value)}>
+        <Field label="Monthly family income" required error={fieldErrors.monthlyIncome}>
+          {({ id, describedBy, invalid }) => (
+            <Select id={id} aria-describedby={describedBy} invalid={invalid} value={formData.monthlyIncome} onChange={(event) => updateFormData('monthlyIncome', event.target.value)}>
               <option value="">Select income range</option>
               {monthlyIncomeOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -191,15 +201,26 @@ export function HouseholdStep({ form }: { form: EnrollmentFormApi }) {
             </Select>
           )}
         </Field>
-        <Field label="Proof of income (ITR)" required hint="JPEG, PNG, or PDF up to 5MB">
-          {({ id }) => (
+        <Field label="Proof of income (ITR)" required hint="JPEG, PNG, or PDF up to 5MB" error={fieldErrors.incomeProof}>
+          {({ id, describedBy, invalid }) => (
             <label
               htmlFor={id}
-              className="flex h-11 cursor-pointer items-center gap-2.5 rounded-xl border border-line bg-surface-sunk px-3.5 text-sm text-ink-soft transition-colors hover:border-brand/40 focus-within:shadow-focus"
+              className={cn(
+                'flex h-11 cursor-pointer items-center gap-2.5 rounded-xl border bg-surface-sunk px-3.5 text-sm text-ink-soft transition-colors hover:border-brand/40 focus-within:shadow-focus',
+                invalid ? 'border-danger' : 'border-line',
+              )}
             >
               <UploadCloudIcon className="h-4 w-4 shrink-0 text-muted" />
               <span className="truncate">{effectiveIncomeProof ? effectiveIncomeProof.name : 'Upload file'}</span>
-              <input id={id} type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={handleIncomeProofChange} className="sr-only" />
+              <input
+                id={id}
+                type="file"
+                accept=".jpg,.jpeg,.png,.pdf"
+                onChange={handleIncomeProofChange}
+                className="sr-only"
+                aria-invalid={invalid || undefined}
+                aria-describedby={describedBy}
+              />
             </label>
           )}
         </Field>

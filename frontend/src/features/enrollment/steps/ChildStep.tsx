@@ -8,6 +8,7 @@ import type { EnrollmentFormApi } from '../types';
 export function ChildStep({ form }: { form: EnrollmentFormApi }) {
   const {
     formData,
+    fieldErrors,
     updateFormData,
     previewUrl,
     effectiveIdPicture,
@@ -47,9 +48,11 @@ export function ChildStep({ form }: { form: EnrollmentFormApi }) {
         <label
           className={cn(
             'group relative flex h-32 w-32 cursor-pointer items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed transition-colors',
-            previewUrl || effectiveIdPicture
-              ? 'border-brand/40 bg-brand-tint'
-              : 'border-line-strong bg-surface-sunk hover:border-brand/40 hover:bg-brand-tint/50',
+            fieldErrors.idPicture
+              ? 'border-danger bg-danger-soft'
+              : previewUrl || effectiveIdPicture
+                ? 'border-brand/40 bg-brand-tint'
+                : 'border-line-strong bg-surface-sunk hover:border-brand/40 hover:bg-brand-tint/50',
           )}
         >
           {previewUrl ? (
@@ -71,18 +74,27 @@ export function ChildStep({ form }: { form: EnrollmentFormApi }) {
             onChange={handleFileChange}
             className="absolute inset-0 cursor-pointer opacity-0"
             aria-label="Upload the learner's 2x2 ID picture"
+            aria-invalid={fieldErrors.idPicture ? true : undefined}
+            aria-describedby={fieldErrors.idPicture ? 'id-picture-error' : undefined}
           />
         </label>
         <p className="text-xs font-medium text-muted">
           ID picture <span className="text-danger">*</span>
         </p>
+        {fieldErrors.idPicture ? (
+          <p id="id-picture-error" className="text-xs font-medium text-danger">
+            {fieldErrors.idPicture}
+          </p>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Field label="First name" required>
-          {({ id }) => (
+        <Field label="First name" required error={fieldErrors.childFirstName}>
+          {({ id, describedBy, invalid }) => (
             <Input
               id={id}
+              aria-describedby={describedBy}
+              invalid={invalid}
               value={formData.childFirstName}
               onChange={(event) => updateFormData('childFirstName', event.target.value)}
               placeholder="Juan"
@@ -99,10 +111,12 @@ export function ChildStep({ form }: { form: EnrollmentFormApi }) {
             />
           )}
         </Field>
-        <Field label="Last name" required>
-          {({ id }) => (
+        <Field label="Last name" required error={fieldErrors.childLastName}>
+          {({ id, describedBy, invalid }) => (
             <Input
               id={id}
+              aria-describedby={describedBy}
+              invalid={invalid}
               value={formData.childLastName}
               onChange={(event) => updateFormData('childLastName', event.target.value)}
               placeholder="Dela Cruz"
@@ -112,9 +126,19 @@ export function ChildStep({ form }: { form: EnrollmentFormApi }) {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Field label="Sex" required>
-          {({ id }) => (
-            <div id={id} role="radiogroup" aria-label="Sex" className="flex rounded-xl border border-line bg-surface-sunk p-1">
+        <Field label="Sex" required error={fieldErrors.sex}>
+          {({ id, describedBy, invalid }) => (
+            <div
+              id={id}
+              role="radiogroup"
+              aria-label="Sex"
+              aria-invalid={invalid || undefined}
+              aria-describedby={describedBy}
+              className={cn(
+                'flex rounded-xl border bg-surface-sunk p-1',
+                invalid ? 'border-danger' : 'border-line',
+              )}
+            >
               {(['Male', 'Female'] as const).map((option) => {
                 const active = formData.sex === option;
                 return (
@@ -125,7 +149,7 @@ export function ChildStep({ form }: { form: EnrollmentFormApi }) {
                     aria-checked={active}
                     onClick={() => updateFormData('sex', option)}
                     className={cn(
-                      'flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-semibold transition-all',
+                      'flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-sm font-semibold transition-all',
                       active ? 'bg-surface text-brand-strong shadow-sm' : 'text-muted hover:text-ink',
                     )}
                   >
@@ -137,10 +161,12 @@ export function ChildStep({ form }: { form: EnrollmentFormApi }) {
             </div>
           )}
         </Field>
-        <Field label="Birthday" required>
-          {({ id }) => (
+        <Field label="Birthday" required error={fieldErrors.dateOfBirth}>
+          {({ id, describedBy, invalid }) => (
             <Input
               id={id}
+              aria-describedby={describedBy}
+              invalid={invalid}
               type="date"
               min={allowedBirthdateRange.min}
               max={allowedBirthdateRange.max}
@@ -175,10 +201,12 @@ export function ChildStep({ form }: { form: EnrollmentFormApi }) {
       </Field>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Field label="Street address" required className="md:col-span-2">
-          {({ id }) => (
+        <Field label="Street address" required className="md:col-span-2" error={fieldErrors.streetAddress}>
+          {({ id, describedBy, invalid }) => (
             <Input
               id={id}
+              aria-describedby={describedBy}
+              invalid={invalid}
               value={formData.streetAddress}
               onChange={(event) => updateFormData('streetAddress', event.target.value)}
               placeholder="House no., street, subdivision"
@@ -186,10 +214,12 @@ export function ChildStep({ form }: { form: EnrollmentFormApi }) {
           )}
         </Field>
 
-        <Field label="Region" required>
-          {({ id }) => (
+        <Field label="Region" required error={fieldErrors.region}>
+          {({ id, describedBy, invalid }) => (
             <Select
               id={id}
+              aria-describedby={describedBy}
+              invalid={invalid}
               value={formData.regionCode}
               onChange={(event) => handleRegionChange(event.target.value)}
               disabled={isLoadingRegions}
@@ -204,13 +234,15 @@ export function ChildStep({ form }: { form: EnrollmentFormApi }) {
           )}
         </Field>
 
-        <Field label="Province" required>
-          {({ id }) =>
+        <Field label="Province" required error={fieldErrors.province}>
+          {({ id, describedBy, invalid }) =>
             isProvinceAutoFilled ? (
-              <Input id={id} value={formData.province} readOnly className="bg-surface-sunk text-muted" placeholder="Province" />
+              <Input id={id} aria-describedby={describedBy} invalid={invalid} value={formData.province} readOnly className="bg-surface-sunk text-muted" placeholder="Province" />
             ) : (
               <Select
                 id={id}
+                aria-describedby={describedBy}
+                invalid={invalid}
                 value={formData.provinceCode}
                 onChange={(event) => handleProvinceChange(event.target.value)}
                 disabled={!isRegionSelected || isLoadingProvinces}
@@ -232,10 +264,12 @@ export function ChildStep({ form }: { form: EnrollmentFormApi }) {
           }
         </Field>
 
-        <Field label="City / municipality" required>
-          {({ id }) => (
+        <Field label="City / municipality" required error={fieldErrors.municipality}>
+          {({ id, describedBy, invalid }) => (
             <Select
               id={id}
+              aria-describedby={describedBy}
+              invalid={invalid}
               value={formData.municipalityCode}
               onChange={(event) => handleMunicipalityChange(event.target.value)}
               disabled={!isProvinceSelected || isLoadingMunicipalities}
@@ -258,10 +292,12 @@ export function ChildStep({ form }: { form: EnrollmentFormApi }) {
           )}
         </Field>
 
-        <Field label="Barangay" required>
-          {({ id }) => (
+        <Field label="Barangay" required error={fieldErrors.barangay}>
+          {({ id, describedBy, invalid }) => (
             <Select
               id={id}
+              aria-describedby={describedBy}
+              invalid={invalid}
               value={formData.barangay}
               onChange={(event) => handleBarangayChange(event.target.value)}
               disabled={!isMunicipalitySelected || isLoadingBarangays}
