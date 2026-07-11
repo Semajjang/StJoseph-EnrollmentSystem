@@ -21,17 +21,11 @@ const ContactManager = lazy(() => import('./pages/ContactManager').then((module)
 const ActivityLogsPage = lazy(() => import('./pages/ActivityLogsPage').then((module) => ({ default: module.ActivityLogsPage })));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
 
-const ADMIN_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
-const STAFF_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
-const GUARDIAN_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
-
 function AppContent() {
-  const { user, isLoading, isPasswordRecovery, logout } = useAuth();
+  const { user, isLoading, isPasswordRecovery } = useAuth();
   const [activePage, setActivePage] = useState('home');
   const [isLoginView, setIsLoginView] = useState(true);
   const isManagementRole = user?.role === 'admin' || user?.role === 'staff';
-  const inactivityTimeoutDuration =
-    user?.role === 'staff' ? STAFF_IDLE_TIMEOUT_MS : user?.role === 'admin' ? ADMIN_IDLE_TIMEOUT_MS : GUARDIAN_IDLE_TIMEOUT_MS;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -53,37 +47,6 @@ function AppContent() {
     else if (isManagementRole) setActivePage('staffDashboard');
     else setActivePage('home');
   }, [isManagementRole, user?.role]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !user) return;
-    let hasLoggedOut = false;
-
-    const handleTimeout = () => {
-      if (hasLoggedOut) return;
-      hasLoggedOut = true;
-      window.alert('Your session expired due to inactivity. Please sign in again.');
-      void logout();
-    };
-
-    let timeoutHandle = window.setTimeout(handleTimeout, inactivityTimeoutDuration);
-
-    const resetTimeout = () => {
-      if (hasLoggedOut || document.visibilityState === 'hidden') return;
-      window.clearTimeout(timeoutHandle);
-      timeoutHandle = window.setTimeout(handleTimeout, inactivityTimeoutDuration);
-    };
-
-    const activityEvents: Array<keyof WindowEventMap> = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
-    activityEvents.forEach((eventName) => window.addEventListener(eventName, resetTimeout, { passive: true }));
-    document.addEventListener('visibilitychange', resetTimeout);
-
-    return () => {
-      hasLoggedOut = true;
-      window.clearTimeout(timeoutHandle);
-      activityEvents.forEach((eventName) => window.removeEventListener(eventName, resetTimeout));
-      document.removeEventListener('visibilitychange', resetTimeout);
-    };
-  }, [inactivityTimeoutDuration, logout, user]);
 
   if (isLoading && user) {
     return <LoadingScreen label="Loading your portal" />;
