@@ -7,10 +7,10 @@ import {
   Button,
   ConfirmDialog,
   Field,
-  Modal,
   Select,
   StatusPill,
 } from '../../components/ui';
+import { ApplicantDrawerShell } from './ApplicantDrawerShell';
 import {
   ManagedProgram,
   SectionCatalog,
@@ -111,10 +111,9 @@ export function ApplicantDrawer({
 
   return (
     <>
-      <Modal
+      <ApplicantDrawerShell
         open={open}
         onClose={onClose}
-        size="xl"
         title={`${student.childFirstName} ${student.childLastName}`}
         description={`${student.program}${student.section ? ` · ${student.section}` : ''}`}
         footer={
@@ -245,7 +244,7 @@ export function ApplicantDrawer({
             )}
           </section>
         </div>
-      </Modal>
+      </ApplicantDrawerShell>
 
       <ConfirmDialog
         open={confirmDeleteOpen}

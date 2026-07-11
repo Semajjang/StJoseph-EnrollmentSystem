@@ -1,5 +1,5 @@
-import { RotateCcwIcon } from 'lucide-react';
-import { Button, Select } from '../../components/ui';
+import { RotateCcwIcon, SearchIcon } from 'lucide-react';
+import { Button, Input, Select } from '../../components/ui';
 import { ProgramOption, managedPrograms } from './sections';
 
 export interface QueueFilters {
@@ -8,6 +8,7 @@ export interface QueueFilters {
   assignmentFilter: string;
   sectionFilter: string;
   statusFilter: string;
+  searchQuery: string;
 }
 
 interface EnrollmentFilterBarProps {
@@ -46,6 +47,14 @@ export function EnrollmentFilterBar({
           Reset filters
         </Button>
       </div>
+      <Input
+        type="search"
+        leftIcon={<SearchIcon />}
+        value={filters.searchQuery}
+        onChange={(event) => onChange({ searchQuery: event.target.value })}
+        placeholder="Search by child name or PhilSys number"
+        aria-label="Search applicants by name or PhilSys number"
+      />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className={cell}>
           <Select
