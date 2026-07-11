@@ -210,6 +210,8 @@ export interface EnrollmentFormApi {
   enrollmentNoticeRef: RefObject<HTMLDivElement>;
   updateFormData: (field: keyof FormData, value: unknown) => void;
   updateSiblingFormData: (siblingIndex: number, field: keyof EnrolledSiblingInfo, value: string) => void;
+  addSibling: () => void;
+  removeSibling: (siblingIndex: number) => void;
   handleRegionChange: (regionCode: string) => void;
   handleProvinceChange: (provinceCode: string) => void;
   handleMunicipalityChange: (municipalityCode: string) => void;
