@@ -14,7 +14,7 @@ function CaregiverGroup({ title, children }: { title: string; children: ReactNod
 }
 
 export function FamilyStep({ form }: { form: EnrollmentFormApi }) {
-  const { formData, updateFormData } = form;
+  const { formData, fieldErrors, updateFormData } = form;
 
   const contactField = (field: keyof FormData, label: string, wide = false) => (
     <Field label={label} className={wide ? 'md:col-span-2' : undefined}>
@@ -41,9 +41,9 @@ export function FamilyStep({ form }: { form: EnrollmentFormApi }) {
 
       <CaregiverGroup title="Mother">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Field label="Mother's name">
-            {({ id }) => (
-              <Input id={id} value={formData.motherName} onChange={(event) => updateFormData('motherName', event.target.value)} placeholder="Full name" />
+          <Field label="Mother's name" error={fieldErrors.motherName}>
+            {({ id, describedBy, invalid }) => (
+              <Input id={id} aria-describedby={describedBy} invalid={invalid} value={formData.motherName} onChange={(event) => updateFormData('motherName', event.target.value)} placeholder="Full name" />
             )}
           </Field>
           <Field label="Mother's occupation">
@@ -57,9 +57,9 @@ export function FamilyStep({ form }: { form: EnrollmentFormApi }) {
 
       <CaregiverGroup title="Father">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Field label="Father's name">
-            {({ id }) => (
-              <Input id={id} value={formData.fatherName} onChange={(event) => updateFormData('fatherName', event.target.value)} placeholder="Full name" />
+          <Field label="Father's name" error={fieldErrors.fatherName}>
+            {({ id, describedBy, invalid }) => (
+              <Input id={id} aria-describedby={describedBy} invalid={invalid} value={formData.fatherName} onChange={(event) => updateFormData('fatherName', event.target.value)} placeholder="Full name" />
             )}
           </Field>
           <Field label="Father's occupation">
@@ -73,9 +73,9 @@ export function FamilyStep({ form }: { form: EnrollmentFormApi }) {
 
       <CaregiverGroup title="Guardian (if different from parents)">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Field label="Guardian's name">
-            {({ id }) => (
-              <Input id={id} value={formData.guardianName} onChange={(event) => updateFormData('guardianName', event.target.value)} placeholder="If different from parents" />
+          <Field label="Guardian's name" error={fieldErrors.guardianName}>
+            {({ id, describedBy, invalid }) => (
+              <Input id={id} aria-describedby={describedBy} invalid={invalid} value={formData.guardianName} onChange={(event) => updateFormData('guardianName', event.target.value)} placeholder="If different from parents" />
             )}
           </Field>
           <Field label="Relationship">

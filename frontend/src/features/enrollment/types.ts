@@ -182,6 +182,8 @@ export interface EnrollmentFormApi {
   ageRules: AgeRule[];
   previewUrl: string | null;
   submitError: string | null;
+  /** Per-field validation messages, keyed by FormData field. `_form` holds cross-field messages. */
+  fieldErrors: Record<string, string>;
   isSubmitting: boolean;
   regionOptions: PhilippineAddressOption[];
   provinceOptions: PhilippineAddressOption[];

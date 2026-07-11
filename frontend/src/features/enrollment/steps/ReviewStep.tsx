@@ -33,7 +33,7 @@ function SummarySection({
         <button
           type="button"
           onClick={() => onEdit(step)}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-brand-strong transition-colors hover:bg-brand-tint focus-visible:outline-none focus-visible:shadow-focus"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold text-brand-strong transition-colors hover:bg-brand-tint focus-visible:outline-none focus-visible:shadow-focus"
         >
           <PencilIcon className="h-3.5 w-3.5" />
           Edit

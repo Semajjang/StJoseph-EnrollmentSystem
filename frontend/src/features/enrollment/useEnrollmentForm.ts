@@ -34,7 +34,8 @@ import {
   syncSiblingDetailsCount,
   validateUploadFile
 } from './helpers';
-import { validateStep } from './validation';
+import { FORM_LEVEL_ERROR_KEY, validateStep } from './validation';
+import type { FieldErrors } from './validation';
 import {
   ENROLLMENT_DRAFT_STORAGE_KEY,
   initialFormData,
@@ -49,6 +50,8 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
   const [ageRules, setAgeRules] = useState(() => loadAgeRules());
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [focusErrorTick, setFocusErrorTick] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [regionOptions, setRegionOptions] = useState<PhilippineAddressOption[]>([]);
   const [provinceOptions, setProvinceOptions] = useState<PhilippineAddressOption[]>([]);
@@ -91,6 +94,38 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
     setSubmitError(message);
   };
 
+  const clearFieldErrors = (...keys: string[]) => {
+    setFieldErrors((prev) => {
+      if (keys.every((key) => !(key in prev))) {
+        return prev;
+      }
+
+      const next = { ...prev };
+      for (const key of keys) {
+        delete next[key];
+      }
+      return next;
+    });
+  };
+
+  /**
+   * Apply a step's field errors. Returns true when the step is valid.
+   * Invalid steps: keep the user in place, mirror only the cross-field `_form`
+   * message into the top banner, and queue focus onto the first invalid control.
+   */
+  const applyStepErrors = (errors: FieldErrors): boolean => {
+    if (Object.keys(errors).length === 0) {
+      setFieldErrors({});
+      setSubmitError(null);
+      return true;
+    }
+
+    setFieldErrors(errors);
+    setSubmitError(errors[FORM_LEVEL_ERROR_KEY] ?? null);
+    setFocusErrorTick((tick) => tick + 1);
+    return false;
+  };
+
   useEffect(() => {
     if (!submitError) {
       return;
@@ -101,6 +136,37 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
       block: 'center'
     });
   }, [submitError]);
+
+  // Move focus to the first invalid control after errors render. Fields wire
+  // `aria-invalid` through the Field primitive, so the first match in document
+  // order is the first invalid field. Radiogroups aren't focusable themselves,
+  // so we target their first radio button.
+  useEffect(() => {
+    if (focusErrorTick === 0) {
+      return;
+    }
+
+    const selector = [
+      'input[aria-invalid="true"]',
+      'select[aria-invalid="true"]',
+      'textarea[aria-invalid="true"]',
+      '[role="combobox"][aria-invalid="true"]',
+      '[role="radiogroup"][aria-invalid="true"]'
+    ].join(', ');
+
+    const firstInvalid = document.querySelector<HTMLElement>(selector);
+    if (!firstInvalid) {
+      return;
+    }
+
+    const focusTarget =
+      firstInvalid.getAttribute('role') === 'radiogroup' ?
+        firstInvalid.querySelector<HTMLElement>('button') ?? firstInvalid :
+        firstInvalid;
+
+    focusTarget.focus({ preventScroll: true });
+    focusTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [focusErrorTick]);
 
   useEffect(() => {
     const loadProgramAgeRules = async () => {
@@ -404,6 +470,7 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
 
   const updateFormData = (field: keyof FormData, value: unknown) => {
     setSubmitError(null);
+    clearFieldErrors(field as string, FORM_LEVEL_ERROR_KEY);
     setFormData((prev) => {
       const newData = {
         ...prev,
@@ -447,6 +514,7 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
     value: string
   ) => {
     setSubmitError(null);
+    clearFieldErrors(FORM_LEVEL_ERROR_KEY);
     setFormData((prev) => {
       const nextSiblingDetails = prev.enrolledSiblingDetails.map((sibling, index) => {
         if (index !== siblingIndex) {
@@ -474,6 +542,7 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
 
   const addSibling = () => {
     setSubmitError(null);
+    clearFieldErrors(FORM_LEVEL_ERROR_KEY);
     setFormData((prev) => {
       const nextSiblingDetails = [...prev.enrolledSiblingDetails, createEmptySiblingInfo()];
       return {
@@ -486,6 +555,7 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
 
   const removeSibling = (siblingIndex: number) => {
     setSubmitError(null);
+    clearFieldErrors(FORM_LEVEL_ERROR_KEY);
     setFormData((prev) => {
       const nextSiblingDetails = prev.enrolledSiblingDetails.filter((_, index) => index !== siblingIndex);
       return {
@@ -500,6 +570,7 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
     const selectedRegion = regionOptions.find((region) => region.code === regionCode);
 
     setSubmitError(null);
+    clearFieldErrors('region', 'province', 'municipality', 'barangay', FORM_LEVEL_ERROR_KEY);
     setAddressLookupError(null);
     setFormData((prev) => {
       const nextData = {
@@ -524,6 +595,7 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
     const selectedProvince = provinceOptions.find((province) => province.code === provinceCode);
 
     setSubmitError(null);
+    clearFieldErrors('province', 'municipality', 'barangay', FORM_LEVEL_ERROR_KEY);
     setAddressLookupError(null);
     setFormData((prev) => {
       const nextData = {
@@ -548,6 +620,7 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
     );
 
     setSubmitError(null);
+    clearFieldErrors('municipality', 'barangay', FORM_LEVEL_ERROR_KEY);
     setAddressLookupError(null);
     setFormData((prev) => {
       const nextData = {
@@ -612,27 +685,25 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
     }
 
     for (let step = currentStep; step < targetStep; step += 1) {
-      const error = validateStep(STEPS[step - 1].id, formData, ageValidationMessage);
-      if (error) {
+      const errors = validateStep(STEPS[step - 1].id, formData, ageValidationMessage);
+      if (Object.keys(errors).length > 0) {
         setCurrentStep(step);
-        showEnrollmentNotification(error);
+        applyStepErrors(errors);
         return;
       }
     }
 
-    setSubmitError(null);
+    applyStepErrors({});
     setCurrentStep(targetStep);
   };
 
   const handleNext = () => {
     if (currentStep < STEPS.length) {
-      const error = validateStep(STEPS[currentStep - 1].id, formData, ageValidationMessage);
-      if (error) {
-        showEnrollmentNotification(error);
+      const errors = validateStep(STEPS[currentStep - 1].id, formData, ageValidationMessage);
+      if (!applyStepErrors(errors)) {
         return;
       }
 
-      setSubmitError(null);
       setCurrentStep((prev) => prev + 1);
     }
   };
@@ -643,15 +714,15 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
 
   const validateAllSteps = () => {
     for (let step = 1; step <= STEPS.length; step += 1) {
-      const error = validateStep(STEPS[step - 1].id, formData, ageValidationMessage);
-      if (error) {
+      const errors = validateStep(STEPS[step - 1].id, formData, ageValidationMessage);
+      if (Object.keys(errors).length > 0) {
         setCurrentStep(step);
-        showEnrollmentNotification(error);
+        applyStepErrors(errors);
         return false;
       }
     }
 
-    setSubmitError(null);
+    applyStepErrors({});
     return true;
   };
 
@@ -694,6 +765,7 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
     ageRules,
     previewUrl,
     submitError,
+    fieldErrors,
     isSubmitting,
     regionOptions,
     provinceOptions,
