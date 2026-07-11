@@ -64,7 +64,7 @@ export function Sidebar({ activePage, onNavigate, isOpen, onClose }: SidebarProp
             type="button"
             onClick={onClose}
             aria-label="Close menu"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white/70 transition hover:bg-white/10 hover:text-white md:hidden"
+            className="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-white/70 transition hover:bg-white/10 hover:text-white md:hidden"
           >
             <XIcon className="h-4 w-4" />
           </button>

@@ -23,7 +23,7 @@ const sizes: Record<ButtonSize, string> = {
   sm: 'h-9 px-3.5 text-[13px]',
   md: 'h-11 px-5 text-sm',
   lg: 'h-12 px-6 text-[15px]',
-  icon: 'h-10 w-10',
+  icon: 'h-11 w-11',
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

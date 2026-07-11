@@ -22,7 +22,7 @@ export function AppShell({ activePage, onNavigate, children }: AppShellProps) {
             type="button"
             onClick={() => setIsSidebarOpen(true)}
             aria-label="Open navigation menu"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface text-ink-soft shadow-sm transition hover:bg-surface-sunk"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-surface text-ink-soft shadow-sm transition hover:bg-surface-sunk"
           >
             <MenuIcon className="h-5 w-5" />
           </button>
