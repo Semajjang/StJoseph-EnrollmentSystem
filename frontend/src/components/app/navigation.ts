@@ -2,7 +2,6 @@ import type { LucideIcon } from 'lucide-react';
 import {
   BabyIcon,
   ClipboardListIcon,
-  FolderOpenIcon,
   HouseIcon,
   InboxIcon,
   LayoutDashboardIcon,
@@ -20,7 +19,6 @@ export interface NavItem {
 const guardianNav: NavItem[] = [
   { id: 'home', label: 'Home', icon: HouseIcon },
   { id: 'enrollment', label: 'Enrollment', icon: ClipboardListIcon },
-  { id: 'requirements', label: 'Requirements', icon: FolderOpenIcon },
   { id: 'yourChild', label: 'My Children', icon: BabyIcon },
   { id: 'contact', label: 'Messages', icon: MessageCircleIcon },
 ];

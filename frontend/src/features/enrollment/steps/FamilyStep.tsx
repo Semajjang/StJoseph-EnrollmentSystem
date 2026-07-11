@@ -16,8 +16,8 @@ function CaregiverGroup({ title, children }: { title: string; children: ReactNod
 export function FamilyStep({ form }: { form: EnrollmentFormApi }) {
   const { formData, updateFormData } = form;
 
-  const contactField = (field: keyof FormData, label: string) => (
-    <Field label={label}>
+  const contactField = (field: keyof FormData, label: string, wide = false) => (
+    <Field label={label} className={wide ? 'md:col-span-2' : undefined}>
       {({ id }) => (
         <Input
           id={id}
@@ -25,11 +25,6 @@ export function FamilyStep({ form }: { form: EnrollmentFormApi }) {
           inputMode="numeric"
           maxLength={11}
           value={String(formData[field] ?? '')}
-          onFocus={() => {
-            if (!formData[field]) {
-              updateFormData(field, '09');
-            }
-          }}
           onChange={(event) => updateFormData(field, formatGuardianContact(event.target.value))}
           placeholder="09XXXXXXXXX"
         />
@@ -56,7 +51,7 @@ export function FamilyStep({ form }: { form: EnrollmentFormApi }) {
               <Input id={id} value={formData.motherOccupation} onChange={(event) => updateFormData('motherOccupation', event.target.value)} placeholder="Occupation" />
             )}
           </Field>
-          {contactField('motherContact', "Mother's contact no.")}
+          {contactField('motherContact', "Mother's contact no.", true)}
         </div>
       </CaregiverGroup>
 
@@ -72,7 +67,7 @@ export function FamilyStep({ form }: { form: EnrollmentFormApi }) {
               <Input id={id} value={formData.fatherOccupation} onChange={(event) => updateFormData('fatherOccupation', event.target.value)} placeholder="Occupation" />
             )}
           </Field>
-          {contactField('fatherContact', "Father's contact no.")}
+          {contactField('fatherContact', "Father's contact no.", true)}
         </div>
       </CaregiverGroup>
 

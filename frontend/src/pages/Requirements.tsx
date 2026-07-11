@@ -7,12 +7,18 @@ import { RequirementsUploader, REQUIRED_DOCUMENT_COUNT } from '../features/enrol
 interface RequirementsProps {
   onContinueToYourChild?: () => void;
   onStartEnrollment?: () => void;
+  /** Preselect a specific child's application (e.g. when opened from My Children). */
+  initialEnrollmentId?: string | null;
 }
 
-export function Requirements({ onContinueToYourChild, onStartEnrollment }: RequirementsProps) {
+export function Requirements({ onContinueToYourChild, onStartEnrollment, initialEnrollmentId }: RequirementsProps) {
   const { enrollments } = useEnrollment();
-  const [selectedId, setSelectedId] = useState('');
+  const [selectedId, setSelectedId] = useState(initialEnrollmentId || '');
   const [uploadedCount, setUploadedCount] = useState(0);
+
+  useEffect(() => {
+    if (initialEnrollmentId) setSelectedId(initialEnrollmentId);
+  }, [initialEnrollmentId]);
 
   useEffect(() => {
     if (enrollments.length === 0) {

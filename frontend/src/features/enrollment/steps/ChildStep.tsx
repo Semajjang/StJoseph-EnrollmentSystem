@@ -148,7 +148,14 @@ export function ChildStep({ form }: { form: EnrollmentFormApi }) {
         </Field>
         <Field label="Age" hint={exactAgeLabel}>
           {({ id }) => (
-            <Input id={id} type="number" readOnly value={formData.age} className="bg-surface-sunk text-muted" />
+            <Input
+              id={id}
+              type="text"
+              readOnly
+              value={formData.dateOfBirth && formData.age > 0 ? String(formData.age) : ''}
+              placeholder="From birthday"
+              className="bg-surface-sunk text-muted"
+            />
           )}
         </Field>
       </div>
