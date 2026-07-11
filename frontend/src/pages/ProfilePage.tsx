@@ -1,13 +1,27 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { CheckCircle2Icon, TriangleAlertIcon } from 'lucide-react';
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  Field,
+  Input,
+  PageHeader,
+  useToast,
+} from '../components/ui';
 import { useAuth } from '../context/AuthContext';
 
 export function ProfilePage() {
   const { user, updateProfile } = useAuth();
+  const toast = useToast();
   const [profileForm, setProfileForm] = useState({
     name: user?.name || '',
     email: user?.email || '',
-    phone: user?.phone || ''
+    phone: user?.phone || '',
   });
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -17,7 +31,7 @@ export function ProfilePage() {
     setProfileForm({
       name: user?.name || '',
       email: user?.email || '',
-      phone: user?.phone || ''
+      phone: user?.phone || '',
     });
   }, [user?.email, user?.name, user?.phone]);
 
@@ -54,7 +68,7 @@ export function ProfilePage() {
     const { error, message } = await updateProfile({
       name: nextName,
       email: nextEmail,
-      phone: nextPhone
+      phone: nextPhone,
     });
 
     setIsSavingProfile(false);
@@ -64,98 +78,94 @@ export function ProfilePage() {
       return;
     }
 
-    setProfileMessage(message || 'Profile updated successfully.');
+    const successMessage = message || 'Profile updated successfully.';
+    setProfileMessage(successMessage);
+    toast.success('Profile saved', successMessage);
   };
 
   return (
-    <div className="p-8 pb-24">
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mx-auto max-w-3xl rounded-3xl border border-blue-100 bg-white p-8 shadow-sm"
-      >
-        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-blue-700">Profile</p>
-            <h1 className="text-3xl font-extrabold text-gray-800">Edit Profile</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Update your account name, email, and phone number used in the portal.
+    <div className="mx-auto max-w-2xl space-y-6 p-6 md:p-8">
+      <PageHeader
+        eyebrow="Profile"
+        title="Edit profile"
+        description="Update the account name, email, and phone number used across the portal."
+      />
+
+      <Card padding="none" className="animate-fade-up">
+        <CardHeader
+          title={
+            <span className="flex items-center gap-3">
+              <Avatar name={user?.name || 'Account'} />
+              <span className="min-w-0">
+                <span className="block truncate">{user?.name || 'Your account'}</span>
+                <span className="block truncate text-sm font-normal text-muted">{user?.email}</span>
+              </span>
+            </span>
+          }
+          actions={<Badge tone="brand" className="capitalize">{user?.role || 'guardian'}</Badge>}
+        />
+        <CardBody className="space-y-4">
+          <Field label="Full name" required>
+            {({ id }) => (
+              <Input
+                id={id}
+                value={profileForm.name}
+                onChange={(event) => setProfileForm((prev) => ({ ...prev, name: event.target.value }))}
+                placeholder="Enter your full name"
+              />
+            )}
+          </Field>
+
+          <Field label="Email address" required hint="Changing your email requires confirming it from your inbox.">
+            {({ id }) => (
+              <Input
+                id={id}
+                type="email"
+                value={profileForm.email}
+                onChange={(event) => setProfileForm((prev) => ({ ...prev, email: event.target.value }))}
+                placeholder="name@example.com"
+              />
+            )}
+          </Field>
+
+          <Field label="Phone number" hint="Optional. 11 digits starting with 09.">
+            {({ id }) => (
+              <Input
+                id={id}
+                type="text"
+                inputMode="numeric"
+                maxLength={11}
+                value={profileForm.phone}
+                onChange={(event) =>
+                  setProfileForm((prev) => ({
+                    ...prev,
+                    phone: event.target.value.replace(/\D/g, '').slice(0, 11),
+                  }))
+                }
+                placeholder="09XXXXXXXXX"
+              />
+            )}
+          </Field>
+
+          {profileError ? (
+            <p className="flex items-start gap-2 rounded-xl border border-danger/25 bg-danger-soft px-4 py-3 text-sm font-medium text-danger">
+              <TriangleAlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
+              {profileError}
             </p>
-          </div>
-          <p className="text-sm font-medium text-gray-500">Role: {user?.role || 'N/A'}</p>
-        </div>
-
-        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-500">
-              Full Name
-            </label>
-            <input
-              type="text"
-              value={profileForm.name}
-              onChange={(event) => setProfileForm((prev) => ({ ...prev, name: event.target.value }))}
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-sky-300"
-              placeholder="Enter your full name"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-500">
-              Email Address
-            </label>
-            <input
-              type="email"
-              value={profileForm.email}
-              onChange={(event) => setProfileForm((prev) => ({ ...prev, email: event.target.value }))}
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-sky-300"
-              placeholder="name@example.com"
-            />
-          </div>
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-500">
-              Phone Number
-            </label>
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={11}
-              value={profileForm.phone}
-              onChange={(event) =>
-                setProfileForm((prev) => ({
-                  ...prev,
-                  phone: event.target.value.replace(/\D/g, '').slice(0, 11)
-                }))
-              }
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-800 outline-none transition focus:border-sky-300"
-              placeholder="09XXXXXXXXX"
-            />
-          </div>
-        </div>
-
-        {profileError ?
-          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-            {profileError}
-          </div> :
-          null}
-        {profileMessage ?
-          <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
-            {profileMessage}
-          </div> :
-          null}
-
-        <div className="mt-6 flex justify-end">
-          <button
-            type="button"
-            onClick={() => void handleSaveProfile()}
-            disabled={isSavingProfile}
-            className="rounded-xl bg-[#1D4ED8] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:bg-blue-300"
-          >
-            {isSavingProfile ? 'Saving...' : 'Save Profile'}
-          </button>
-        </div>
-      </motion.div>
+          ) : null}
+          {profileMessage ? (
+            <p className="flex items-start gap-2 rounded-xl border border-success/25 bg-success-soft px-4 py-3 text-sm font-medium text-success">
+              <CheckCircle2Icon className="mt-0.5 h-4 w-4 shrink-0" />
+              {profileMessage}
+            </p>
+          ) : null}
+        </CardBody>
+        <CardFooter>
+          <Button onClick={() => void handleSaveProfile()} isLoading={isSavingProfile}>
+            {isSavingProfile ? 'Saving…' : 'Save profile'}
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
