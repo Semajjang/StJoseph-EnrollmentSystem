@@ -175,7 +175,7 @@ export function ActivityLogsPage() {
         description="A live record of staff and admin changes across enrollment, homepage, contact, and staff access."
         actions={
           <>
-            <div className="w-44">
+            <div className="w-full sm:w-44">
               <Select
                 value={activityFilter}
                 onChange={(event) => setActivityFilter(event.target.value as AuditEntityFilter)}
