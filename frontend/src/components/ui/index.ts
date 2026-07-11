@@ -6,6 +6,8 @@ export { Field } from './Field';
 export type { FieldProps } from './Field';
 export { Input, Textarea, Select, controlBase } from './Input';
 export type { InputProps, TextareaProps, SelectProps } from './Input';
+export { Combobox } from './Combobox';
+export type { ComboboxProps, ComboboxOption } from './Combobox';
 export { Badge, StatusPill } from './Badge';
 export type { BadgeProps, BadgeTone } from './Badge';
 export { Spinner, LoadingScreen } from './Spinner';

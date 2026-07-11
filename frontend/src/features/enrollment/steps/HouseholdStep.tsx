@@ -1,5 +1,5 @@
 import { PlusIcon, Trash2Icon, UploadCloudIcon } from 'lucide-react';
-import { Button, Field, Input, Select } from '../../../components/ui';
+import { Button, Combobox, Field, Input, Select } from '../../../components/ui';
 import { StepHeading } from './StepHeading';
 import { normalizeDateOfBirthInput } from '../helpers';
 import { beneficiaryProgramOptions, incomeSourceOptions, monthlyIncomeOptions } from '../types';
@@ -27,24 +27,18 @@ export function HouseholdStep({ form }: { form: EnrollmentFormApi }) {
       <Field label="Beneficiary program" required>
         {({ id }) => (
           <>
-            <Select
+            <Combobox
               id={id}
               value={formData.financialProgram}
-              onChange={(event) => {
-                const value = event.target.value;
+              placeholder="Search beneficiary program…"
+              options={beneficiaryProgramOptions.map((programOption) => ({ value: programOption, label: programOption }))}
+              onChange={(value) => {
                 updateFormData('financialProgram', value);
                 if (value !== 'Other National or LGU Assistance Program') {
                   updateFormData('financialProgramOther', '');
                 }
               }}
-            >
-              <option value="">Select beneficiary program</option>
-              {beneficiaryProgramOptions.map((programOption) => (
-                <option key={programOption} value={programOption}>
-                  {programOption}
-                </option>
-              ))}
-            </Select>
+            />
             {formData.financialProgram === 'Other National or LGU Assistance Program' ? (
               <Input
                 className="mt-2"
