@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { AppShell } from './components/app/AppShell';
+import { DevBar } from './components/app/DevBar';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { EnrollmentProvider } from './context/EnrollmentContext';
 import { ToastProvider } from './components/ui';
@@ -22,7 +23,7 @@ const ActivityLogsPage = lazy(() => import('./pages/ActivityLogsPage').then((mod
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
 
 function AppContent() {
-  const { user, isLoading, isPasswordRecovery } = useAuth();
+  const { user, isLoading, isPasswordRecovery, isDevBypass } = useAuth();
   const [activePage, setActivePage] = useState('home');
   const [isLoginView, setIsLoginView] = useState(true);
   const isManagementRole = user?.role === 'admin' || user?.role === 'staff';
@@ -96,9 +97,12 @@ function AppContent() {
   };
 
   return (
-    <AppShell activePage={activePage} onNavigate={setActivePage}>
-      <Suspense fallback={<LoadingScreen />}>{renderPage()}</Suspense>
-    </AppShell>
+    <>
+      <AppShell activePage={activePage} onNavigate={setActivePage}>
+        <Suspense fallback={<LoadingScreen />}>{renderPage()}</Suspense>
+      </AppShell>
+      {isDevBypass ? <DevBar /> : null}
+    </>
   );
 }
 
