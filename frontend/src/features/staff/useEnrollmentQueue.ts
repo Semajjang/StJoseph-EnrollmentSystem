@@ -10,6 +10,19 @@ import {
   programAliases,
 } from './sections';
 import { hasViewableDocuments } from './enrollmentData';
+import { useDebouncedValue } from './useDebouncedValue';
+
+/** Builds the lowercased haystack a search query is matched against. */
+const buildSearchHaystack = (enrollment: EnrollmentData) => {
+  const philSysNumber = enrollment.formData?.childPhilSysNumber;
+  return [
+    enrollment.childFirstName,
+    enrollment.childLastName,
+    typeof philSysNumber === 'string' ? philSysNumber : '',
+  ]
+    .join(' ')
+    .toLowerCase();
+};
 
 interface UseEnrollmentQueueArgs {
   enrollments: EnrollmentData[];
@@ -27,13 +40,21 @@ export function useEnrollmentQueue({
   activeManagedProgram,
   filters,
 }: UseEnrollmentQueueArgs) {
-  const matchesScope = (enrollment: EnrollmentData) =>
-    (selectedProgram === 'All' || programAliases[selectedProgram].includes(enrollment.program)) &&
-    (!selectedSection || enrollment.section === selectedSection);
+  const debouncedSearch = useDebouncedValue(filters.searchQuery, 200);
 
-  const scopedEnrollments = enrollments.filter(matchesScope);
-  const reviewableEnrollments = enrollments.filter(
-    (enrollment) => hasViewableDocuments(enrollment) && matchesScope(enrollment),
+  // Memoized so a fresh keystroke (which only changes filters.searchQuery) does
+  // not recompute the scoped lists — that keeps the debounced search effective
+  // and avoids re-rendering the queue on every character typed.
+  const scopedEnrollments = useMemo(() => {
+    const matchesScope = (enrollment: EnrollmentData) =>
+      (selectedProgram === 'All' || programAliases[selectedProgram].includes(enrollment.program)) &&
+      (!selectedSection || enrollment.section === selectedSection);
+    return enrollments.filter(matchesScope);
+  }, [enrollments, selectedProgram, selectedSection]);
+
+  const reviewableEnrollments = useMemo(
+    () => scopedEnrollments.filter(hasViewableDocuments),
+    [scopedEnrollments],
   );
 
   const aggregateSummary = useMemo(
@@ -67,6 +88,8 @@ export function useEnrollmentQueue({
     return Array.from(sectionSet).sort(compareSectionLabels);
   }, [reviewableEnrollments]);
 
+  const normalizedSearch = debouncedSearch.trim().toLowerCase();
+
   const filteredMasterlist = useMemo(() => {
     return reviewableEnrollments
       .filter((enrollment) => {
@@ -89,8 +112,10 @@ export function useEnrollmentQueue({
           selectedProgram !== 'All' ||
           filters.statusFilter === 'all' ||
           enrollment.status === filters.statusFilter;
+        const matchesSearch =
+          !normalizedSearch || buildSearchHaystack(enrollment).includes(normalizedSearch);
 
-        return matchesProgram && matchesAssignment && matchesSection && matchesStatus;
+        return matchesProgram && matchesAssignment && matchesSection && matchesStatus && matchesSearch;
       })
       .sort((left, right) => {
         const direction = filters.lastNameSortOrder === 'a-z' ? 1 : -1;
@@ -100,7 +125,17 @@ export function useEnrollmentQueue({
         }
         return left.childFirstName.localeCompare(right.childFirstName) * direction;
       });
-  }, [reviewableEnrollments, selectedProgram, selectedSection, filters]);
+  }, [
+    reviewableEnrollments,
+    selectedProgram,
+    selectedSection,
+    filters.assignmentFilter,
+    filters.programFilter,
+    filters.sectionFilter,
+    filters.statusFilter,
+    filters.lastNameSortOrder,
+    normalizedSearch,
+  ]);
 
   const selectedSectionStudents = useMemo(() => {
     if (!activeManagedProgram || !selectedSection) {

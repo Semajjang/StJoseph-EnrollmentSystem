@@ -5,13 +5,16 @@ import {
   Button,
   Card,
   CardBody,
+  ConfirmDialog,
   PageHeader,
   Tabs,
   useToast,
 } from '../components/ui';
 import { ApplicantDrawer } from '../features/staff/ApplicantDrawer';
+import { EnrollmentBulkBar } from '../features/staff/EnrollmentBulkBar';
 import { EnrollmentFilterBar, QueueFilters } from '../features/staff/EnrollmentFilterBar';
 import { EnrollmentQueue } from '../features/staff/EnrollmentQueue';
+import { useQueueSelection } from '../features/staff/useQueueSelection';
 import { EnrollmentStats } from '../features/staff/EnrollmentStats';
 import { SectionInfoModal } from '../features/staff/SectionInfoModal';
 import { SectionManager } from '../features/staff/SectionManager';
@@ -35,6 +38,7 @@ const defaultFilters: QueueFilters = {
   assignmentFilter: 'all',
   sectionFilter: 'all',
   statusFilter: 'all',
+  searchQuery: '',
 };
 
 export function StaffDashboard() {
@@ -47,6 +51,9 @@ export function StaffDashboard() {
   const [selectedStudent, setSelectedStudent] = useState<EnrollmentData | null>(null);
   const [filters, setFilters] = useState<QueueFilters>(defaultFilters);
   const [isSectionInfoOpen, setIsSectionInfoOpen] = useState(false);
+  const [pendingReject, setPendingReject] = useState<EnrollmentData | null>(null);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [isBulkBusy, setIsBulkBusy] = useState(false);
 
   const {
     sectionsByProgram,
@@ -77,6 +84,23 @@ export function StaffDashboard() {
     filters,
   });
 
+  const filteredIds = useMemo(
+    () => filteredMasterlist.map((enrollment) => enrollment.id),
+    [filteredMasterlist],
+  );
+  const selection = useQueueSelection(filteredIds);
+
+  const filterSignature = [
+    selectedProgram,
+    selectedSection ?? '',
+    filters.programFilter,
+    filters.assignmentFilter,
+    filters.sectionFilter,
+    filters.statusFilter,
+    filters.lastNameSortOrder,
+    filters.searchQuery.trim().toLowerCase(),
+  ].join('|');
+
   // Drop the selected section if the program changes or the section disappears.
   useEffect(() => {
     if (!activeManagedProgram) {
@@ -104,7 +128,7 @@ export function StaffDashboard() {
     return program ? sectionsByProgram[program].length > 0 : true;
   };
 
-  const handleStatusChange = async (enrollment: EnrollmentData, nextStatus: EnrollmentStatus) => {
+  const applyStatusChange = async (enrollment: EnrollmentData, nextStatus: EnrollmentStatus) => {
     const targetStatus =
       nextStatus === 'Approved' && !canApprove(enrollment) ? 'Waitlisted' : nextStatus;
     const { error } = await updateStatus(enrollment.id, targetStatus);
@@ -121,6 +145,125 @@ export function StaffDashboard() {
       return;
     }
     toast.success('Status updated', `Set to ${targetStatus}.`);
+  };
+
+  // Rejecting is destructive-ish (the family is turned away), so gate it behind a
+  // confirm like Delete. Approve / Pending / Waitlisted still apply instantly.
+  const handleStatusChange = (enrollment: EnrollmentData, nextStatus: EnrollmentStatus) => {
+    if (nextStatus === 'Rejected') {
+      setPendingReject(enrollment);
+      return;
+    }
+    void applyStatusChange(enrollment, nextStatus);
+  };
+
+  const handleConfirmReject = async () => {
+    if (!pendingReject) {
+      return;
+    }
+    setIsRejecting(true);
+    await applyStatusChange(pendingReject, 'Rejected');
+    setIsRejecting(false);
+    setPendingReject(null);
+  };
+
+  const handleBulkApprove = async () => {
+    const selected = filteredMasterlist.filter((enrollment) =>
+      selection.selectedIds.has(enrollment.id),
+    );
+    const blocked = selected.filter((enrollment) => !canApprove(enrollment));
+    const toApprove = selected.filter(
+      (enrollment) => canApprove(enrollment) && enrollment.status !== 'Approved',
+    );
+
+    setIsBulkBusy(true);
+    let approvedCount = 0;
+    let errorCount = 0;
+    for (const enrollment of toApprove) {
+      const { error } = await updateStatus(enrollment.id, 'Approved');
+      if (error) {
+        errorCount += 1;
+      } else {
+        approvedCount += 1;
+      }
+    }
+    setIsBulkBusy(false);
+    selection.clear();
+
+    if (blocked.length > 0) {
+      toast.toast({
+        tone: 'warning',
+        title: 'Some learners need a section first',
+        description: `${blocked.length} couldn't be approved because their program has no sections yet. Add a section, then approve.`,
+      });
+    }
+    if (errorCount > 0) {
+      notify.error(`${errorCount} update(s) failed. Please try again.`);
+    }
+    if (approvedCount > 0) {
+      toast.success('Applications approved', `${approvedCount} learner(s) set to Approved.`);
+    } else if (blocked.length === 0 && errorCount === 0) {
+      toast.toast({
+        tone: 'info',
+        title: 'Nothing to approve',
+        description: 'The selected learners are already approved.',
+      });
+    }
+  };
+
+  const handleBulkAssignSection = async (section: string) => {
+    if (!activeManagedProgram) {
+      return;
+    }
+    const normalizedSection = normalizeSectionName(section);
+    const selected = filteredMasterlist.filter((enrollment) =>
+      selection.selectedIds.has(enrollment.id),
+    );
+    // Only Approved learners can hold a section (the approve-first rule).
+    const eligible = selected.filter((enrollment) => enrollment.status === 'Approved');
+    const notApproved = selected.filter((enrollment) => enrollment.status !== 'Approved');
+    const movingIn = eligible.filter((enrollment) => enrollment.section !== normalizedSection).length;
+    const projectedCount =
+      (sectionLoadByProgram[activeManagedProgram][normalizedSection] || 0) + movingIn;
+
+    setIsBulkBusy(true);
+    let assignedCount = 0;
+    let errorCount = 0;
+    for (const enrollment of eligible) {
+      if (enrollment.section === normalizedSection) {
+        continue;
+      }
+      const { error } = await updateSection(enrollment.id, normalizedSection);
+      if (error) {
+        errorCount += 1;
+      } else {
+        assignedCount += 1;
+      }
+    }
+    setIsBulkBusy(false);
+    selection.clear();
+
+    if (notApproved.length > 0) {
+      toast.toast({
+        tone: 'warning',
+        title: 'Some learners were skipped',
+        description: `${notApproved.length} aren't approved yet. Approve them before assigning a section.`,
+      });
+    }
+    if (errorCount > 0) {
+      notify.error(`${errorCount} assignment(s) failed. Please try again.`);
+    }
+    if (assignedCount > 0) {
+      if (projectedCount > sectionCapacity) {
+        toast.toast({
+          tone: 'warning',
+          title: 'Section is over capacity',
+          description: `${normalizedSection} now holds ${projectedCount} learners (max ${sectionCapacity}).`,
+        });
+      } else {
+        toast.success('Section assigned', `${assignedCount} learner(s) moved to ${normalizedSection}.`);
+      }
+    }
   };
 
   const handleSectionChange = async (enrollment: EnrollmentData, nextSection: string | null) => {
@@ -296,6 +439,17 @@ export function StaffDashboard() {
             </div>
           ) : null}
         </CardBody>
+        {selection.selectedCount > 0 ? (
+          <EnrollmentBulkBar
+            selectedCount={selection.selectedCount}
+            isBusy={isBulkBusy}
+            onApproveSelected={handleBulkApprove}
+            onClear={selection.clear}
+            sectionOptions={activeManagedProgram ? sectionsByProgram[activeManagedProgram] : null}
+            sectionLoad={activeManagedProgram ? sectionLoadByProgram[activeManagedProgram] : null}
+            onAssignSection={handleBulkAssignSection}
+          />
+        ) : null}
         <EnrollmentQueue
           rows={filteredMasterlist}
           isLoading={isLoading}
@@ -305,6 +459,12 @@ export function StaffDashboard() {
           onSelect={setSelectedStudent}
           onChangeStatus={handleStatusChange}
           onChangeSection={handleSectionChange}
+          selectedIds={selection.selectedIds}
+          allSelected={selection.allSelected}
+          someSelected={selection.someSelected}
+          onToggleRow={selection.toggle}
+          onToggleAll={selection.toggleAll}
+          filterSignature={filterSignature}
         />
       </Card>
 
@@ -332,6 +492,20 @@ export function StaffDashboard() {
           onDelete={handleDeleteSection}
         />
       ) : null}
+
+      <ConfirmDialog
+        open={Boolean(pendingReject)}
+        onCancel={() => setPendingReject(null)}
+        onConfirm={handleConfirmReject}
+        isLoading={isRejecting}
+        title="Reject this application?"
+        message={
+          pendingReject
+            ? `This sets ${pendingReject.childFirstName} ${pendingReject.childLastName}'s application to Rejected. You can change it back later if needed.`
+            : ''
+        }
+        confirmLabel="Reject application"
+      />
     </div>
   );
 }
