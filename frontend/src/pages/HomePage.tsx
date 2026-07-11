@@ -1,14 +1,43 @@
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ArrowRightIcon,
+  CheckIcon,
+  ClipboardListIcon,
+  FolderOpenIcon,
+  GraduationCapIcon,
+  MessageCircleIcon,
+  SearchCheckIcon,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { Badge, Button, Card, CardBody, Skeleton } from '../components/ui';
+import { cn } from '../lib/cn';
 import { HomePageContent, fetchHomePageContent, loadHomePageContent } from '../lib/homepageContent';
+import { useEnrollment } from '../context/EnrollmentContext';
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
 }
 
+const REQUIRED_DOCUMENT_COUNT = 4;
+
+interface TrackerStage {
+  id: string;
+  label: string;
+  caption: string;
+  icon: LucideIcon;
+}
+
+const trackerStages: TrackerStage[] = [
+  { id: 'apply', label: 'Apply', caption: 'Submit the enrollment form', icon: ClipboardListIcon },
+  { id: 'requirements', label: 'Requirements', caption: 'Upload the required documents', icon: FolderOpenIcon },
+  { id: 'review', label: 'Review', caption: 'Staff review your application', icon: SearchCheckIcon },
+  { id: 'enrolled', label: 'Enrolled', caption: 'Your child has a slot', icon: GraduationCapIcon },
+];
+
 export function HomePage({ onNavigate }: HomePageProps) {
   const [content, setContent] = useState<HomePageContent>(() => loadHomePageContent());
   const [isLoadingContent, setIsLoadingContent] = useState(true);
+  const { enrollments, isLoading: isLoadingEnrollments } = useEnrollment();
 
   useEffect(() => {
     let isMounted = true;
@@ -31,167 +60,204 @@ export function HomePage({ onNavigate }: HomePageProps) {
     };
   }, []);
 
-  return (
-    <div className="h-screen overflow-hidden p-8">
-      <div className="h-full overflow-auto pr-1">
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-[32px] bg-[#0F3BA8] shadow-[0_18px_45px_rgba(29,78,216,0.22)]"
-      >
-        {content.heroImageUrl ?
-          <img
-            src={content.heroImageUrl}
-            alt={content.heroTitle}
-            className="absolute inset-0 h-full w-full object-cover"
-          /> :
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(147,197,253,0.38),_transparent_28%),linear-gradient(120deg,_#1D4ED8_0%,_#3B82F6_48%,_#93C5FD_100%)]" />}
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(9,24,68,0.84)_0%,rgba(15,59,168,0.74)_38%,rgba(15,59,168,0.22)_70%,rgba(15,59,168,0.08)_100%)]" />
-        <div className="pointer-events-none absolute -left-12 top-12 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 right-0 h-56 w-56 rounded-full bg-cyan-200/10 blur-3xl" />
+  const { activeStage, nextStep } = useMemo(() => {
+    const latest = enrollments[0];
 
-        <div className="relative z-10 flex min-h-[360px] flex-col justify-end p-6 md:min-h-[420px] md:p-8 lg:p-10">
-          <div className="max-w-3xl">
-            <div className="inline-flex rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-blue-50 backdrop-blur-sm">
+    if (!latest) {
+      return {
+        activeStage: 0,
+        nextStep: { label: 'Start enrollment', page: 'enrollment' },
+      };
+    }
+
+    if (latest.status === 'Approved') {
+      return {
+        activeStage: 3,
+        nextStep: { label: 'View your children', page: 'yourChild' },
+      };
+    }
+
+    const uploadedCount = (latest.requirements || []).length;
+    if (uploadedCount < REQUIRED_DOCUMENT_COUNT) {
+      return {
+        activeStage: 1,
+        nextStep: { label: 'Upload requirements', page: 'requirements' },
+      };
+    }
+
+    return {
+      activeStage: 2,
+      nextStep: { label: 'View application status', page: 'status' },
+    };
+  }, [enrollments]);
+
+  const heroHasImage = Boolean(content.heroImageUrl);
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-6 p-6 md:p-8">
+      {/* Hero */}
+      <section
+        className={cn(
+          'relative overflow-hidden rounded-3xl border border-line shadow-md animate-fade-up',
+          heroHasImage ? 'bg-brand-deep' : 'bg-brand-deep',
+        )}
+      >
+        {heroHasImage ? (
+          <img src={content.heroImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        ) : null}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ background: 'radial-gradient(90% 70% at 12% 0%, rgba(245,158,11,0.22), transparent 55%)' }}
+          aria-hidden
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(100deg,rgba(19,78,74,0.92)_0%,rgba(19,78,74,0.78)_45%,rgba(19,78,74,0.35)_100%)]" />
+        <div className="relative z-10 flex min-h-[300px] flex-col justify-end gap-5 p-6 md:min-h-[360px] md:p-10">
+          <div className="max-w-2xl">
+            <span className="inline-flex rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-2xs font-bold uppercase tracking-[0.16em] text-white/90 backdrop-blur-sm">
               {content.heroEyebrow}
-            </div>
-            <h1 className="mt-5 max-w-2xl text-4xl font-extrabold leading-tight text-white md:text-5xl lg:text-6xl">
+            </span>
+            <h1 className="mt-4 font-display text-3xl font-extrabold leading-tight text-white md:text-5xl">
               {content.heroTitle}
             </h1>
-            <p className="mt-4 max-w-2xl text-base font-medium leading-7 text-blue-50/95 md:text-lg">
-              {isLoadingContent ? 'Loading homepage content...' : content.heroDescription}
+            <p className="mt-3 max-w-xl text-sm leading-6 text-white/80 md:text-base">
+              {isLoadingContent ? 'Loading homepage content…' : content.heroDescription}
             </p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => onNavigate('enrollment')}
-                className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-[#1D4ED8] shadow-lg shadow-black/10 transition hover:bg-blue-50"
-              >
-                Enroll Now
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate('contact')}
-                className="rounded-2xl border border-white/20 bg-[#0F2F88]/70 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-black/10 backdrop-blur-sm transition hover:bg-[#0C266F]/85"
-              >
-                Contact
-              </button>
-              <div className="rounded-2xl border border-white/15 bg-slate-900/20 px-4 py-3 text-sm font-semibold text-blue-50 backdrop-blur-sm">
-                Enrollment, updates, and school announcements in one place
-              </div>
-            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="accent" size="lg" onClick={() => onNavigate('enrollment')} rightIcon={<ArrowRightIcon className="h-4 w-4" />}>
+              Enroll now
+            </Button>
+            <Button
+              variant="subtle"
+              size="lg"
+              onClick={() => onNavigate('contact')}
+              leftIcon={<MessageCircleIcon className="h-4 w-4" />}
+              className="border-white/25 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+            >
+              Message staff
+            </Button>
           </div>
         </div>
-      </motion.div>
+      </section>
 
-      <div className="mt-6 rounded-[28px] bg-[#1840B8] p-5 shadow-[0_14px_35px_rgba(29,78,216,0.18)] md:p-6">
-        <div className="mb-4 flex items-end justify-between gap-4">
+      {/* Enrollment progress tracker */}
+      <Card padding="none" className="animate-fade-up">
+        <div className="flex flex-col gap-4 border-b border-line px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] font-bold text-blue-100 mb-2">Featured Moments</p>
-            <h2 className="text-2xl font-extrabold text-white">Campus Highlights</h2>
+            <p className="text-2xs font-bold uppercase tracking-[0.14em] text-brand">Your enrollment</p>
+            <h2 className="mt-0.5 font-display text-lg font-bold text-ink">Track your progress</h2>
           </div>
-          <p className="hidden max-w-sm text-right text-sm font-medium text-blue-100 lg:block">
-            Showcase school events, campus life, and featured stories directly from the staff homepage manager.
-          </p>
+          <Button onClick={() => onNavigate(nextStep.page)} rightIcon={<ArrowRightIcon className="h-4 w-4" />}>
+            {nextStep.label}
+          </Button>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {content.highlights.map((item, index) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 * index }}
-              className="group overflow-hidden rounded-2xl border border-white/10 bg-[#15359A] shadow-lg shadow-black/10"
-            >
-              <div className="relative overflow-hidden bg-[#0A2A7A]">
-                {item.imageUrl ?
-                  <img
-                    src={item.imageUrl}
-                    alt={item.title}
-                    className="block w-full h-auto max-h-[320px] object-contain transition duration-500 group-hover:scale-[1.02]"
-                  /> :
-                  <div className="h-48 w-full bg-gradient-to-br from-[#93C5FD] via-[#60A5FA] to-[#1D4ED8]" />}
-              </div>
-              <div className="bg-[#15359A] px-4 py-4 text-white">
-                <p className="text-base font-extrabold leading-tight">{item.title}</p>
-                <p className="mt-1 text-sm text-blue-100 leading-snug">{item.subtitle}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
+        <CardBody>
+          {isLoadingEnrollments ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {trackerStages.map((stage) => (
+                <Skeleton key={stage.id} className="h-24 w-full" />
+              ))}
+            </div>
+          ) : (
+            <ol className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {trackerStages.map((stage, index) => {
+                const isComplete = index < activeStage;
+                const isCurrent = index === activeStage;
+                const Icon = stage.icon;
+                return (
+                  <li
+                    key={stage.id}
+                    className={cn(
+                      'relative flex flex-col gap-2 rounded-2xl border p-4 transition-colors',
+                      isCurrent && 'border-brand/40 bg-brand-tint',
+                      isComplete && 'border-line bg-surface-sunk/60',
+                      !isCurrent && !isComplete && 'border-line bg-surface',
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={cn(
+                          'flex h-9 w-9 items-center justify-center rounded-xl',
+                          isComplete && 'bg-success-soft text-success',
+                          isCurrent && 'bg-surface text-brand shadow-sm',
+                          !isCurrent && !isComplete && 'bg-surface-sunk text-faint',
+                        )}
+                      >
+                        {isComplete ? <CheckIcon className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                      </span>
+                      <span className="text-2xs font-bold uppercase tracking-wide text-faint">
+                        Step {index + 1}
+                      </span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className={cn('text-sm font-bold', isCurrent || isComplete ? 'text-ink' : 'text-muted')}>
+                          {stage.label}
+                        </p>
+                        {isCurrent ? (
+                          <Badge tone="brand" className="px-2 py-0">
+                            You're here
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <p className="mt-0.5 text-xs leading-5 text-muted">{stage.caption}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </CardBody>
+      </Card>
 
-      <div className="mt-6 rounded-2xl border border-blue-100 bg-white p-6 shadow-sm">
-        <p className="text-xs uppercase tracking-wide text-blue-700 font-bold mb-2">{content.announcementsTitle}</p>
-        <h2 className="text-2xl font-extrabold text-gray-800 mb-2">School Updates</h2>
-        <p className="text-sm text-gray-500 mb-5">{content.announcementsIntro}</p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {content.announcements.map((announcement, index) => (
-            <motion.div
-              key={announcement.id}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 * index }}
-              className="rounded-2xl border border-blue-100 bg-[#F8FBFF] p-5"
-            >
-              <p className="text-xs font-bold uppercase tracking-wide text-blue-500 mb-2">
-                {announcement.dateLabel}
-              </p>
-              <h3 className="text-lg font-extrabold text-gray-800 mb-2">{announcement.title}</h3>
-              <p className="text-sm text-gray-600 leading-6">{announcement.body}</p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-[1.7fr,1fr] gap-6 mt-6">
-        <div className="rounded-2xl border border-blue-100 bg-white p-6 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-blue-700 font-bold mb-2">Portal Flow</p>
-          <h2 className="text-2xl font-extrabold text-gray-800 mb-2">{content.flowTitle}</h2>
-          <p className="text-sm text-gray-500 mb-5">{content.flowDescription}</p>
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => onNavigate('enrollment')}
-              className="px-5 py-2.5 rounded-xl bg-[#1D4ED8] text-white font-bold hover:bg-[#1E40AF] transition-colors"
-            >
-              Enroll Now
-            </button>
-            <button
-              type="button"
-              onClick={() => onNavigate('requirements')}
-              className="px-5 py-2.5 rounded-xl bg-[#EFF6FF] text-[#1D4ED8] font-bold hover:bg-[#DBEAFE] transition-colors"
-            >
-              Upload Requirements
-            </button>
-            <button
-              type="button"
-              onClick={() => onNavigate('status')}
-              className="px-5 py-2.5 rounded-xl bg-[#EFF6FF] text-[#1D4ED8] font-bold hover:bg-[#DBEAFE] transition-colors"
-            >
-              View Application
-            </button>
+      {/* Campus highlights */}
+      {content.highlights.length > 0 ? (
+        <section className="space-y-4">
+          <div>
+            <p className="text-2xs font-bold uppercase tracking-[0.14em] text-brand">Featured moments</p>
+            <h2 className="mt-0.5 font-display text-xl font-bold text-ink">Campus highlights</h2>
           </div>
-        </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {content.highlights.map((item) => (
+              <Card key={item.id} padding="none" className="overflow-hidden">
+                <div className="aspect-[4/3] w-full overflow-hidden bg-surface-sunk">
+                  {item.imageUrl ? (
+                    <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="h-full w-full bg-gradient-to-br from-brand-soft via-brand-tint to-accent-soft" />
+                  )}
+                </div>
+                <div className="p-4">
+                  <p className="font-bold leading-tight text-ink">{item.title}</p>
+                  {item.subtitle ? <p className="mt-1 text-sm text-muted">{item.subtitle}</p> : null}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
-        <div className="rounded-2xl bg-gradient-to-br from-[#60A5FA] to-[#1D4ED8] p-6 text-white shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-blue-100 font-bold mb-2">Quick Action</p>
-          <h3 className="text-2xl font-extrabold mb-2">{content.quickActionTitle}</h3>
-          <p className="text-sm text-blue-50 mb-5">{content.quickActionDescription}</p>
-          <button
-            type="button"
-            onClick={() => onNavigate('enrollment')}
-            className="px-5 py-2.5 rounded-xl bg-white text-[#1D4ED8] font-bold hover:bg-blue-50 transition-colors"
-          >
-            Enroll Now
-          </button>
-        </div>
-      </div>
-
-      </div>
+      {/* Announcements */}
+      {content.announcements.length > 0 ? (
+        <section className="space-y-4">
+          <div>
+            <p className="text-2xs font-bold uppercase tracking-[0.14em] text-brand">{content.announcementsTitle}</p>
+            <h2 className="mt-0.5 font-display text-xl font-bold text-ink">School updates</h2>
+            {content.announcementsIntro ? (
+              <p className="mt-1 text-sm text-muted">{content.announcementsIntro}</p>
+            ) : null}
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {content.announcements.map((announcement) => (
+              <Card key={announcement.id}>
+                <Badge tone="accent">{announcement.dateLabel}</Badge>
+                <h3 className="mt-3 font-display text-lg font-bold text-ink">{announcement.title}</h3>
+                <p className="mt-1.5 text-sm leading-6 text-ink-soft">{announcement.body}</p>
+              </Card>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
