@@ -199,7 +199,7 @@ export function HouseholdStep({ form }: { form: EnrollmentFormApi }) {
             >
               <UploadCloudIcon className="h-4 w-4 shrink-0 text-muted" />
               <span className="truncate">{effectiveIncomeProof ? effectiveIncomeProof.name : 'Upload file'}</span>
-              <input id={id} type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={handleIncomeProofChange} className="hidden" />
+              <input id={id} type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={handleIncomeProofChange} className="sr-only" />
             </label>
           )}
         </Field>

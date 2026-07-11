@@ -91,7 +91,7 @@ export function LoginPage({ onSwitchToSignup }: LoginPageProps) {
         </Field>
 
         {errorMessage ? (
-          <p className="rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm font-medium text-danger">{errorMessage}</p>
+          <p role="alert" className="rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm font-medium text-danger">{errorMessage}</p>
         ) : null}
         {resetMessage ? (
           <p className="rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-sm font-medium text-success">{resetMessage}</p>

@@ -65,7 +65,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             {toasts.map((item) => (
               <div
                 key={item.id}
-                role="status"
+                role={item.tone === 'error' ? 'alert' : 'status'}
                 className="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl border border-line bg-surface p-4 shadow-lg animate-fade-up"
               >
                 <span className={cn('mt-0.5 shrink-0', toneStyles[item.tone].accent)}>{toneStyles[item.tone].icon}</span>
