@@ -10,6 +10,7 @@ import { supabase } from '../lib/supabase';
 import { clearAllMfaSessions, completePendingMfaRequest } from '../lib/adminMfa';
 import { getEmailChangeRedirectUrl, getPasswordResetRedirectUrl } from '../lib/authRedirects';
 import { clearAllStaffAccessSessions } from '../lib/staffAccess';
+import { DEV_AUTOLOGIN, DEV_BYPASS_AUTH, loadDevRole, makeDevUser, saveDevRole, type DevRole } from '../lib/devAuth';
 
 export type UserRole = 'guardian' | 'staff' | 'admin' | 'parent';
 
@@ -55,6 +56,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   isLoading: boolean;
   isPasswordRecovery: boolean;
+  isDevBypass: boolean;
+  setDevRole: (role: DevRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -104,9 +107,14 @@ const clearRecoveryUrl = () => {
 };
 
 export function AuthProvider({ children }: {children: ReactNode;}) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(() => (DEV_BYPASS_AUTH ? makeDevUser(loadDevRole()) : null));
+  const [isLoading, setIsLoading] = useState(!DEV_BYPASS_AUTH);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(isRecoveryUrl);
+
+  const setDevRole = useCallback((role: DevRole) => {
+    saveDevRole(role);
+    setUser(makeDevUser(role));
+  }, []);
 
   const buildUserFromProfile = (
   authUser: {
@@ -224,9 +232,24 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
   };
 
   useEffect(() => {
+    // Dev-only: skip real auth entirely and browse as a mock user.
+    if (DEV_BYPASS_AUTH) {
+      setIsLoading(false);
+      return;
+    }
+
     const loadingFallbackTimeout = window.setTimeout(() => {
       setIsLoading(false);
     }, 10000);
+
+    // Dev-only: auto sign in with a real account so data works during development.
+    if (DEV_AUTOLOGIN.email && DEV_AUTOLOGIN.password) {
+      void supabase.auth.getSession().then(({ data }) => {
+        if (!data.session) {
+          void supabase.auth.signInWithPassword({ email: DEV_AUTOLOGIN.email, password: DEV_AUTOLOGIN.password });
+        }
+      });
+    }
 
     loadUserFromSession().finally(() => {
       window.clearTimeout(loadingFallbackTimeout);
@@ -515,7 +538,9 @@ export function AuthProvider({ children }: {children: ReactNode;}) {
         cancelPasswordRecovery,
         logout,
         isLoading,
-        isPasswordRecovery
+        isPasswordRecovery,
+        isDevBypass: DEV_BYPASS_AUTH,
+        setDevRole
       }}>
 
       {children}

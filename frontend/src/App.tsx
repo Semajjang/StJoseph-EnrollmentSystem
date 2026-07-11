@@ -1,17 +1,10 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { AppShell } from './components/app/AppShell';
+import { DevBar } from './components/app/DevBar';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { EnrollmentProvider } from './context/EnrollmentContext';
 import { ToastProvider } from './components/ui';
 import { LoadingScreen } from './components/ui/Spinner';
-import {
-  clearAuthCallbackUrl,
-  isEmailMfaCallbackUrl,
-  loadMfaSession,
-  MfaSession,
-  saveMfaSession,
-} from './lib/adminMfa';
-import { AdminMfaGatePage } from './pages/AdminMfaGatePage';
 import { LoginPage } from './pages/LoginPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { SignupPage } from './pages/SignupPage';
@@ -29,19 +22,11 @@ const ContactManager = lazy(() => import('./pages/ContactManager').then((module)
 const ActivityLogsPage = lazy(() => import('./pages/ActivityLogsPage').then((module) => ({ default: module.ActivityLogsPage })));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
 
-const ADMIN_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
-const STAFF_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
-const GUARDIAN_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
-
 function AppContent() {
-  const { user, isLoading, isPasswordRecovery, logout } = useAuth();
+  const { user, isLoading, isPasswordRecovery, isDevBypass } = useAuth();
   const [activePage, setActivePage] = useState('home');
   const [isLoginView, setIsLoginView] = useState(true);
-  const [mfaSession, setMfaSession] = useState<MfaSession | null>(null);
   const isManagementRole = user?.role === 'admin' || user?.role === 'staff';
-  const requiresMfa = user?.role === 'guardian' || user?.role === 'staff' || user?.role === 'admin';
-  const inactivityTimeoutDuration =
-    user?.role === 'staff' ? STAFF_IDLE_TIMEOUT_MS : user?.role === 'admin' ? ADMIN_IDLE_TIMEOUT_MS : GUARDIAN_IDLE_TIMEOUT_MS;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -59,59 +44,10 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (!user || !requiresMfa) {
-      setMfaSession(null);
-      return;
-    }
-    setMfaSession(loadMfaSession(user.id));
-  }, [requiresMfa, user]);
-
-  useEffect(() => {
-    if (!user || !requiresMfa || mfaSession || !isEmailMfaCallbackUrl()) return;
-    const nextSession = { factorId: `email-link:${user.email || user.id}`, verifiedAt: new Date().toISOString() };
-    saveMfaSession(user.id, nextSession);
-    setMfaSession(nextSession);
-    clearAuthCallbackUrl();
-    setActivePage(user.role === 'staff' ? 'staffDashboard' : 'home');
-  }, [mfaSession, requiresMfa, user]);
-
-  useEffect(() => {
     if (user?.role === 'admin') setActivePage('adminDashboard');
     else if (isManagementRole) setActivePage('staffDashboard');
     else setActivePage('home');
   }, [isManagementRole, user?.role]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !user) return;
-    let hasLoggedOut = false;
-
-    const handleTimeout = () => {
-      if (hasLoggedOut) return;
-      hasLoggedOut = true;
-      setMfaSession(null);
-      window.alert('Your session expired due to inactivity. Please sign in again.');
-      void logout();
-    };
-
-    let timeoutHandle = window.setTimeout(handleTimeout, inactivityTimeoutDuration);
-
-    const resetTimeout = () => {
-      if (hasLoggedOut || document.visibilityState === 'hidden') return;
-      window.clearTimeout(timeoutHandle);
-      timeoutHandle = window.setTimeout(handleTimeout, inactivityTimeoutDuration);
-    };
-
-    const activityEvents: Array<keyof WindowEventMap> = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
-    activityEvents.forEach((eventName) => window.addEventListener(eventName, resetTimeout, { passive: true }));
-    document.addEventListener('visibilitychange', resetTimeout);
-
-    return () => {
-      hasLoggedOut = true;
-      window.clearTimeout(timeoutHandle);
-      activityEvents.forEach((eventName) => window.removeEventListener(eventName, resetTimeout));
-      document.removeEventListener('visibilitychange', resetTimeout);
-    };
-  }, [inactivityTimeoutDuration, logout, mfaSession, user]);
 
   if (isLoading && user) {
     return <LoadingScreen label="Loading your portal" />;
@@ -129,18 +65,14 @@ function AppContent() {
     );
   }
 
-  if (requiresMfa && !mfaSession) {
-    return <AdminMfaGatePage onSkip={setMfaSession} />;
-  }
-
   const renderPage = () => {
     switch (activePage) {
       case 'home':
         return <HomePage onNavigate={setActivePage} />;
       case 'enrollment':
-        return <EnrollmentForm onSuccess={() => setActivePage('requirements')} />;
+        return <EnrollmentForm onNavigate={setActivePage} />;
       case 'requirements':
-        return <Requirements onContinueToYourChild={() => setActivePage('yourChild')} />;
+        return <Requirements onContinueToYourChild={() => setActivePage('yourChild')} onStartEnrollment={() => setActivePage('enrollment')} />;
       case 'status':
         return <ApplicationStatus onStartEnrollment={() => setActivePage('enrollment')} />;
       case 'yourChild':
@@ -165,9 +97,12 @@ function AppContent() {
   };
 
   return (
-    <AppShell activePage={activePage} onNavigate={setActivePage}>
-      <Suspense fallback={<LoadingScreen />}>{renderPage()}</Suspense>
-    </AppShell>
+    <>
+      <AppShell activePage={activePage} onNavigate={setActivePage}>
+        <Suspense fallback={<LoadingScreen />}>{renderPage()}</Suspense>
+      </AppShell>
+      {isDevBypass ? <DevBar /> : null}
+    </>
   );
 }
 
