@@ -42,7 +42,7 @@ import {
 } from './types';
 import type { EnrolledSiblingInfo, EnrollmentFormApi, FormData } from './types';
 
-export function useEnrollmentForm(onSuccess: () => void): EnrollmentFormApi {
+export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => void): EnrollmentFormApi {
   const { addEnrollment } = useEnrollment();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
@@ -648,7 +648,7 @@ export function useEnrollmentForm(onSuccess: () => void): EnrollmentFormApi {
       incomeProof: currentEffectiveIncomeProof
     };
 
-    const { error } = await addEnrollment(submissionData);
+    const { error, id } = await addEnrollment(submissionData);
 
     if (error) {
       showEnrollmentNotification(error);
@@ -660,7 +660,7 @@ export function useEnrollmentForm(onSuccess: () => void): EnrollmentFormApi {
     clearEnrollmentDraftFiles();
 
     setIsSubmitting(false);
-    onSuccess();
+    onSubmitted(id ?? null);
   };
 
   return {

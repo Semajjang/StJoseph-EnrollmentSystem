@@ -26,7 +26,7 @@ export interface EnrollmentData {
 interface EnrollmentContextType {
   enrollments: EnrollmentData[];
   isLoading: boolean;
-  addEnrollment: (data: any) => Promise<{ error: string | null }>;
+  addEnrollment: (data: any) => Promise<{ error: string | null; id?: string | null }>;
   deleteEnrollment: (id: string) => Promise<{ error: string | null }>;
   updateStatus: (
     id: string,
@@ -333,7 +333,7 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
       requirements: []
     };
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('enrollments')
       .insert(payload)
       .select('id')
@@ -349,7 +349,8 @@ export function EnrollmentProvider({ children }: {children: ReactNode;}) {
     await fetchEnrollments();
     finishMeasurement('success', 'Enrollment submitted successfully.');
     return {
-      error: null
+      error: null,
+      id: (data as { id?: string } | null)?.id ?? null
     };
   };
 

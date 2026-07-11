@@ -4,14 +4,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { EnrollmentProvider } from './context/EnrollmentContext';
 import { ToastProvider } from './components/ui';
 import { LoadingScreen } from './components/ui/Spinner';
-import {
-  clearAuthCallbackUrl,
-  isEmailMfaCallbackUrl,
-  loadMfaSession,
-  MfaSession,
-  saveMfaSession,
-} from './lib/adminMfa';
-import { AdminMfaGatePage } from './pages/AdminMfaGatePage';
 import { LoginPage } from './pages/LoginPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { SignupPage } from './pages/SignupPage';
@@ -37,9 +29,7 @@ function AppContent() {
   const { user, isLoading, isPasswordRecovery, logout } = useAuth();
   const [activePage, setActivePage] = useState('home');
   const [isLoginView, setIsLoginView] = useState(true);
-  const [mfaSession, setMfaSession] = useState<MfaSession | null>(null);
   const isManagementRole = user?.role === 'admin' || user?.role === 'staff';
-  const requiresMfa = user?.role === 'guardian' || user?.role === 'staff' || user?.role === 'admin';
   const inactivityTimeoutDuration =
     user?.role === 'staff' ? STAFF_IDLE_TIMEOUT_MS : user?.role === 'admin' ? ADMIN_IDLE_TIMEOUT_MS : GUARDIAN_IDLE_TIMEOUT_MS;
 
@@ -59,23 +49,6 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (!user || !requiresMfa) {
-      setMfaSession(null);
-      return;
-    }
-    setMfaSession(loadMfaSession(user.id));
-  }, [requiresMfa, user]);
-
-  useEffect(() => {
-    if (!user || !requiresMfa || mfaSession || !isEmailMfaCallbackUrl()) return;
-    const nextSession = { factorId: `email-link:${user.email || user.id}`, verifiedAt: new Date().toISOString() };
-    saveMfaSession(user.id, nextSession);
-    setMfaSession(nextSession);
-    clearAuthCallbackUrl();
-    setActivePage(user.role === 'staff' ? 'staffDashboard' : 'home');
-  }, [mfaSession, requiresMfa, user]);
-
-  useEffect(() => {
     if (user?.role === 'admin') setActivePage('adminDashboard');
     else if (isManagementRole) setActivePage('staffDashboard');
     else setActivePage('home');
@@ -88,7 +61,6 @@ function AppContent() {
     const handleTimeout = () => {
       if (hasLoggedOut) return;
       hasLoggedOut = true;
-      setMfaSession(null);
       window.alert('Your session expired due to inactivity. Please sign in again.');
       void logout();
     };
@@ -111,7 +83,7 @@ function AppContent() {
       activityEvents.forEach((eventName) => window.removeEventListener(eventName, resetTimeout));
       document.removeEventListener('visibilitychange', resetTimeout);
     };
-  }, [inactivityTimeoutDuration, logout, mfaSession, user]);
+  }, [inactivityTimeoutDuration, logout, user]);
 
   if (isLoading && user) {
     return <LoadingScreen label="Loading your portal" />;
@@ -129,18 +101,14 @@ function AppContent() {
     );
   }
 
-  if (requiresMfa && !mfaSession) {
-    return <AdminMfaGatePage onSkip={setMfaSession} />;
-  }
-
   const renderPage = () => {
     switch (activePage) {
       case 'home':
         return <HomePage onNavigate={setActivePage} />;
       case 'enrollment':
-        return <EnrollmentForm onSuccess={() => setActivePage('requirements')} />;
+        return <EnrollmentForm onNavigate={setActivePage} />;
       case 'requirements':
-        return <Requirements onContinueToYourChild={() => setActivePage('yourChild')} />;
+        return <Requirements onContinueToYourChild={() => setActivePage('yourChild')} onStartEnrollment={() => setActivePage('enrollment')} />;
       case 'status':
         return <ApplicationStatus onStartEnrollment={() => setActivePage('enrollment')} />;
       case 'yourChild':
