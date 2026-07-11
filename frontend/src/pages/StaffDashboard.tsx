@@ -23,6 +23,7 @@ import {
   normalizeSectionName,
   programAliases,
   programOptions,
+  sectionCapacity,
 } from '../features/staff/sections';
 import { buildMasterlistCsv, downloadCsv } from '../features/staff/enrollmentData';
 
@@ -137,11 +138,11 @@ export function StaffDashboard() {
       notify.error(error);
       return;
     }
-    if (normalizedSection && projectedCount > 20) {
+    if (normalizedSection && projectedCount > sectionCapacity) {
       toast.toast({
         tone: 'warning',
         title: 'Section is over capacity',
-        description: `${normalizedSection} now holds ${projectedCount} learners (max 20).`,
+        description: `${normalizedSection} now holds ${projectedCount} learners (max ${sectionCapacity}).`,
       });
       return;
     }
