@@ -1,9 +1,19 @@
 import type { ReactNode } from 'react';
 import { PencilIcon } from 'lucide-react';
 import { StepHeading } from './StepHeading';
+import { incomeSourceOptions, monthlyIncomeOptions } from '../types';
 import type { EnrollmentFormApi } from '../types';
 
 const dash = '—';
+
+const labelFor = (options: readonly { value: string; label: string }[], value: string) =>
+  options.find((option) => option.value === value)?.label || value;
+
+const formatBirthday = (iso: string) => {
+  if (!iso) return '';
+  const date = new Date(`${iso}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? iso : date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+};
 
 function SummarySection({
   title,
@@ -66,7 +76,7 @@ export function ReviewStep({ form }: { form: EnrollmentFormApi }) {
   const incomeSourceValue =
     formData.incomeSourceCategory === 'Other'
       ? formData.incomeSourceCategoryOther || 'Other'
-      : formData.incomeSourceCategory;
+      : labelFor(incomeSourceOptions, formData.incomeSourceCategory);
 
   return (
     <div className="space-y-6">
@@ -82,7 +92,7 @@ export function ReviewStep({ form }: { form: EnrollmentFormApi }) {
         rows={[
           { label: 'Full name', value: fullName },
           { label: 'Sex', value: formData.sex },
-          { label: 'Birthday', value: formData.dateOfBirth },
+          { label: 'Birthday', value: formatBirthday(formData.dateOfBirth) },
           { label: 'Age', value: exactAgeLabel },
           { label: 'PhilSys no.', value: formData.childPhilSysNumber },
           { label: 'Address', value: formData.address },
@@ -114,7 +124,7 @@ export function ReviewStep({ form }: { form: EnrollmentFormApi }) {
           { label: 'Beneficiary program', value: financialProgramValue },
           { label: 'Enrolled siblings', value: String(formData.enrolledSiblings) },
           { label: 'Income source', value: incomeSourceValue },
-          { label: 'Monthly income', value: formData.monthlyIncome },
+          { label: 'Monthly income', value: labelFor(monthlyIncomeOptions, formData.monthlyIncome) },
           { label: 'Special status', value: formData.parentGuardianSpecialStatus },
           { label: 'Proof of income', value: effectiveIncomeProof?.name },
         ]}

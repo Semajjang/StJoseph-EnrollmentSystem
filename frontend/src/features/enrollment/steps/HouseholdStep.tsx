@@ -2,7 +2,7 @@ import { UploadCloudIcon } from 'lucide-react';
 import { Field, Input, Select } from '../../../components/ui';
 import { StepHeading } from './StepHeading';
 import { normalizeDateOfBirthInput } from '../helpers';
-import { beneficiaryProgramOptions } from '../types';
+import { beneficiaryProgramOptions, incomeSourceOptions, monthlyIncomeOptions } from '../types';
 import type { EnrollmentFormApi } from '../types';
 
 export function HouseholdStep({ form }: { form: EnrollmentFormApi }) {
@@ -145,10 +145,11 @@ export function HouseholdStep({ form }: { form: EnrollmentFormApi }) {
                 }}
               >
                 <option value="">Select income source</option>
-                <option value="Salary/Wages">Salary / wages</option>
-                <option value="Business">Business</option>
-                <option value="Both">Both</option>
-                <option value="Other">Other</option>
+                {incomeSourceOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </Select>
               {formData.incomeSourceCategory === 'Other' ? (
                 <Input
@@ -165,10 +166,11 @@ export function HouseholdStep({ form }: { form: EnrollmentFormApi }) {
           {({ id }) => (
             <Select id={id} value={formData.monthlyIncome} onChange={(event) => updateFormData('monthlyIncome', event.target.value)}>
               <option value="">Select income range</option>
-              <option value="Below 10k">Below ₱10,000</option>
-              <option value="10k-20k">₱10,000 - ₱20,000</option>
-              <option value="20k-50k">₱20,000 - ₱50,000</option>
-              <option value="Above 50k">Above ₱50,000</option>
+              {monthlyIncomeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </Select>
           )}
         </Field>
