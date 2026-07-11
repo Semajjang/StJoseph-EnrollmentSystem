@@ -1,37 +1,122 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&display=swap');
 
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
+/*
+ * St. Joseph Daycare — "Warm & Trustworthy" design tokens.
+ * Colors are stored as space-separated RGB channels so Tailwind's
+ * `rgb(var(--token) / <alpha-value>)` mapping enables opacity utilities.
+ */
 :root {
-  --sky-blue: #60A5FA;
-  --warm-pink: #93C5FD;
-  --cream-white: #EEF5FF;
-  --soft-purple: #E9D5FF;
-  --soft-green: #BBF7D0;
-  --card-white: #FFFFFF;
+  /* Brand — Pine teal: trust, calm, growth */
+  --brand: 15 118 110;          /* #0F766E */
+  --brand-mid: 13 148 136;      /* #0D9488 */
+  --brand-strong: 17 94 89;     /* #115E59 */
+  --brand-deep: 19 78 74;       /* #134E4A */
+  --brand-soft: 204 251 241;    /* #CCFBF1 */
+  --brand-tint: 240 253 250;    /* #F0FDFA */
+
+  /* Accent — Marigold sun: warmth, childhood, energy */
+  --accent: 245 158 11;         /* #F59E0B */
+  --accent-strong: 217 119 6;   /* #D97706 */
+  --accent-soft: 254 243 199;   /* #FEF3C7 */
+  --accent-tint: 255 251 235;   /* #FFFBEB */
+
+  /* Warm neutrals — Ink & Sand */
+  --ink: 38 34 30;              /* #26221E primary text */
+  --ink-soft: 61 55 48;         /* #3D3730 secondary text */
+  --muted: 133 125 114;         /* #857D72 */
+  --faint: 168 160 147;         /* #A8A093 */
+  --canvas: 247 243 236;        /* #F7F3EC page */
+  --surface: 255 255 255;       /* #FFFFFF cards */
+  --surface-sunk: 250 247 241;  /* #FAF7F1 inputs, subtle fills */
+  --line: 233 226 214;          /* #E9E2D6 borders */
+  --line-strong: 219 209 193;   /* #DBD1C1 */
+
+  /* Status */
+  --success: 22 163 74;         /* #16A34A */
+  --success-soft: 220 252 231;  /* #DCFCE7 */
+  --warning: 217 119 6;         /* #D97706 */
+  --warning-soft: 254 243 199;  /* #FEF3C7 */
+  --danger: 220 38 38;          /* #DC2626 */
+  --danger-soft: 254 226 226;   /* #FEE2E2 */
+  --info: 13 148 136;           /* #0D9488 */
+  --info-soft: 204 251 241;     /* #CCFBF1 */
+
+  --focus: 13 148 136;          /* teal focus ring */
+
+  --font-display: 'Bricolage Grotesque', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
+  /* Warm-tinted elevation */
+  --shadow-sm: 0 1px 2px rgba(41, 37, 36, 0.05);
+  --shadow: 0 2px 8px -2px rgba(41, 37, 36, 0.08), 0 4px 16px -6px rgba(41, 37, 36, 0.06);
+  --shadow-md: 0 8px 24px -8px rgba(41, 37, 36, 0.12), 0 2px 8px -4px rgba(41, 37, 36, 0.08);
+  --shadow-lg: 0 20px 44px -14px rgba(41, 37, 36, 0.18), 0 6px 16px -8px rgba(41, 37, 36, 0.10);
 }
-* {
-  font-family: 'Poppins', sans-serif;
+
+@layer base {
+  * {
+    border-color: rgb(var(--line));
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: rgb(var(--canvas));
+    color: rgb(var(--ink));
+    min-height: 100vh;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    color: rgb(var(--ink));
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+
+  ::selection {
+    background-color: rgb(var(--brand) / 0.16);
+    color: rgb(var(--brand-deep));
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--focus));
+    outline-offset: 2px;
+  }
 }
-body {
-  background-color: var(--cream-white);
-  min-height: 100vh;
-  color: #1F2937;
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
-/* Custom scrollbar for child-friendly feel */
+
+/* Warm scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--cream-white);
-  border-radius: 10px;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--sky-blue);
-  border-radius: 10px;
+  background: rgb(var(--line-strong));
+  border: 3px solid rgb(var(--canvas));
+  border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #7DD3FC;
+  background: rgb(var(--faint));
 }
