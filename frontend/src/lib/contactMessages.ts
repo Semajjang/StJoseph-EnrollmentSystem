@@ -324,3 +324,40 @@ export const updateContactMessageStatus = async (
     message: nextMessage
   };
 };
+
+export type ContactMessageChange =
+  | { type: 'upsert'; message: ContactMessage }
+  | { type: 'delete'; id: string };
+
+/**
+ * Subscribe to live inserts/updates/deletes on the contact_messages table.
+ * Returns an unsubscribe function. Requires the table to be part of the
+ * `supabase_realtime` publication (see backend/supabase/realtime-messaging.sql);
+ * callers should also keep a periodic refetch as a fallback.
+ */
+export const subscribeToContactMessages = (
+  onChange: (change: ContactMessageChange) => void
+): (() => void) => {
+  const channel = supabase
+    .channel('contact_messages_stream')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'contact_messages' },
+      (payload) => {
+        if (payload.eventType === 'DELETE') {
+          const removed = payload.old as { id?: string } | null;
+          if (removed?.id) {
+            onChange({ type: 'delete', id: removed.id });
+          }
+          return;
+        }
+
+        onChange({ type: 'upsert', message: normalizeMessage(payload.new as ContactMessageRow, 0) });
+      }
+    )
+    .subscribe();
+
+  return () => {
+    void supabase.removeChannel(channel);
+  };
+};
