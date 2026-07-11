@@ -35,6 +35,20 @@ export const beneficiaryProgramOptions = [
   'Other National or LGU Assistance Program'
 ] as const;
 
+export const incomeSourceOptions = [
+  { value: 'Salary/Wages', label: 'Salary / wages' },
+  { value: 'Business', label: 'Business' },
+  { value: 'Both', label: 'Both' },
+  { value: 'Other', label: 'Other' },
+] as const;
+
+export const monthlyIncomeOptions = [
+  { value: 'Below 10k', label: 'Below ₱10,000' },
+  { value: '10k-20k', label: '₱10,000 – ₱20,000' },
+  { value: '20k-50k', label: '₱20,000 – ₱50,000' },
+  { value: 'Above 50k', label: 'Above ₱50,000' },
+] as const;
+
 export interface EnrolledSiblingInfo {
   name: string;
   sex: 'Male' | 'Female' | '';
