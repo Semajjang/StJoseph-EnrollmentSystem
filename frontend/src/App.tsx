@@ -1,14 +1,15 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
-import { MenuIcon } from 'lucide-react';
-import { Sidebar } from './components/Sidebar';
+import { AppShell } from './components/app/AppShell';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { EnrollmentProvider } from './context/EnrollmentContext';
+import { ToastProvider } from './components/ui';
+import { LoadingScreen } from './components/ui/Spinner';
 import {
   clearAuthCallbackUrl,
   isEmailMfaCallbackUrl,
   loadMfaSession,
   MfaSession,
-  saveMfaSession
+  saveMfaSession,
 } from './lib/adminMfa';
 import { AdminMfaGatePage } from './pages/AdminMfaGatePage';
 import { LoginPage } from './pages/LoginPage';
@@ -32,43 +33,26 @@ const ADMIN_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
 const STAFF_IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 const GUARDIAN_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
 
-function PageLoader() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-[#EEF5FF]">
-      <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#BAE6FD] border-t-transparent" />
-    </div>
-  );
-}
-
 function AppContent() {
   const { user, isLoading, isPasswordRecovery, logout } = useAuth();
   const [activePage, setActivePage] = useState('home');
   const [isLoginView, setIsLoginView] = useState(true);
   const [mfaSession, setMfaSession] = useState<MfaSession | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isManagementRole = user?.role === 'admin' || user?.role === 'staff';
   const requiresMfa = user?.role === 'guardian' || user?.role === 'staff' || user?.role === 'admin';
-  const inactivityTimeoutDuration = user?.role === 'staff' ?
-    STAFF_IDLE_TIMEOUT_MS :
-    user?.role === 'admin' ?
-      ADMIN_IDLE_TIMEOUT_MS :
-      GUARDIAN_IDLE_TIMEOUT_MS;
+  const inactivityTimeoutDuration =
+    user?.role === 'staff' ? STAFF_IDLE_TIMEOUT_MS : user?.role === 'admin' ? ADMIN_IDLE_TIMEOUT_MS : GUARDIAN_IDLE_TIMEOUT_MS;
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    // Allow HTTP for localhost, 127.0.0.1, and private LAN IPs (e.g., 192.168.x.x, 10.x.x.x, 172.16.x.x - 172.31.x.x)
+    if (typeof window === 'undefined') return;
+    // Allow HTTP for localhost, 127.0.0.1, and private LAN IPs.
     const hostname = window.location.hostname;
-    const isLocalHost = (
+    const isLocalHost =
       hostname === 'localhost' ||
       hostname === '127.0.0.1' ||
       /^192\.168\./.test(hostname) ||
       /^10\./.test(hostname) ||
-      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname)
-    );
-
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname);
     if (!isLocalHost && window.location.protocol === 'http:') {
       window.location.replace(`https://${window.location.host}${window.location.pathname}${window.location.search}${window.location.hash}`);
     }
@@ -79,20 +63,12 @@ function AppContent() {
       setMfaSession(null);
       return;
     }
-
     setMfaSession(loadMfaSession(user.id));
   }, [requiresMfa, user]);
 
   useEffect(() => {
-    if (!user || !requiresMfa || mfaSession || !isEmailMfaCallbackUrl()) {
-      return;
-    }
-
-    const nextSession = {
-      factorId: `email-link:${user.email || user.id}`,
-      verifiedAt: new Date().toISOString()
-    };
-
+    if (!user || !requiresMfa || mfaSession || !isEmailMfaCallbackUrl()) return;
+    const nextSession = { factorId: `email-link:${user.email || user.id}`, verifiedAt: new Date().toISOString() };
     saveMfaSession(user.id, nextSession);
     setMfaSession(nextSession);
     clearAuthCallbackUrl();
@@ -100,31 +76,17 @@ function AppContent() {
   }, [mfaSession, requiresMfa, user]);
 
   useEffect(() => {
-    if (user?.role === 'admin') {
-      setActivePage('adminDashboard');
-    } else if (isManagementRole) {
-      setActivePage('staffDashboard');
-    } else {
-      setActivePage('home');
-    }
+    if (user?.role === 'admin') setActivePage('adminDashboard');
+    else if (isManagementRole) setActivePage('staffDashboard');
+    else setActivePage('home');
   }, [isManagementRole, user?.role]);
 
   useEffect(() => {
-    setIsSidebarOpen(false);
-  }, [activePage]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !user) {
-      return;
-    }
-
+    if (typeof window === 'undefined' || !user) return;
     let hasLoggedOut = false;
 
     const handleTimeout = () => {
-      if (hasLoggedOut) {
-        return;
-      }
-
+      if (hasLoggedOut) return;
       hasLoggedOut = true;
       setMfaSession(null);
       window.alert('Your session expired due to inactivity. Please sign in again.');
@@ -134,37 +96,25 @@ function AppContent() {
     let timeoutHandle = window.setTimeout(handleTimeout, inactivityTimeoutDuration);
 
     const resetTimeout = () => {
-      if (hasLoggedOut || document.visibilityState === 'hidden') {
-        return;
-      }
-
+      if (hasLoggedOut || document.visibilityState === 'hidden') return;
       window.clearTimeout(timeoutHandle);
       timeoutHandle = window.setTimeout(handleTimeout, inactivityTimeoutDuration);
     };
 
     const activityEvents: Array<keyof WindowEventMap> = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
-
-    activityEvents.forEach((eventName) => {
-      window.addEventListener(eventName, resetTimeout, { passive: true });
-    });
+    activityEvents.forEach((eventName) => window.addEventListener(eventName, resetTimeout, { passive: true }));
     document.addEventListener('visibilitychange', resetTimeout);
 
     return () => {
       hasLoggedOut = true;
       window.clearTimeout(timeoutHandle);
-      activityEvents.forEach((eventName) => {
-        window.removeEventListener(eventName, resetTimeout);
-      });
+      activityEvents.forEach((eventName) => window.removeEventListener(eventName, resetTimeout));
       document.removeEventListener('visibilitychange', resetTimeout);
     };
   }, [inactivityTimeoutDuration, logout, mfaSession, user]);
 
   if (isLoading && user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#FFFBEB]">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#BAE6FD] border-t-transparent" />
-      </div>
-    );
+    return <LoadingScreen label="Loading your portal" />;
   }
 
   if (isPasswordRecovery) {
@@ -172,15 +122,16 @@ function AppContent() {
   }
 
   if (!user) {
-    return isLoginView ?
-      <LoginPage onSwitchToSignup={() => setIsLoginView(false)} /> :
-      <SignupPage onSwitchToLogin={() => setIsLoginView(true)} />;
+    return isLoginView ? (
+      <LoginPage onSwitchToSignup={() => setIsLoginView(false)} />
+    ) : (
+      <SignupPage onSwitchToLogin={() => setIsLoginView(true)} />
+    );
   }
 
   if (requiresMfa && !mfaSession) {
     return <AdminMfaGatePage onSkip={setMfaSession} />;
   }
-
 
   const renderPage = () => {
     switch (activePage) {
@@ -209,45 +160,25 @@ function AppContent() {
       case 'contact':
         return <Contact />;
       default:
-        return user.role === 'admin' ?
-          <AdminDashboard /> :
-          isManagementRole ?
-            <StaffDashboard /> :
-            <HomePage onNavigate={setActivePage} />;
+        return user.role === 'admin' ? <AdminDashboard /> : isManagementRole ? <StaffDashboard /> : <HomePage onNavigate={setActivePage} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#EEF5FF]">
-      <button
-        type="button"
-        onClick={() => setIsSidebarOpen(true)}
-        className="fixed left-4 top-4 z-[60] inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-gray-800 shadow-lg ring-1 ring-black/5 transition hover:bg-gray-50 md:hidden"
-        aria-label="Open navigation menu"
-      >
-        <MenuIcon className="h-5 w-5" />
-      </button>
-      <Sidebar
-        activePage={activePage}
-        onNavigate={setActivePage}
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-      />
-      <main className="min-h-screen pt-16 transition-all duration-300 md:ml-[260px] md:pt-0">
-        <Suspense fallback={<PageLoader />}>
-          {renderPage()}
-        </Suspense>
-      </main>
-    </div>
+    <AppShell activePage={activePage} onNavigate={setActivePage}>
+      <Suspense fallback={<LoadingScreen />}>{renderPage()}</Suspense>
+    </AppShell>
   );
 }
 
 export function App() {
   return (
-    <AuthProvider>
-      <EnrollmentProvider>
-        <AppContent />
-      </EnrollmentProvider>
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <EnrollmentProvider>
+          <AppContent />
+        </EnrollmentProvider>
+      </AuthProvider>
+    </ToastProvider>
   );
 }

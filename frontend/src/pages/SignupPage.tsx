@@ -1,51 +1,48 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
+import { ArrowRightIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import {
-  UserIcon,
-  MailIcon,
-  PhoneIcon,
-  LockIcon,
-  ArrowRightIcon } from
-'lucide-react';
+import { AuthLayout } from '../components/app/AuthLayout';
+import { Button, Field, Input, Select } from '../components/ui';
+
 interface SignupPageProps {
   onSwitchToLogin: () => void;
 }
+
+const suffixes = ['Jr.', 'Sr.', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+
+const emptyForm = {
+  firstName: '',
+  middleName: '',
+  lastName: '',
+  suffix: '',
+  email: '',
+  phone: '',
+  password: '',
+  confirmPassword: '',
+};
+
 export function SignupPage({ onSwitchToLogin }: SignupPageProps) {
   const { signup } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    firstName: '',
-    middleName: '',
-    lastName: '',
-    suffix: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirmPassword: ''
-  });
-  const handleChange = (
-  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
-  };
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const [formData, setFormData] = useState(emptyForm);
 
+  const handleChange = (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormData((prev) => ({ ...prev, [event.target.name]: event.target.value }));
+  };
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
     if (formData.password !== formData.confirmPassword) {
       setErrorMessage('Passwords do not match.');
       return;
     }
-
     try {
       setIsLoading(true);
       setErrorMessage(null);
       setSuccessMessage(null);
-
       const { error } = await signup({
         firstName: formData.firstName,
         middleName: formData.middleName,
@@ -54,245 +51,104 @@ export function SignupPage({ onSwitchToLogin }: SignupPageProps) {
         email: formData.email,
         role: 'guardian',
         phone: formData.phone,
-        password: formData.password
+        password: formData.password,
       });
-
       if (error) {
         setErrorMessage(error);
       } else {
-        setSuccessMessage('Account created. Sign in with your new password to continue, then complete the email verification step when the portal asks for it.');
-        setFormData({
-          firstName: '',
-          middleName: '',
-          lastName: '',
-          suffix: '',
-          email: '',
-          phone: '',
-          password: '',
-          confirmPassword: ''
-        });
+        setSuccessMessage(
+          'Account created. Sign in with your new password to continue, then complete the email verification step when the portal asks for it.',
+        );
+        setFormData(emptyForm);
       }
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : 'Signup failed. Please try again.'
-      );
+      setErrorMessage(error instanceof Error ? error.message : 'Signup failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#EEF5FF] p-4 py-8">
-      <motion.div
-        initial={{
-          opacity: 0,
-          scale: 0.95
-        }}
-        animate={{
-          opacity: 1,
-          scale: 1
-        }}
-        className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-blue-100">
-
-        <div className="bg-gradient-to-r from-[#1D4ED8] to-[#60A5FA] p-6 text-center">
-          <h1 className="text-2xl font-bold text-gray-800">Create Account</h1>
-          <p className="text-blue-900 font-medium">
-            Guardian registration for St. Joseph Daycare Center
-          </p>
+    <AuthLayout title="Create your account" subtitle="Guardian registration for St. Joseph Daycare Center.">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="First name" required>
+            {({ id }) => <Input id={id} name="firstName" required value={formData.firstName} onChange={handleChange} placeholder="Juan" />}
+          </Field>
+          <Field label="Middle name">
+            {({ id }) => <Input id={id} name="middleName" value={formData.middleName} onChange={handleChange} placeholder="Santos" />}
+          </Field>
         </div>
 
-        <div className="p-8">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
-                  First Name <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    name="firstName"
-                    type="text"
-                    required
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
-                    placeholder="Juan" />
-
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
-                  Middle Name
-                </label>
-                <div className="relative">
-                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    name="middleName"
-                    type="text"
-                    value={formData.middleName}
-                    onChange={handleChange}
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
-                    placeholder="Santos" />
-
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
-                  Last Name <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    name="lastName"
-                    type="text"
-                    required
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
-                    placeholder="Dela Cruz" />
-
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
-                  Suffix
-                </label>
-                <select
-                  name="suffix"
-                  value={formData.suffix}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors bg-white"
-                >
-                  <option value="">None</option>
-                  <option value="Jr.">Jr.</option>
-                  <option value="Sr.">Sr.</option>
-                  <option value="II">II</option>
-                  <option value="III">III</option>
-                  <option value="IV">IV</option>
-                  <option value="V">V</option>
-                  <option value="VI">VI</option>
-                  <option value="VII">VII</option>
-                  <option value="VIII">VIII</option>
-                  <option value="IX">IX</option>
-                  <option value="X">X</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
-                Email <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
-                  placeholder="juan@example.com" />
-
-              </div>
-            </div>
-
-            <div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
-                  Phone (+63) <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <PhoneIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    name="phone"
-                    type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={handleChange}
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
-                    placeholder="912 345 6789" />
-
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
-                  Password <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    name="password"
-                    type="password"
-                    required
-                    value={formData.password}
-                    onChange={handleChange}
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
-                    placeholder="••••••" />
-
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">
-                  Confirm <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    name="confirmPassword"
-                    type="password"
-                    required
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border-2 border-gray-100 focus:border-[#BAE6FD] focus:outline-none transition-colors"
-                    placeholder="••••••" />
-
-                </div>
-              </div>
-            </div>
-
-            {errorMessage ?
-            <p className="text-sm font-medium text-red-600">{errorMessage}</p> :
-            null}
-
-            {successMessage ?
-            <p className="text-sm font-medium text-green-700">{successMessage}</p> :
-            null}
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full mt-6 bg-[#1D4ED8] hover:bg-[#1E40AF] text-white font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
-
-              {isLoading ?
-              <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> :
-
-              <>
-                  Create Account <ArrowRightIcon className="w-5 h-5" />
-                </>
-              }
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-gray-500 text-sm">
-              Already have an account?{' '}
-              <button
-                onClick={onSwitchToLogin}
-                className="text-[#3B82F6] font-bold hover:underline">
-
-                Sign in here
-              </button>
-            </p>
-          </div>
+        <div className="grid grid-cols-[1fr_7rem] gap-3">
+          <Field label="Last name" required>
+            {({ id }) => <Input id={id} name="lastName" required value={formData.lastName} onChange={handleChange} placeholder="Dela Cruz" />}
+          </Field>
+          <Field label="Suffix">
+            {({ id }) => (
+              <Select id={id} name="suffix" value={formData.suffix} onChange={handleChange}>
+                <option value="">None</option>
+                {suffixes.map((suffix) => (
+                  <option key={suffix} value={suffix}>
+                    {suffix}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
         </div>
-      </motion.div>
-    </div>);
 
+        <Field label="Email" required>
+          {({ id }) => (
+            <Input id={id} name="email" type="email" required value={formData.email} onChange={handleChange} placeholder="juan@example.com" />
+          )}
+        </Field>
+
+        <Field label="Phone" hint="Philippine mobile number" required>
+          {({ id }) => (
+            <Input id={id} name="phone" type="tel" required value={formData.phone} onChange={handleChange} placeholder="+63 912 345 6789" />
+          )}
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Password" required>
+            {({ id }) => (
+              <Input id={id} name="password" type="password" required value={formData.password} onChange={handleChange} placeholder="••••••" />
+            )}
+          </Field>
+          <Field label="Confirm" required>
+            {({ id }) => (
+              <Input
+                id={id}
+                name="confirmPassword"
+                type="password"
+                required
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="••••••"
+              />
+            )}
+          </Field>
+        </div>
+
+        {errorMessage ? (
+          <p className="rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm font-medium text-danger">{errorMessage}</p>
+        ) : null}
+        {successMessage ? (
+          <p className="rounded-xl border border-success/20 bg-success-soft px-4 py-3 text-sm font-medium text-success">{successMessage}</p>
+        ) : null}
+
+        <Button type="submit" fullWidth size="lg" isLoading={isLoading} rightIcon={<ArrowRightIcon className="h-4 w-4" />}>
+          Create account
+        </Button>
+      </form>
+
+      <p className="mt-6 text-center text-sm text-muted">
+        Already have an account?{' '}
+        <button type="button" onClick={onSwitchToLogin} className="font-semibold text-brand transition hover:text-brand-strong">
+          Sign in
+        </button>
+      </p>
+    </AuthLayout>
+  );
 }
