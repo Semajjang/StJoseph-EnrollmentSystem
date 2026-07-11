@@ -1,4 +1,4 @@
-import { FileTextIcon, ImageIcon, TriangleAlertIcon } from 'lucide-react';
+import { CheckIcon, FileTextIcon, ImageIcon, TriangleAlertIcon } from 'lucide-react';
 import { Field, Input, Select, Textarea } from '../../../components/ui';
 import { cn } from '../../../lib/cn';
 import { StepHeading } from './StepHeading';
@@ -114,19 +114,22 @@ export function ChildStep({ form }: { form: EnrollmentFormApi }) {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Field label="Sex" required>
           {({ id }) => (
-            <div id={id} className="flex rounded-xl border border-line bg-surface-sunk p-1">
+            <div id={id} role="radiogroup" aria-label="Sex" className="flex rounded-xl border border-line bg-surface-sunk p-1">
               {(['Male', 'Female'] as const).map((option) => {
                 const active = formData.sex === option;
                 return (
                   <button
                     key={option}
                     type="button"
+                    role="radio"
+                    aria-checked={active}
                     onClick={() => updateFormData('sex', option)}
                     className={cn(
-                      'flex-1 rounded-lg py-2 text-sm font-semibold transition-all',
+                      'flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-semibold transition-all',
                       active ? 'bg-surface text-brand-strong shadow-sm' : 'text-muted hover:text-ink',
                     )}
                   >
+                    {active ? <CheckIcon className="h-3.5 w-3.5" /> : null}
                     {option}
                   </button>
                 );

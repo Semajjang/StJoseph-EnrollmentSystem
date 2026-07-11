@@ -42,6 +42,12 @@ export function Combobox({ options, value, onChange, id, placeholder = 'Selectâ€
     return () => document.removeEventListener('mousedown', handlePointerDown);
   }, [open]);
 
+  // Keep the keyboard-highlighted option scrolled into view.
+  useEffect(() => {
+    if (!open) return;
+    document.getElementById(`${listId}-opt-${highlight}`)?.scrollIntoView({ block: 'nearest' });
+  }, [highlight, open, listId]);
+
   const choose = (option: ComboboxOption) => {
     onChange(option.value);
     setQuery('');
@@ -56,6 +62,7 @@ export function Combobox({ options, value, onChange, id, placeholder = 'Selectâ€
         role="combobox"
         aria-expanded={open}
         aria-controls={listId}
+        aria-activedescendant={open && filtered.length > 0 ? `${listId}-opt-${highlight}` : undefined}
         aria-autocomplete="list"
         autoComplete="off"
         aria-invalid={invalid || undefined}
@@ -105,7 +112,7 @@ export function Combobox({ options, value, onChange, id, placeholder = 'Selectâ€
             <li className="px-3 py-2 text-sm text-muted">{emptyText}</li>
           ) : (
             filtered.map((option, index) => (
-              <li key={option.value} role="option" aria-selected={option.value === value}>
+              <li key={option.value} id={`${listId}-opt-${index}`} role="option" aria-selected={option.value === value}>
                 <button
                   type="button"
                   onMouseDown={(event) => event.preventDefault()}

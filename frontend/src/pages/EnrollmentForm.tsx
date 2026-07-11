@@ -120,7 +120,7 @@ export function EnrollmentForm({ onNavigate }: EnrollmentFormProps) {
         title={phase === 'done' ? 'Enrollment submitted' : 'Enroll your child'}
         description={
           phase === 'form'
-            ? 'Fill in the application, upload a few documents, and you’re done. Your progress saves automatically on this device.'
+            ? 'Fill in the application, upload a few documents, and you’re done. Your answers are saved on this device as you go.'
             : phase === 'documents'
               ? `Application received — now add ${childName}’s documents.`
               : undefined

@@ -27,8 +27,8 @@
   /* Warm neutrals — Ink & Sand */
   --ink: 38 34 30;              /* #26221E primary text */
   --ink-soft: 61 55 48;         /* #3D3730 secondary text */
-  --muted: 133 125 114;         /* #857D72 */
-  --faint: 168 160 147;         /* #A8A093 */
+  --muted: 107 100 89;          /* #6B6459 — ~4.7:1 on surface (WCAG AA body) */
+  --faint: 133 125 114;         /* #857D72 — decorative / timestamps only */
   --canvas: 247 243 236;        /* #F7F3EC page */
   --surface: 255 255 255;       /* #FFFFFF cards */
   --surface-sunk: 250 247 241;  /* #FAF7F1 inputs, subtle fills */
