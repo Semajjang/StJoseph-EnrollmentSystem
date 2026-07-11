@@ -1,5 +1,5 @@
-import { UploadCloudIcon } from 'lucide-react';
-import { Field, Input, Select } from '../../../components/ui';
+import { PlusIcon, Trash2Icon, UploadCloudIcon } from 'lucide-react';
+import { Button, Field, Input, Select } from '../../../components/ui';
 import { StepHeading } from './StepHeading';
 import { normalizeDateOfBirthInput } from '../helpers';
 import { beneficiaryProgramOptions, incomeSourceOptions, monthlyIncomeOptions } from '../types';
@@ -10,6 +10,8 @@ export function HouseholdStep({ form }: { form: EnrollmentFormApi }) {
     formData,
     updateFormData,
     updateSiblingFormData,
+    addSibling,
+    removeSibling,
     siblingBirthdateRange,
     handleIncomeProofChange,
     effectiveIncomeProof,
@@ -22,73 +24,76 @@ export function HouseholdStep({ form }: { form: EnrollmentFormApi }) {
         description="These details help us assess financial assistance eligibility. Proof of income is required."
       />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Field label="Beneficiary program" required>
-          {({ id }) => (
-            <>
-              <Select
-                id={id}
-                value={formData.financialProgram}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  updateFormData('financialProgram', value);
-                  if (value !== 'Other National or LGU Assistance Program') {
-                    updateFormData('financialProgramOther', '');
-                  }
-                }}
-              >
-                <option value="">Select beneficiary program</option>
-                {beneficiaryProgramOptions.map((programOption) => (
-                  <option key={programOption} value={programOption}>
-                    {programOption}
-                  </option>
-                ))}
-              </Select>
-              {formData.financialProgram === 'Other National or LGU Assistance Program' ? (
-                <Input
-                  className="mt-2"
-                  value={formData.financialProgramOther}
-                  onChange={(event) => updateFormData('financialProgramOther', event.target.value)}
-                  placeholder="Please specify"
-                />
-              ) : null}
-            </>
-          )}
-        </Field>
-        <Field label="Enrolled siblings" hint="Children already enrolled at the daycare">
-          {({ id }) => (
-            <Input
+      <Field label="Beneficiary program" required>
+        {({ id }) => (
+          <>
+            <Select
               id={id}
-              type="number"
-              min="0"
-              value={formData.enrolledSiblings}
-              onChange={(event) => updateFormData('enrolledSiblings', parseInt(event.target.value, 10) || 0)}
-            />
-          )}
-        </Field>
-      </div>
-
-      {formData.enrolledSiblingDetails.length > 0 ? (
-        <div className="space-y-4 rounded-2xl border border-line bg-surface-sunk/50 p-5">
-          <div>
-            <h3 className="text-sm font-bold text-ink">Enrolled sibling details</h3>
-            <p className="mt-0.5 text-sm text-muted">
-              Add each enrolled sibling's name, birthday, and sex. Age and program are calculated automatically.
-            </p>
-          </div>
-
-          {formData.enrolledSiblingDetails.map((sibling, siblingIndex) => (
-            <div
-              key={`enrolled-sibling-${siblingIndex}`}
-              className="grid grid-cols-1 gap-4 rounded-xl border border-line bg-surface p-4 md:grid-cols-2"
+              value={formData.financialProgram}
+              onChange={(event) => {
+                const value = event.target.value;
+                updateFormData('financialProgram', value);
+                if (value !== 'Other National or LGU Assistance Program') {
+                  updateFormData('financialProgramOther', '');
+                }
+              }}
             >
+              <option value="">Select beneficiary program</option>
+              {beneficiaryProgramOptions.map((programOption) => (
+                <option key={programOption} value={programOption}>
+                  {programOption}
+                </option>
+              ))}
+            </Select>
+            {formData.financialProgram === 'Other National or LGU Assistance Program' ? (
+              <Input
+                className="mt-2"
+                value={formData.financialProgramOther}
+                onChange={(event) => updateFormData('financialProgramOther', event.target.value)}
+                placeholder="Please specify"
+              />
+            ) : null}
+          </>
+        )}
+      </Field>
+
+      <div className="space-y-4 rounded-2xl border border-line bg-surface-sunk/50 p-5">
+        <div>
+          <h3 className="text-sm font-bold text-ink">Enrolled siblings</h3>
+          <p className="mt-0.5 text-sm text-muted">
+            Add any children you already have enrolled at the daycare. Age and program fill in from each birthday.
+          </p>
+        </div>
+
+        {formData.enrolledSiblingDetails.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-line-strong bg-surface px-4 py-3 text-sm text-muted">
+            No enrolled siblings added yet.
+          </p>
+        ) : null}
+
+        {formData.enrolledSiblingDetails.map((sibling, siblingIndex) => (
+          <div key={`enrolled-sibling-${siblingIndex}`} className="rounded-xl border border-line bg-surface p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-2xs font-bold uppercase tracking-[0.14em] text-brand">Sibling {siblingIndex + 1}</p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => removeSibling(siblingIndex)}
+                leftIcon={<Trash2Icon className="h-4 w-4 text-danger" />}
+                aria-label={`Remove sibling ${siblingIndex + 1}`}
+              >
+                Remove
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Field label="Sibling name" required>
                 {({ id }) => (
                   <Input
                     id={id}
                     value={sibling.name}
                     onChange={(event) => updateSiblingFormData(siblingIndex, 'name', event.target.value)}
-                    placeholder={`Sibling ${siblingIndex + 1} full name`}
+                    placeholder="Full name"
                   />
                 )}
               </Field>
@@ -125,9 +130,13 @@ export function HouseholdStep({ form }: { form: EnrollmentFormApi }) {
                 )}
               </Field>
             </div>
-          ))}
-        </div>
-      ) : null}
+          </div>
+        ))}
+
+        <Button type="button" variant="subtle" onClick={addSibling} leftIcon={<PlusIcon className="h-4 w-4" />}>
+          Add sibling
+        </Button>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Field label="Source of income" required>

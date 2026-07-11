@@ -472,6 +472,30 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
     });
   };
 
+  const addSibling = () => {
+    setSubmitError(null);
+    setFormData((prev) => {
+      const nextSiblingDetails = [...prev.enrolledSiblingDetails, createEmptySiblingInfo()];
+      return {
+        ...prev,
+        enrolledSiblingDetails: nextSiblingDetails,
+        enrolledSiblings: nextSiblingDetails.length
+      };
+    });
+  };
+
+  const removeSibling = (siblingIndex: number) => {
+    setSubmitError(null);
+    setFormData((prev) => {
+      const nextSiblingDetails = prev.enrolledSiblingDetails.filter((_, index) => index !== siblingIndex);
+      return {
+        ...prev,
+        enrolledSiblingDetails: nextSiblingDetails,
+        enrolledSiblings: nextSiblingDetails.length
+      };
+    });
+  };
+
   const handleRegionChange = (regionCode: string) => {
     const selectedRegion = regionOptions.find((region) => region.code === regionCode);
 
@@ -698,6 +722,8 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
     enrollmentNoticeRef,
     updateFormData,
     updateSiblingFormData,
+    addSibling,
+    removeSibling,
     handleRegionChange,
     handleProvinceChange,
     handleMunicipalityChange,
