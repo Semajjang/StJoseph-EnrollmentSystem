@@ -101,7 +101,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
                 type="button"
                 onClick={onClose}
                 aria-label="Close dialog"
-                className="-mr-2 -mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-surface-sunk hover:text-ink"
+                className="-mr-2 -mt-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-muted transition hover:bg-surface-sunk hover:text-ink"
               >
                 <XIcon className="h-5 w-5" />
               </button>
