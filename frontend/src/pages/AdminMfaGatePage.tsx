@@ -1,35 +1,33 @@
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
-import { MailIcon, LogOutIcon, ShieldCheckIcon, SkipForwardIcon } from 'lucide-react';
+import { LogOutIcon, MailIcon, ShieldCheckIcon, SkipForwardIcon } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getMfaEmailRedirectUrl } from '../lib/authRedirects';
 import { MfaSession, saveMfaSession, savePendingMfaRequest } from '../lib/adminMfa';
 import { useAuth } from '../context/AuthContext';
+import { Button, Card, Spinner } from '../components/ui';
 
 const getMfaRoleLabel = (role: string | undefined) => {
   if (role === 'admin') {
     return {
-      heading: 'Admin Multi-Factor Verification',
-      description: 'Admin access requires a Supabase email verification step before the administration portal opens.',
-      accountLabel: 'Signed in admin account',
-      defaultName: 'Administrator'
+      heading: 'Admin verification',
+      description: 'Admin access requires an email verification step before the administration portal opens.',
+      accountLabel: 'Signed in as admin',
+      defaultName: 'Administrator',
     };
   }
-
   if (role === 'staff') {
     return {
-      heading: 'Staff Multi-Factor Verification',
-      description: 'Staff access requires a Supabase email verification step before the management portal opens.',
-      accountLabel: 'Signed in staff account',
-      defaultName: 'Staff Member'
+      heading: 'Staff verification',
+      description: 'Staff access requires an email verification step before the management portal opens.',
+      accountLabel: 'Signed in as staff',
+      defaultName: 'Staff member',
     };
   }
-
   return {
-    heading: 'Guardian Multi-Factor Verification',
-    description: 'Guardian access requires a Supabase email verification step before the family portal opens.',
-    accountLabel: 'Signed in guardian account',
-    defaultName: 'Guardian'
+    heading: 'Verify it’s you',
+    description: 'We send a one-time link to your email before opening the family portal.',
+    accountLabel: 'Signed in as guardian',
+    defaultName: 'Guardian',
   };
 };
 
@@ -48,187 +46,136 @@ export function AdminMfaGatePage({ onSkip }: AdminMfaGatePageProps) {
   const roleContent = useMemo(() => getMfaRoleLabel(user?.role), [user?.role]);
 
   const handleSkip = () => {
-    if (!user) {
-      return;
-    }
-
-    const session = {
-      factorId: `mfa-skip:${user.role}`,
-      verifiedAt: new Date().toISOString()
-    };
-
+    if (!user) return;
+    const session = { factorId: `mfa-skip:${user.role}`, verifiedAt: new Date().toISOString() };
     saveMfaSession(user.id, session);
     onSkip(session);
   };
 
+  const sendCode = async (isResend: boolean) => {
+    if (!user?.email) {
+      setErrorMessage('No email is available for this account.');
+      return false;
+    }
+    const { error } = await supabase.auth.signInWithOtp({
+      email: user.email,
+      options: { shouldCreateUser: false, emailRedirectTo: getMfaEmailRedirectUrl() },
+    });
+    if (error) {
+      setErrorMessage(error.message);
+      return false;
+    }
+    savePendingMfaRequest(user.id, user.email);
+    setHasSentCode(true);
+    setInfoMessage(
+      isResend
+        ? `A new verification email was sent to ${user.email}. Open the link to continue.`
+        : `We sent a verification email to ${user.email}. Open the link to continue.`,
+    );
+    return true;
+  };
+
   useEffect(() => {
     let isMounted = true;
-
     const sendInitialCode = async () => {
       setIsLoading(true);
       setErrorMessage(null);
       setInfoMessage(null);
-
       try {
-        if (!user?.email) {
-          if (isMounted) {
-            setErrorMessage('No email is available for this account.');
-            setIsLoading(false);
-          }
-
-          return;
-        }
-
-        const { error } = await supabase.auth.signInWithOtp({
-          email: user.email,
-          options: {
-            shouldCreateUser: false,
-            emailRedirectTo: getMfaEmailRedirectUrl()
-          }
-        });
-
-        if (!isMounted) {
-          return;
-        }
-
-        if (error) {
-          setErrorMessage(error.message);
-          setIsLoading(false);
-          return;
-        }
-
-        savePendingMfaRequest(user.id, user.email);
-        setHasSentCode(true);
-        setInfoMessage(`We sent a verification email to ${user.email}. Open the email link to continue.`);
+        await sendCode(false);
       } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
-        setErrorMessage(error instanceof Error ? error.message : 'Unable to send MFA code.');
+        if (isMounted) setErrorMessage(error instanceof Error ? error.message : 'Unable to send verification email.');
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (isMounted) setIsLoading(false);
       }
     };
-
     void sendInitialCode();
-
     return () => {
       isMounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.email]);
 
   const handleSendCode = async () => {
-    if (!user?.email) {
-      setErrorMessage('No email is available for this account.');
-      return;
-    }
-
     setErrorMessage(null);
     setInfoMessage(null);
     setIsSubmitting(true);
-
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: user.email,
-        options: {
-          shouldCreateUser: false,
-          emailRedirectTo: getMfaEmailRedirectUrl()
-        }
-      });
-
-      if (error) {
-        setErrorMessage(error.message);
-        return;
-      }
-
-      savePendingMfaRequest(user.id, user.email);
-      setHasSentCode(true);
-      setInfoMessage(`A new verification email was sent to ${user.email}. Open the email link to continue.`);
+      await sendCode(true);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Unable to send MFA code.');
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to send verification email.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#EEF5FF] p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-2xl overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-xl"
-      >
-        <div className="bg-gradient-to-r from-[#1D4ED8] to-[#60A5FA] p-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-blue-100 bg-white/90 text-blue-700">
-            <ShieldCheckIcon className="h-8 w-8" />
+    <div className="flex min-h-screen items-center justify-center bg-canvas p-4">
+      <Card padding="none" className="w-full max-w-md overflow-hidden">
+        <div className="relative overflow-hidden bg-brand-deep px-8 py-8 text-center text-white">
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{ background: 'radial-gradient(90% 70% at 50% 0%, rgba(245,158,11,0.18), transparent 60%)' }}
+            aria-hidden
+          />
+          <div className="relative mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-accent">
+            <ShieldCheckIcon className="h-7 w-7" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">{roleContent.heading}</h1>
-          <p className="mt-2 font-medium text-blue-900">
-            {roleContent.description}
-          </p>
+          <h1 className="relative font-display text-xl font-bold">{roleContent.heading}</h1>
+          <p className="relative mx-auto mt-2 max-w-xs text-sm text-white/70">{roleContent.description}</p>
         </div>
 
-        <div className="p-8">
-          <div className="mb-6 rounded-2xl border border-blue-100 bg-[#EFF6FF] px-4 py-3 text-sm text-gray-700">
-            <p className="font-bold text-gray-800">{roleContent.accountLabel}</p>
-            <p className="mt-1">{user?.name || roleContent.defaultName}</p>
-            <p className="text-xs text-gray-500">{user?.email}</p>
+        <div className="space-y-5 p-6 sm:p-8">
+          <div className="rounded-xl border border-line bg-surface-sunk px-4 py-3">
+            <p className="text-2xs font-bold uppercase tracking-[0.12em] text-muted">{roleContent.accountLabel}</p>
+            <p className="mt-1 text-sm font-semibold text-ink">{user?.name || roleContent.defaultName}</p>
+            <p className="text-xs text-muted">{user?.email}</p>
           </div>
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#BAE6FD] border-t-transparent" />
+            <div className="flex items-center justify-center py-8">
+              <Spinner size="lg" />
             </div>
           ) : (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {infoMessage ? (
-                <div className="rounded-2xl border border-blue-100 bg-[#EFF6FF] px-4 py-3 text-sm font-medium text-gray-700">
-                  {infoMessage}
-                </div>
+                <p className="rounded-xl border border-brand/20 bg-brand-tint px-4 py-3 text-sm font-medium text-brand-strong">{infoMessage}</p>
               ) : null}
 
-              <button
-                type="button"
-                onClick={() => void handleSendCode()}
-                disabled={isSubmitting}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1D4ED8] py-3 font-bold text-white transition-colors hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:bg-blue-300"
-              >
-                <MailIcon className="h-5 w-5" />
-                {isSubmitting ? 'Sending Email...' : hasSentCode ? 'Resend Verification Email' : 'Send Verification Email'}
-              </button>
+              <Button fullWidth size="lg" isLoading={isSubmitting} leftIcon={<MailIcon className="h-4 w-4" />} onClick={() => void handleSendCode()}>
+                {hasSentCode ? 'Resend verification email' : 'Send verification email'}
+              </Button>
 
-              <div className="rounded-2xl border border-blue-100 bg-[#EFF6FF] px-4 py-3 text-sm text-gray-700">
-                Click the verification link in your email. After Supabase sends you back to the portal, this screen will close automatically.
-              </div>
+              <p className="text-center text-xs text-muted">
+                Open the link in your email. Once you’re sent back to the portal, this screen closes automatically.
+              </p>
 
-              <button
-                type="button"
+              <Button
+                variant="subtle"
+                fullWidth
+                leftIcon={<SkipForwardIcon className="h-4 w-4" />}
                 onClick={handleSkip}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 py-3 font-bold text-amber-800 transition-colors hover:bg-amber-100"
+                className="!border-accent/30 !bg-accent-soft !text-accent-strong hover:!bg-accent-soft"
               >
-                <SkipForwardIcon className="h-5 w-5" />
-                Skip MFA For Now
-              </button>
+                Skip for now
+              </Button>
 
-              {errorMessage ? <p className="text-sm font-medium text-red-600">{errorMessage}</p> : null}
+              {errorMessage ? <p className="text-center text-sm font-medium text-danger">{errorMessage}</p> : null}
             </div>
           )}
 
-          <div className="mt-6 text-center">
+          <div className="text-center">
             <button
               type="button"
               onClick={() => void logout()}
-              className="inline-flex items-center gap-2 text-sm font-bold text-red-500 hover:underline"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-danger transition hover:underline"
             >
               <LogOutIcon className="h-4 w-4" />
               Sign out
             </button>
           </div>
         </div>
-      </motion.div>
+      </Card>
     </div>
   );
 }
