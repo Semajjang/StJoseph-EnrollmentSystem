@@ -1,4 +1,4 @@
-import { BabyIcon, CalendarClockIcon, LayersIcon, PlusIcon } from 'lucide-react';
+import { BabyIcon, CalendarClockIcon, CheckCircle2Icon, FolderOpenIcon, LayersIcon, PlusIcon } from 'lucide-react';
 import {
   Badge,
   Button,
@@ -10,9 +10,11 @@ import {
   StatusPill,
 } from '../components/ui';
 import { useEnrollment } from '../context/EnrollmentContext';
+import { REQUIRED_DOCUMENT_COUNT } from '../features/enrollment/RequirementsUploader';
 
 interface ChildProfileProps {
   onStartEnrollment: () => void;
+  onManageRequirements: (enrollmentId: string) => void;
 }
 
 const programTone: Record<string, 'brand' | 'accent' | 'info'> = {
@@ -21,7 +23,7 @@ const programTone: Record<string, 'brand' | 'accent' | 'info'> = {
   'Pre-Kindergarten 2': 'brand',
 };
 
-export function ChildProfile({ onStartEnrollment }: ChildProfileProps) {
+export function ChildProfile({ onStartEnrollment, onManageRequirements }: ChildProfileProps) {
   const { enrollments, isLoading } = useEnrollment();
 
   if (isLoading && enrollments.length === 0) {
@@ -81,6 +83,9 @@ export function ChildProfile({ onStartEnrollment }: ChildProfileProps) {
                 ? '1:00 PM - 3:00 PM'
                 : 'Not assigned yet';
 
+          const uploadedDocs = enrollment.requirements?.length || 0;
+          const docsComplete = uploadedDocs >= REQUIRED_DOCUMENT_COUNT;
+
           return (
             <Card key={enrollment.id} padding="none" className="animate-fade-up">
               <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6">
@@ -119,6 +124,27 @@ export function ChildProfile({ onStartEnrollment }: ChildProfileProps) {
                   <p className="mt-0.5 text-sm font-medium text-muted">{scheduleTimeLabel}</p>
                 </div>
               </CardBody>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-4 sm:px-6">
+                <div className="flex items-center gap-2 text-sm">
+                  {docsComplete ? (
+                    <CheckCircle2Icon className="h-4 w-4 text-success" />
+                  ) : (
+                    <FolderOpenIcon className="h-4 w-4 text-muted" />
+                  )}
+                  <span className="text-ink-soft">
+                    <span className="font-bold text-ink">{uploadedDocs}</span> of {REQUIRED_DOCUMENT_COUNT} documents uploaded
+                  </span>
+                  {docsComplete ? <Badge tone="success">Complete</Badge> : null}
+                </div>
+                <Button
+                  size="sm"
+                  variant={docsComplete ? 'subtle' : 'primary'}
+                  onClick={() => onManageRequirements(enrollment.id)}
+                  leftIcon={<FolderOpenIcon className="h-4 w-4" />}
+                >
+                  {uploadedDocs === 0 ? 'Upload documents' : docsComplete ? 'Manage documents' : 'Finish documents'}
+                </Button>
+              </div>
             </Card>
           );
         })}

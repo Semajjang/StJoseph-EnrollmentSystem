@@ -26,6 +26,12 @@ function AppContent() {
   const { user, isLoading, isPasswordRecovery, isDevBypass } = useAuth();
   const [activePage, setActivePage] = useState('home');
   const [isLoginView, setIsLoginView] = useState(true);
+  const [requirementsChildId, setRequirementsChildId] = useState<string | null>(null);
+
+  const openRequirements = (enrollmentId: string) => {
+    setRequirementsChildId(enrollmentId);
+    setActivePage('requirements');
+  };
   const isManagementRole = user?.role === 'admin' || user?.role === 'staff';
 
   useEffect(() => {
@@ -72,11 +78,17 @@ function AppContent() {
       case 'enrollment':
         return <EnrollmentForm onNavigate={setActivePage} />;
       case 'requirements':
-        return <Requirements onContinueToYourChild={() => setActivePage('yourChild')} onStartEnrollment={() => setActivePage('enrollment')} />;
+        return (
+          <Requirements
+            onContinueToYourChild={() => setActivePage('yourChild')}
+            onStartEnrollment={() => setActivePage('enrollment')}
+            initialEnrollmentId={requirementsChildId}
+          />
+        );
       case 'status':
         return <ApplicationStatus onStartEnrollment={() => setActivePage('enrollment')} />;
       case 'yourChild':
-        return <ChildProfile onStartEnrollment={() => setActivePage('enrollment')} />;
+        return <ChildProfile onStartEnrollment={() => setActivePage('enrollment')} onManageRequirements={openRequirements} />;
       case 'profile':
         return <ProfilePage />;
       case 'adminDashboard':

@@ -192,7 +192,7 @@ export function EnrollmentForm({ onNavigate }: EnrollmentFormProps) {
           <RequirementsUploader enrollment={newEnrollment} onProgress={(uploaded) => setUploadedCount(uploaded)} />
 
           <div className="flex flex-col gap-2 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted">You can also finish uploading later from the Requirements page.</p>
+            <p className="text-sm text-muted">You can also finish these later from My Children.</p>
             <Button onClick={() => setPhase('done')} rightIcon={<ArrowRightIcon className="h-4 w-4" />}>
               {uploadedCount === REQUIRED_DOCUMENT_COUNT ? 'Continue' : 'Continue for now'}
             </Button>
