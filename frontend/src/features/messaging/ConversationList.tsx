@@ -44,7 +44,7 @@ export function ConversationList({ conversations, selectedId, onSelect, unreadId
             <p className="mt-0.5 truncate text-xs text-muted">{preview(conversation)}</p>
             <div className="mt-1.5 flex items-center justify-between gap-2">
               <StatusPill status={conversation.status} />
-              <span className="text-[11px] text-faint">{formatTime(conversation.updatedAt)}</span>
+              <span className="text-[11px] text-muted">{formatTime(conversation.updatedAt)}</span>
             </div>
           </button>
         );

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { EnrollmentData } from '../../context/EnrollmentContext';
 import type { useToast } from '../../components/ui';
 import { ManagedProgram, normalizeSectionName, sectionCapacity } from './sections';
@@ -34,14 +34,23 @@ interface PendingBulkAction {
 
 const learners = (count: number) => `${count} learner${count === 1 ? '' : 's'}`;
 
+/** Live progress of an in-flight bulk run, surfaced in the confirm dialog. */
+export interface BulkProgress {
+  processed: number;
+  total: number;
+}
+
 /**
  * Bulk approve + bulk section-assign for the enrollment queue.
  *
  * These actions consume real section capacity and — via "select all filtered" —
- * can span far more than the visible rows, so each one is now gated behind a
+ * can span far more than the visible rows, so each one is gated behind a
  * ConfirmDialog that spells out the count and the skip/capacity caveats the run
- * will apply. The per-row Supabase mutations (approve→section gating, capacity
- * warnings) run unchanged once confirmed; cancelling leaves the selection intact.
+ * will apply. While a run executes it reports live `processed / total` progress,
+ * and each completed run surfaces a time-boxed **Undo** that reverses only the
+ * rows it actually changed (restoring each learner's prior status or section).
+ * The per-row Supabase mutations run unchanged once confirmed; cancelling leaves
+ * the selection intact.
  */
 export function useBulkQueueActions({
   filteredMasterlist,
@@ -56,23 +65,73 @@ export function useBulkQueueActions({
   notifyError,
 }: UseBulkQueueActionsParams) {
   const [isBulkBusy, setIsBulkBusy] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<BulkProgress | null>(null);
   const [pendingBulk, setPendingBulk] = useState<PendingBulkAction | null>(null);
+  // Guards against a double-fire of confirm before `isBulkBusy` has flushed.
+  const runningRef = useRef(false);
 
   const selectedRows = () =>
     filteredMasterlist.filter((enrollment) => selectedIds.has(enrollment.id));
 
+  const tickProgress = () =>
+    setBulkProgress((current) => (current ? { ...current, processed: current.processed + 1 } : current));
+
+  const undoApprovals = async (entries: { id: string; previousStatus: EnrollmentStatus }[]) => {
+    let reverted = 0;
+    let failed = 0;
+    for (const entry of entries) {
+      const { error } = await updateStatus(entry.id, entry.previousStatus);
+      if (error) {
+        failed += 1;
+      } else {
+        reverted += 1;
+      }
+    }
+    if (reverted > 0) {
+      toast.success('Approval undone', `${learners(reverted)} set back to their previous status.`);
+    }
+    if (failed > 0) {
+      notifyError(`${failed} couldn't be undone. Please try again.`);
+    }
+  };
+
+  const undoAssignments = async (entries: { id: string; previousSection: string | null }[]) => {
+    let reverted = 0;
+    let failed = 0;
+    for (const entry of entries) {
+      const { error } = await updateSection(entry.id, entry.previousSection);
+      if (error) {
+        failed += 1;
+      } else {
+        reverted += 1;
+      }
+    }
+    if (reverted > 0) {
+      toast.success('Section change undone', `${learners(reverted)} moved back to where they were.`);
+    }
+    if (failed > 0) {
+      notifyError(`${failed} couldn't be undone. Please try again.`);
+    }
+  };
+
   const runBulkApprove = async (toApprove: EnrollmentData[], blockedCount: number) => {
     setIsBulkBusy(true);
+    setBulkProgress({ processed: 0, total: toApprove.length });
+    const undoEntries: { id: string; previousStatus: EnrollmentStatus }[] = [];
     let approvedCount = 0;
     let errorCount = 0;
     for (const enrollment of toApprove) {
+      const previousStatus = enrollment.status;
       const { error } = await updateStatus(enrollment.id, 'Approved');
       if (error) {
         errorCount += 1;
       } else {
         approvedCount += 1;
+        undoEntries.push({ id: enrollment.id, previousStatus });
       }
+      tickProgress();
     }
+    setBulkProgress(null);
     setIsBulkBusy(false);
     clearSelection();
 
@@ -87,7 +146,13 @@ export function useBulkQueueActions({
       notifyError(`${errorCount} update(s) failed. Please try again.`);
     }
     if (approvedCount > 0) {
-      toast.success('Applications approved', `${approvedCount} learner(s) set to Approved.`);
+      toast.toast({
+        tone: 'success',
+        title: 'Applications approved',
+        description: `${learners(approvedCount)} set to Approved.`,
+        duration: 8000,
+        action: { label: 'Undo', onClick: () => undoApprovals(undoEntries) },
+      });
     } else if (blockedCount === 0 && errorCount === 0) {
       toast.toast({
         tone: 'info',
@@ -136,20 +201,25 @@ export function useBulkQueueActions({
     notApprovedCount: number,
     projectedCount: number,
   ) => {
+    // Only rows that actually change section are mutated (and counted in progress).
+    const movers = eligible.filter((enrollment) => enrollment.section !== normalizedSection);
     setIsBulkBusy(true);
+    setBulkProgress({ processed: 0, total: movers.length });
+    const undoEntries: { id: string; previousSection: string | null }[] = [];
     let assignedCount = 0;
     let errorCount = 0;
-    for (const enrollment of eligible) {
-      if (enrollment.section === normalizedSection) {
-        continue;
-      }
+    for (const enrollment of movers) {
+      const previousSection = enrollment.section ?? null;
       const { error } = await updateSection(enrollment.id, normalizedSection);
       if (error) {
         errorCount += 1;
       } else {
         assignedCount += 1;
+        undoEntries.push({ id: enrollment.id, previousSection });
       }
+      tickProgress();
     }
+    setBulkProgress(null);
     setIsBulkBusy(false);
     clearSelection();
 
@@ -164,14 +234,23 @@ export function useBulkQueueActions({
       notifyError(`${errorCount} assignment(s) failed. Please try again.`);
     }
     if (assignedCount > 0) {
+      const undoAction = { label: 'Undo', onClick: () => undoAssignments(undoEntries) };
       if (projectedCount > sectionCapacity) {
         toast.toast({
           tone: 'warning',
           title: 'Section is over capacity',
           description: `${normalizedSection} now holds ${projectedCount} learners (max ${sectionCapacity}).`,
+          duration: 8000,
+          action: undoAction,
         });
       } else {
-        toast.success('Section assigned', `${assignedCount} learner(s) moved to ${normalizedSection}.`);
+        toast.toast({
+          tone: 'success',
+          title: 'Section assigned',
+          description: `${learners(assignedCount)} moved to ${normalizedSection}.`,
+          duration: 8000,
+          action: undoAction,
+        });
       }
     }
   };
@@ -214,17 +293,23 @@ export function useBulkQueueActions({
   };
 
   const confirmBulk = async () => {
-    if (!pendingBulk) {
+    if (!pendingBulk || runningRef.current) {
       return;
     }
-    await pendingBulk.run();
-    setPendingBulk(null);
+    runningRef.current = true;
+    try {
+      await pendingBulk.run();
+    } finally {
+      runningRef.current = false;
+      setPendingBulk(null);
+    }
   };
 
   const cancelBulk = () => setPendingBulk(null);
 
   return {
     isBulkBusy,
+    bulkProgress,
     pendingBulk,
     requestBulkApprove,
     requestBulkAssignSection,

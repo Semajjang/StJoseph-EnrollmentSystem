@@ -431,7 +431,15 @@ export function StaffDashboard() {
         isLoading={bulk.isBulkBusy}
         tone="brand"
         title={bulk.pendingBulk?.title ?? ''}
-        message={bulk.pendingBulk?.message ?? ''}
+        message={
+          bulk.bulkProgress && bulk.bulkProgress.total > 0 ? (
+            <span role="status">
+              Processing… {bulk.bulkProgress.processed} of {bulk.bulkProgress.total} done.
+            </span>
+          ) : (
+            bulk.pendingBulk?.message ?? ''
+          )
+        }
         confirmLabel={bulk.pendingBulk?.confirmLabel ?? 'Confirm'}
       />
     </div>
