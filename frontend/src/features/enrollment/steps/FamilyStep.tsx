@@ -17,10 +17,12 @@ export function FamilyStep({ form }: { form: EnrollmentFormApi }) {
   const { formData, fieldErrors, updateFormData } = form;
 
   const contactField = (field: keyof FormData, label: string, wide = false) => (
-    <Field label={label} className={wide ? 'md:col-span-2' : undefined}>
-      {({ id }) => (
+    <Field label={label} className={wide ? 'md:col-span-2' : undefined} error={fieldErrors[field as string]}>
+      {({ id, describedBy, invalid }) => (
         <Input
           id={id}
+          aria-describedby={describedBy}
+          invalid={invalid}
           type="text"
           inputMode="numeric"
           maxLength={11}
@@ -46,9 +48,9 @@ export function FamilyStep({ form }: { form: EnrollmentFormApi }) {
               <Input id={id} aria-describedby={describedBy} invalid={invalid} value={formData.motherName} onChange={(event) => updateFormData('motherName', event.target.value)} placeholder="Full name" />
             )}
           </Field>
-          <Field label="Mother's occupation">
-            {({ id }) => (
-              <Input id={id} value={formData.motherOccupation} onChange={(event) => updateFormData('motherOccupation', event.target.value)} placeholder="Occupation" />
+          <Field label="Mother's occupation" error={fieldErrors.motherOccupation}>
+            {({ id, describedBy, invalid }) => (
+              <Input id={id} aria-describedby={describedBy} invalid={invalid} value={formData.motherOccupation} onChange={(event) => updateFormData('motherOccupation', event.target.value)} placeholder="Occupation" />
             )}
           </Field>
           {contactField('motherContact', "Mother's contact no.", true)}
@@ -62,9 +64,9 @@ export function FamilyStep({ form }: { form: EnrollmentFormApi }) {
               <Input id={id} aria-describedby={describedBy} invalid={invalid} value={formData.fatherName} onChange={(event) => updateFormData('fatherName', event.target.value)} placeholder="Full name" />
             )}
           </Field>
-          <Field label="Father's occupation">
-            {({ id }) => (
-              <Input id={id} value={formData.fatherOccupation} onChange={(event) => updateFormData('fatherOccupation', event.target.value)} placeholder="Occupation" />
+          <Field label="Father's occupation" error={fieldErrors.fatherOccupation}>
+            {({ id, describedBy, invalid }) => (
+              <Input id={id} aria-describedby={describedBy} invalid={invalid} value={formData.fatherOccupation} onChange={(event) => updateFormData('fatherOccupation', event.target.value)} placeholder="Occupation" />
             )}
           </Field>
           {contactField('fatherContact', "Father's contact no.", true)}
@@ -78,11 +80,13 @@ export function FamilyStep({ form }: { form: EnrollmentFormApi }) {
               <Input id={id} aria-describedby={describedBy} invalid={invalid} value={formData.guardianName} onChange={(event) => updateFormData('guardianName', event.target.value)} placeholder="If different from parents" />
             )}
           </Field>
-          <Field label="Relationship">
-            {({ id }) => (
+          <Field label="Relationship" error={fieldErrors.relationship ?? fieldErrors.relationshipOther}>
+            {({ id, describedBy }) => (
               <>
                 <Select
                   id={id}
+                  aria-describedby={fieldErrors.relationship ? describedBy : undefined}
+                  invalid={Boolean(fieldErrors.relationship)}
                   value={formData.relationship}
                   onChange={(event) => {
                     const value = event.target.value;
@@ -101,6 +105,8 @@ export function FamilyStep({ form }: { form: EnrollmentFormApi }) {
                 {formData.relationship === 'Other' ? (
                   <Input
                     className="mt-2"
+                    aria-describedby={fieldErrors.relationshipOther ? describedBy : undefined}
+                    invalid={Boolean(fieldErrors.relationshipOther)}
                     value={formData.relationshipOther}
                     onChange={(event) => updateFormData('relationshipOther', event.target.value)}
                     placeholder="Please specify relationship"
@@ -109,9 +115,9 @@ export function FamilyStep({ form }: { form: EnrollmentFormApi }) {
               </>
             )}
           </Field>
-          <Field label="Guardian's occupation">
-            {({ id }) => (
-              <Input id={id} value={formData.guardianOccupation} onChange={(event) => updateFormData('guardianOccupation', event.target.value)} placeholder="Occupation" />
+          <Field label="Guardian's occupation" error={fieldErrors.guardianOccupation}>
+            {({ id, describedBy, invalid }) => (
+              <Input id={id} aria-describedby={describedBy} invalid={invalid} value={formData.guardianOccupation} onChange={(event) => updateFormData('guardianOccupation', event.target.value)} placeholder="Occupation" />
             )}
           </Field>
           {contactField('guardianContact', "Guardian's contact no.")}
