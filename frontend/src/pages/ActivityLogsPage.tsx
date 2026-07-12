@@ -256,7 +256,7 @@ export function ActivityLogsPage() {
                   </TD>
                   <TD className="whitespace-nowrap">
                     <span className="font-medium text-ink-soft">{formatActivityEntity(log.entityType)}</span>
-                    <span className="ml-2 text-xs text-faint">#{log.entityId.slice(0, 8)}</span>
+                    <span className="ml-2 text-xs text-muted">#{log.entityId.slice(0, 8)}</span>
                   </TD>
                   <TD className="max-w-md">
                     <p className="whitespace-pre-wrap break-words text-xs leading-5 text-muted">
