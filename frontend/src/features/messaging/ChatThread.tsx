@@ -41,7 +41,7 @@ function Bubble({ authorName, role, body, createdAt, viewer }: {
           </span>
         </div>
         <p className={cn('whitespace-pre-wrap break-words text-sm leading-6', own ? 'text-white/95' : 'text-ink-soft')}>{body}</p>
-        <p className={cn('mt-1 text-[11px]', own ? 'text-white/70' : 'text-faint')}>{formatTime(createdAt)}</p>
+        <p className={cn('mt-1 text-[11px]', own ? 'text-white/90' : 'text-muted')}>{formatTime(createdAt)}</p>
       </div>
     </div>
   );
