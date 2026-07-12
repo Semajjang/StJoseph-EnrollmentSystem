@@ -6,15 +6,28 @@ import { cn } from '../../lib/cn';
 
 type ToastTone = 'success' | 'error' | 'info' | 'warning';
 
+/** Optional single action (e.g. "Undo") rendered inside a toast. */
+interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface Toast {
   id: number;
   tone: ToastTone;
   title: string;
   description?: string;
+  action?: ToastAction;
 }
 
 interface ToastContextValue {
-  toast: (input: { tone?: ToastTone; title: string; description?: string; duration?: number }) => void;
+  toast: (input: {
+    tone?: ToastTone;
+    title: string;
+    description?: string;
+    duration?: number;
+    action?: ToastAction;
+  }) => void;
   success: (title: string, description?: string) => void;
   error: (title: string, description?: string) => void;
   info: (title: string, description?: string) => void;
@@ -38,9 +51,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const toast = useCallback<ToastContextValue['toast']>(
-    ({ tone = 'info', title, description, duration = 4200 }) => {
+    ({ tone = 'info', title, description, duration = 4200, action }) => {
       const id = (counter.current += 1);
-      setToasts((current) => [...current, { id, tone, title, description }]);
+      setToasts((current) => [...current, { id, tone, title, description, action }]);
       window.setTimeout(() => dismiss(id), duration);
     },
     [dismiss],
@@ -72,6 +85,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-ink">{item.title}</p>
                   {item.description ? <p className="mt-0.5 text-sm text-muted">{item.description}</p> : null}
+                  {item.action ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        item.action?.onClick();
+                        dismiss(item.id);
+                      }}
+                      className="-ml-2 mt-1.5 inline-flex min-h-[36px] items-center rounded-lg px-2 text-sm font-bold text-brand transition hover:bg-brand-tint focus-visible:outline-none focus-visible:shadow-focus"
+                    >
+                      {item.action.label}
+                    </button>
+                  ) : null}
                 </div>
                 <button
                   type="button"
