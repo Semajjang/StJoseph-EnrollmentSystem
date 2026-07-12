@@ -75,6 +75,14 @@ export function Combobox({ options, value, onChange, id, placeholder = 'Selectâ€
         value={open ? query : selected?.label ?? ''}
         onFocus={() => setOpen(true)}
         onClick={() => setOpen(true)}
+        onBlur={(event) => {
+          // Close when focus leaves the combobox entirely (e.g. Tab away).
+          // Option buttons preventDefault on mousedown, so clicks don't blur-close.
+          if (!rootRef.current?.contains(event.relatedTarget as Node | null)) {
+            setOpen(false);
+            setQuery('');
+          }
+        }}
         onChange={(event) => {
           setQuery(event.target.value);
           setOpen(true);

@@ -189,7 +189,7 @@ export function EnrollmentQueue({
                         })}
                       </Select>
                       {!canAssignSection ? (
-                        <p className="mt-1 text-2xs text-faint">Approve first to assign a section.</p>
+                        <p className="mt-1 text-2xs text-muted">Approve first to assign a section.</p>
                       ) : null}
                     </div>
                   </TD>

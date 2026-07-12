@@ -18,7 +18,7 @@ export function ImagePicker({ image, label, aspect, onChange }: ImagePickerProps
       ) : (
         <div
           className={cn(
-            'flex w-full items-center justify-center rounded-xl border border-dashed border-line-strong bg-surface-sunk text-faint',
+            'flex w-full items-center justify-center rounded-xl border border-dashed border-line-strong bg-surface-sunk text-muted',
             aspect,
           )}
         >

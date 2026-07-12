@@ -3,7 +3,7 @@ import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTML
 import { cn } from '../../lib/cn';
 
 export const controlBase =
-  'w-full rounded-xl border bg-surface-sunk text-sm text-ink placeholder:text-faint ' +
+  'w-full rounded-xl border bg-surface-sunk text-sm text-ink placeholder:text-muted ' +
   'transition-colors focus:bg-surface focus:outline-none focus-visible:shadow-focus disabled:opacity-60 disabled:cursor-not-allowed';
 
 const controlBorder = (invalid?: boolean) =>

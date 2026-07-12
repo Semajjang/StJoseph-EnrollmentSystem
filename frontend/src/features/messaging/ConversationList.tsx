@@ -41,7 +41,7 @@ export function ConversationList({ conversations, selectedId, onSelect, unreadId
               {unread ? <span className="h-2 w-2 shrink-0 rounded-full bg-accent" aria-label="Unread" /> : null}
             </div>
             {showSender ? <p className="mt-0.5 truncate text-xs font-medium text-muted">{conversation.senderName}</p> : null}
-            <p className="mt-0.5 truncate text-xs text-faint">{preview(conversation)}</p>
+            <p className="mt-0.5 truncate text-xs text-muted">{preview(conversation)}</p>
             <div className="mt-1.5 flex items-center justify-between gap-2">
               <StatusPill status={conversation.status} />
               <span className="text-[11px] text-faint">{formatTime(conversation.updatedAt)}</span>
