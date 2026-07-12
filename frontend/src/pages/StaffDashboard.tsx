@@ -15,6 +15,7 @@ import { EnrollmentBulkBar } from '../features/staff/EnrollmentBulkBar';
 import { EnrollmentFilterBar, QueueFilters } from '../features/staff/EnrollmentFilterBar';
 import { EnrollmentQueue } from '../features/staff/EnrollmentQueue';
 import { useQueueSelection } from '../features/staff/useQueueSelection';
+import { useBulkQueueActions } from '../features/staff/useBulkQueueActions';
 import { EnrollmentStats } from '../features/staff/EnrollmentStats';
 import { SectionInfoModal } from '../features/staff/SectionInfoModal';
 import { SectionManager } from '../features/staff/SectionManager';
@@ -53,7 +54,6 @@ export function StaffDashboard() {
   const [isSectionInfoOpen, setIsSectionInfoOpen] = useState(false);
   const [pendingReject, setPendingReject] = useState<EnrollmentData | null>(null);
   const [isRejecting, setIsRejecting] = useState(false);
-  const [isBulkBusy, setIsBulkBusy] = useState(false);
 
   const {
     sectionsByProgram,
@@ -167,104 +167,21 @@ export function StaffDashboard() {
     setPendingReject(null);
   };
 
-  const handleBulkApprove = async () => {
-    const selected = filteredMasterlist.filter((enrollment) =>
-      selection.selectedIds.has(enrollment.id),
-    );
-    const blocked = selected.filter((enrollment) => !canApprove(enrollment));
-    const toApprove = selected.filter(
-      (enrollment) => canApprove(enrollment) && enrollment.status !== 'Approved',
-    );
-
-    setIsBulkBusy(true);
-    let approvedCount = 0;
-    let errorCount = 0;
-    for (const enrollment of toApprove) {
-      const { error } = await updateStatus(enrollment.id, 'Approved');
-      if (error) {
-        errorCount += 1;
-      } else {
-        approvedCount += 1;
-      }
-    }
-    setIsBulkBusy(false);
-    selection.clear();
-
-    if (blocked.length > 0) {
-      toast.toast({
-        tone: 'warning',
-        title: 'Some learners need a section first',
-        description: `${blocked.length} couldn't be approved because their program has no sections yet. Add a section, then approve.`,
-      });
-    }
-    if (errorCount > 0) {
-      notify.error(`${errorCount} update(s) failed. Please try again.`);
-    }
-    if (approvedCount > 0) {
-      toast.success('Applications approved', `${approvedCount} learner(s) set to Approved.`);
-    } else if (blocked.length === 0 && errorCount === 0) {
-      toast.toast({
-        tone: 'info',
-        title: 'Nothing to approve',
-        description: 'The selected learners are already approved.',
-      });
-    }
-  };
-
-  const handleBulkAssignSection = async (section: string) => {
-    if (!activeManagedProgram) {
-      return;
-    }
-    const normalizedSection = normalizeSectionName(section);
-    const selected = filteredMasterlist.filter((enrollment) =>
-      selection.selectedIds.has(enrollment.id),
-    );
-    // Only Approved learners can hold a section (the approve-first rule).
-    const eligible = selected.filter((enrollment) => enrollment.status === 'Approved');
-    const notApproved = selected.filter((enrollment) => enrollment.status !== 'Approved');
-    const movingIn = eligible.filter((enrollment) => enrollment.section !== normalizedSection).length;
-    const projectedCount =
-      (sectionLoadByProgram[activeManagedProgram][normalizedSection] || 0) + movingIn;
-
-    setIsBulkBusy(true);
-    let assignedCount = 0;
-    let errorCount = 0;
-    for (const enrollment of eligible) {
-      if (enrollment.section === normalizedSection) {
-        continue;
-      }
-      const { error } = await updateSection(enrollment.id, normalizedSection);
-      if (error) {
-        errorCount += 1;
-      } else {
-        assignedCount += 1;
-      }
-    }
-    setIsBulkBusy(false);
-    selection.clear();
-
-    if (notApproved.length > 0) {
-      toast.toast({
-        tone: 'warning',
-        title: 'Some learners were skipped',
-        description: `${notApproved.length} aren't approved yet. Approve them before assigning a section.`,
-      });
-    }
-    if (errorCount > 0) {
-      notify.error(`${errorCount} assignment(s) failed. Please try again.`);
-    }
-    if (assignedCount > 0) {
-      if (projectedCount > sectionCapacity) {
-        toast.toast({
-          tone: 'warning',
-          title: 'Section is over capacity',
-          description: `${normalizedSection} now holds ${projectedCount} learners (max ${sectionCapacity}).`,
-        });
-      } else {
-        toast.success('Section assigned', `${assignedCount} learner(s) moved to ${normalizedSection}.`);
-      }
-    }
-  };
+  // Bulk approve + bulk assign consume real section capacity and can span every
+  // filtered row (not just the visible ~50), so they run behind a ConfirmDialog
+  // that states the count + skip/capacity caveats. See useBulkQueueActions.
+  const bulk = useBulkQueueActions({
+    filteredMasterlist,
+    selectedIds: selection.selectedIds,
+    clearSelection: selection.clear,
+    canApprove,
+    updateStatus,
+    updateSection,
+    activeManagedProgram,
+    sectionLoadByProgram,
+    toast,
+    notifyError: notify.error,
+  });
 
   const handleSectionChange = async (enrollment: EnrollmentData, nextSection: string | null) => {
     const normalizedSection = nextSection ? normalizeSectionName(nextSection) : null;
@@ -442,12 +359,12 @@ export function StaffDashboard() {
         {selection.selectedCount > 0 ? (
           <EnrollmentBulkBar
             selectedCount={selection.selectedCount}
-            isBusy={isBulkBusy}
-            onApproveSelected={handleBulkApprove}
+            isBusy={bulk.isBulkBusy}
+            onApproveSelected={bulk.requestBulkApprove}
             onClear={selection.clear}
             sectionOptions={activeManagedProgram ? sectionsByProgram[activeManagedProgram] : null}
             sectionLoad={activeManagedProgram ? sectionLoadByProgram[activeManagedProgram] : null}
-            onAssignSection={handleBulkAssignSection}
+            onAssignSection={bulk.requestBulkAssignSection}
           />
         ) : null}
         <EnrollmentQueue
@@ -505,6 +422,17 @@ export function StaffDashboard() {
             : ''
         }
         confirmLabel="Reject application"
+      />
+
+      <ConfirmDialog
+        open={Boolean(bulk.pendingBulk)}
+        onCancel={bulk.cancelBulk}
+        onConfirm={bulk.confirmBulk}
+        isLoading={bulk.isBulkBusy}
+        tone="brand"
+        title={bulk.pendingBulk?.title ?? ''}
+        message={bulk.pendingBulk?.message ?? ''}
+        confirmLabel={bulk.pendingBulk?.confirmLabel ?? 'Confirm'}
       />
     </div>
   );
