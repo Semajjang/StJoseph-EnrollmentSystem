@@ -209,6 +209,12 @@ export interface EnrollmentFormApi {
   siblingBirthdateRange: { min: string; max: string };
   effectiveIdPicture: File | null;
   effectiveIncomeProof: File | null;
+  /** True when a progress draft was restored but the ID picture is missing (likely a reload). */
+  showIdReattachNotice: boolean;
+  /** True when a progress draft was restored but the proof of income is missing (likely a reload). */
+  showIncomeReattachNotice: boolean;
+  dismissIdReattachNotice: () => void;
+  dismissIncomeReattachNotice: () => void;
   enrollmentNoticeRef: RefObject<HTMLDivElement>;
   updateFormData: (field: keyof FormData, value: unknown) => void;
   updateSiblingFormData: (siblingIndex: number, field: keyof EnrolledSiblingInfo, value: string) => void;

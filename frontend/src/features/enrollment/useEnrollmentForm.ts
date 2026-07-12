@@ -53,6 +53,10 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [focusErrorTick, setFocusErrorTick] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [idReattachNoticeDismissed, setIdReattachNoticeDismissed] = useState(false);
+  const [incomeReattachNoticeDismissed, setIncomeReattachNoticeDismissed] = useState(false);
+  const draftProgressEvaluatedRef = useRef(false);
   const [regionOptions, setRegionOptions] = useState<PhilippineAddressOption[]>([]);
   const [provinceOptions, setProvinceOptions] = useState<PhilippineAddressOption[]>([]);
   const [municipalityOptions, setMunicipalityOptions] = useState<PhilippineAddressOption[]>([]);
@@ -90,6 +94,16 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
   const effectiveIdPicture = getEffectiveIdPicture(formData.idPicture);
   const effectiveIncomeProof = getEffectiveIncomeProof(formData.incomeProof);
 
+  // Uploaded files can't be persisted in the sessionStorage draft, so a reload
+  // that restores typed answers silently drops them. When a progress draft was
+  // restored but a required file is now missing, nudge the user to re-attach it.
+  const showIdReattachNotice = draftRestored && !idReattachNoticeDismissed && !effectiveIdPicture;
+  const showIncomeReattachNotice =
+    draftRestored && !incomeReattachNoticeDismissed && !effectiveIncomeProof;
+
+  const dismissIdReattachNotice = () => setIdReattachNoticeDismissed(true);
+  const dismissIncomeReattachNotice = () => setIncomeReattachNoticeDismissed(true);
+
   const showEnrollmentNotification = (message: string) => {
     setSubmitError(message);
   };
@@ -97,6 +111,24 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
   const clearFieldErrors = (...keys: string[]) => {
     setFieldErrors((prev) => {
       if (keys.every((key) => !(key in prev))) {
+        return prev;
+      }
+
+      const next = { ...prev };
+      for (const key of keys) {
+        delete next[key];
+      }
+      return next;
+    });
+  };
+
+  // Sibling errors are keyed by row index (`sibling.{index}.{field}`), so a row
+  // add/remove shifts every index. Drop all sibling errors on those actions to
+  // avoid stale messages attaching to the wrong row until the next validation.
+  const clearSiblingFieldErrors = () => {
+    setFieldErrors((prev) => {
+      const keys = Object.keys(prev).filter((key) => key.startsWith('sibling.'));
+      if (keys.length === 0) {
         return prev;
       }
 
@@ -205,6 +237,25 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
           currentStep?: number;
           formData?: Partial<FormData>;
         };
+
+        // Evaluate genuine prior progress exactly once, on this first read —
+        // it runs before the auto-save effect can overwrite the stored draft.
+        // Files aren't serialized, so a restored progress draft means any file
+        // the user had attached before a reload is now gone.
+        if (!draftProgressEvaluatedRef.current) {
+          draftProgressEvaluatedRef.current = true;
+          const restored = parsedDraft.formData;
+          const hadProgress = Boolean(
+            restored &&
+              ((typeof parsedDraft.currentStep === 'number' && parsedDraft.currentStep > 1) ||
+                restored.childFirstName?.trim() ||
+                restored.childLastName?.trim() ||
+                restored.dateOfBirth?.trim())
+          );
+          if (hadProgress) {
+            setDraftRestored(true);
+          }
+        }
 
         if (parsedDraft.formData) {
           const nextAgeBreakdown = getAgeBreakdown(parsedDraft.formData.dateOfBirth || '');
@@ -514,7 +565,7 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
     value: string
   ) => {
     setSubmitError(null);
-    clearFieldErrors(FORM_LEVEL_ERROR_KEY);
+    clearFieldErrors(`sibling.${siblingIndex}.${field}`, FORM_LEVEL_ERROR_KEY);
     setFormData((prev) => {
       const nextSiblingDetails = prev.enrolledSiblingDetails.map((sibling, index) => {
         if (index !== siblingIndex) {
@@ -543,6 +594,7 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
   const addSibling = () => {
     setSubmitError(null);
     clearFieldErrors(FORM_LEVEL_ERROR_KEY);
+    clearSiblingFieldErrors();
     setFormData((prev) => {
       const nextSiblingDetails = [...prev.enrolledSiblingDetails, createEmptySiblingInfo()];
       return {
@@ -556,6 +608,7 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
   const removeSibling = (siblingIndex: number) => {
     setSubmitError(null);
     clearFieldErrors(FORM_LEVEL_ERROR_KEY);
+    clearSiblingFieldErrors();
     setFormData((prev) => {
       const nextSiblingDetails = prev.enrolledSiblingDetails.filter((_, index) => index !== siblingIndex);
       return {
@@ -791,6 +844,10 @@ export function useEnrollmentForm(onSubmitted: (enrollmentId: string | null) => 
     siblingBirthdateRange,
     effectiveIdPicture,
     effectiveIncomeProof,
+    showIdReattachNotice,
+    showIncomeReattachNotice,
+    dismissIdReattachNotice,
+    dismissIncomeReattachNotice,
     enrollmentNoticeRef,
     updateFormData,
     updateSiblingFormData,

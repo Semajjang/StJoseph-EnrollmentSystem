@@ -1,4 +1,4 @@
-import { CheckIcon, FileTextIcon, ImageIcon, TriangleAlertIcon } from 'lucide-react';
+import { CheckIcon, FileTextIcon, ImageIcon, TriangleAlertIcon, XIcon } from 'lucide-react';
 import { Field, Input, Select, Textarea } from '../../../components/ui';
 import { cn } from '../../../lib/cn';
 import { StepHeading } from './StepHeading';
@@ -12,6 +12,8 @@ export function ChildStep({ form }: { form: EnrollmentFormApi }) {
     updateFormData,
     previewUrl,
     effectiveIdPicture,
+    showIdReattachNotice,
+    dismissIdReattachNotice,
     handleFileChange,
     allowedBirthdateRange,
     exactAgeLabel,
@@ -87,6 +89,27 @@ export function ChildStep({ form }: { form: EnrollmentFormApi }) {
           </p>
         ) : null}
       </div>
+
+      {showIdReattachNotice ? (
+        <div
+          role="status"
+          className="flex items-start gap-2.5 rounded-xl border border-warning/25 bg-warning-soft px-4 py-3 text-sm font-medium text-warning"
+        >
+          <TriangleAlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
+          <span className="flex-1">
+            If you reloaded this page, please re-attach your ID picture. Your typed answers are saved on this
+            device, but uploaded files are not.
+          </span>
+          <button
+            type="button"
+            onClick={dismissIdReattachNotice}
+            className="-m-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-warning transition-colors hover:bg-warning/10"
+            aria-label="Dismiss re-attach reminder"
+          >
+            <XIcon className="h-4 w-4" />
+          </button>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Field label="First name" required error={fieldErrors.childFirstName}>

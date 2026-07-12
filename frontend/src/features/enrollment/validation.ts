@@ -83,17 +83,33 @@ export const validateStep = (
       isValidContactNumber(formData.guardianContact);
 
     if (hasMotherInput && !isMotherComplete) {
-      errors.motherName =
+      // Attribute the group message to the first actually-incomplete sub-field
+      // so the inline error and focus land on the control the user must fix.
+      const motherErrorKey =
+        formData.motherName.trim().length === 0 ? 'motherName' :
+        formData.motherOccupation.trim().length === 0 ? 'motherOccupation' :
+        'motherContact';
+      errors[motherErrorKey] =
         "If mother's details are provided, complete name, occupation, and a valid 11-digit contact number (09XXXXXXXXX).";
     }
 
     if (hasFatherInput && !isFatherComplete) {
-      errors.fatherName =
+      const fatherErrorKey =
+        formData.fatherName.trim().length === 0 ? 'fatherName' :
+        formData.fatherOccupation.trim().length === 0 ? 'fatherOccupation' :
+        'fatherContact';
+      errors[fatherErrorKey] =
         "If father's details are provided, complete name, occupation, and a valid 11-digit contact number (09XXXXXXXXX).";
     }
 
     if (hasGuardianInput && !isGuardianComplete) {
-      errors.guardianName =
+      const guardianErrorKey =
+        formData.guardianName.trim().length === 0 ? 'guardianName' :
+        !hasRelationshipValue ?
+          (formData.relationship === 'Other' ? 'relationshipOther' : 'relationship') :
+        formData.guardianOccupation.trim().length === 0 ? 'guardianOccupation' :
+        'guardianContact';
+      errors[guardianErrorKey] =
         "If guardian details are provided, complete guardian name, relationship, occupation, and a valid 11-digit contact number (09XXXXXXXXX).";
     }
 
@@ -120,13 +136,15 @@ export const validateStep = (
       errors.financialProgramOther = 'Please specify the beneficiary program.';
     }
 
-    if (
-      formData.enrolledSiblingDetails.some(
-        (sibling) => !sibling.name.trim() || !sibling.sex || !sibling.dateOfBirth
-      )
-    ) {
-      errors[FORM_LEVEL_ERROR_KEY] = 'Complete each enrolled sibling entry with name, birthday, and sex.';
-    }
+    // Each incomplete sibling sub-field is attributed to its own key so it gets
+    // an inline error + aria-invalid the focus effect can land on. Same rule and
+    // wording as before — a row missing name, sex, or birthday still blocks.
+    const siblingErrorMessage = 'Complete each enrolled sibling entry with name, birthday, and sex.';
+    formData.enrolledSiblingDetails.forEach((sibling, index) => {
+      if (!sibling.name.trim()) errors[`sibling.${index}.name`] = siblingErrorMessage;
+      if (!sibling.sex) errors[`sibling.${index}.sex`] = siblingErrorMessage;
+      if (!sibling.dateOfBirth) errors[`sibling.${index}.dateOfBirth`] = siblingErrorMessage;
+    });
 
     if (!formData.incomeSourceCategory) errors.incomeSourceCategory = 'Source of income is required.';
     if (

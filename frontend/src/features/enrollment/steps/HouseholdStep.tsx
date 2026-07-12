@@ -1,4 +1,4 @@
-import { PlusIcon, Trash2Icon, UploadCloudIcon } from 'lucide-react';
+import { PlusIcon, Trash2Icon, TriangleAlertIcon, UploadCloudIcon, XIcon } from 'lucide-react';
 import { Button, Combobox, Field, Input, Select } from '../../../components/ui';
 import { cn } from '../../../lib/cn';
 import { StepHeading } from './StepHeading';
@@ -17,6 +17,8 @@ export function HouseholdStep({ form }: { form: EnrollmentFormApi }) {
     siblingBirthdateRange,
     handleIncomeProofChange,
     effectiveIncomeProof,
+    showIncomeReattachNotice,
+    dismissIncomeReattachNotice,
   } = form;
 
   return (
@@ -87,29 +89,33 @@ export function HouseholdStep({ form }: { form: EnrollmentFormApi }) {
               </Button>
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="Sibling name" required>
-                {({ id }) => (
+              <Field label="Sibling name" required error={fieldErrors[`sibling.${siblingIndex}.name`]}>
+                {({ id, describedBy, invalid }) => (
                   <Input
                     id={id}
+                    aria-describedby={describedBy}
+                    invalid={invalid}
                     value={sibling.name}
                     onChange={(event) => updateSiblingFormData(siblingIndex, 'name', event.target.value)}
                     placeholder="Full name"
                   />
                 )}
               </Field>
-              <Field label="Sex" required>
-                {({ id }) => (
-                  <Select id={id} value={sibling.sex} onChange={(event) => updateSiblingFormData(siblingIndex, 'sex', event.target.value)}>
+              <Field label="Sex" required error={fieldErrors[`sibling.${siblingIndex}.sex`]}>
+                {({ id, describedBy, invalid }) => (
+                  <Select id={id} aria-describedby={describedBy} invalid={invalid} value={sibling.sex} onChange={(event) => updateSiblingFormData(siblingIndex, 'sex', event.target.value)}>
                     <option value="">Select sex</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                   </Select>
                 )}
               </Field>
-              <Field label="Birthday" required>
-                {({ id }) => (
+              <Field label="Birthday" required error={fieldErrors[`sibling.${siblingIndex}.dateOfBirth`]}>
+                {({ id, describedBy, invalid }) => (
                   <Input
                     id={id}
+                    aria-describedby={describedBy}
+                    invalid={invalid}
                     type="date"
                     min={siblingBirthdateRange.min}
                     max={siblingBirthdateRange.max}
@@ -201,6 +207,26 @@ export function HouseholdStep({ form }: { form: EnrollmentFormApi }) {
             </Select>
           )}
         </Field>
+        {showIncomeReattachNotice ? (
+          <div
+            role="status"
+            className="flex items-start gap-2.5 rounded-xl border border-warning/25 bg-warning-soft px-4 py-3 text-sm font-medium text-warning md:col-span-2"
+          >
+            <TriangleAlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
+            <span className="flex-1">
+              If you reloaded this page, please re-attach your proof of income (ITR). Your typed answers are
+              saved on this device, but uploaded files are not.
+            </span>
+            <button
+              type="button"
+              onClick={dismissIncomeReattachNotice}
+              className="-m-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-warning transition-colors hover:bg-warning/10"
+              aria-label="Dismiss re-attach reminder"
+            >
+              <XIcon className="h-4 w-4" />
+            </button>
+          </div>
+        ) : null}
         <Field label="Proof of income (ITR)" required hint="JPEG, PNG, or PDF up to 5MB" error={fieldErrors.incomeProof}>
           {({ id, describedBy, invalid }) => (
             <label
